@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T20:00:14Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T20:49:12Z · Mode: manual
 
 ## Summary
-Done 3 / 22 · In progress: none · Blocked: none · Next: 04 — ui-spec: value formats, inline text, status tokens
+Done 4 / 22 · In progress: none · Blocked: none · Next: 05 — ui-text: markdown and text renderer
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -31,7 +31,7 @@ Recorded 2026-11-04 during bootstrap.
 | 01 | Monorepo scaffolding | §3, §15.1, §16 | none | done | removed | ctx_5c58f32c1b79 | [design](docs/superpowers/specs/2026-11-04-monorepo-scaffold-design.md) | [plan](docs/superpowers/plans/2026-11-04-monorepo-scaffold.md) | 5205219 | 2026-11-04 |
 | 02 | ui-spec: parser, envelope, normalizer | §2, §5, §5.1, §5.2, §5.3 | 01 | done | removed | ctx_2abe81f7d30f | [design](docs/superpowers/specs/2026-11-04-spec-parser-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-parser.md) | 8abe48f | 2026-11-04 |
 | 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | done | removed | ctx_16d884678f96 | [design](docs/superpowers/specs/2026-11-04-spec-validator-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-validator.md) | 4149910 | 2026-11-04 |
-| 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | todo | | | | | | |
+| 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | done | removed | ctx_81dd35dc6907 | [design](docs/superpowers/specs/2026-11-04-spec-formats-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-formats.md) | bcc143c | 2026-11-04 |
 | 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | todo | | | | | | |
 | 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | todo | | | | | | |
 | 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | todo | | | | | | |
@@ -82,3 +82,14 @@ none
 - Task 02 defects corrected here: the VD-028 cell cap is now per document (VD-038); `FlowNodeObject.label` is required, as §6.5 writes it (VD-040).
 - Tooling changes accepted at merge: `ajv` as a root dev dependency (VD-035); `pnpm build` generates the schema and `pnpm check` verifies it.
 - Follow-ups: tasks 05 and later can import `packages/ui-spec/test/corpus/cases.ts`. Task 04 still wires the coverage gate (VD-027). Task 12 (CLI) must escape `Diagnostic.path` when printing, since a key with a control character reaches it raw (VD-041; the worker's note named task 13, but task 12 owns the CLI output); it appends `hint` as in §11.3 and maps `isLimitCode` to exit 3. No column hint on `dropped-cell` yet (VD-041).
+
+### 04 — ui-spec: value formats, inline text, status tokens
+- Built: all 18 §7 formats in `formatValue` (pure, total, no clock), format parsing and `checkFormat`/`checkValue`, §5.5 inline parser to a token tree with status tokens and `safeHref`, validator warnings `bad-value` and `bad-format-arg`, and the 95% line coverage gate in `pnpm gate` through `test:coverage`.
+- Decisions: VD-042 to VD-049, no DEVIATION. VD-042: `delta[:base[:arg]][:better:low|high]`. VD-043: grouping is always on, so `pl-PL` matches §7's `1 234,50 zł`; Intl's NBSP is kept. VD-047: `date` is always UTC and strict ISO 8601. VD-048: `#fragment` links are allowed, since §4.2 and §5.4 promise them and they have no scheme.
+- Evidence (coordinator rerun on `main` at bcc143c): `pnpm gate` exit 0. Vitest 31 files, 1,936 tests. Playwright 1 test. Banned-API check clean on 22 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. `ui-spec` coverage: lines 100% (1176/1176), statements 99.63%, branches 99.32%. Spec hash unchanged.
+- Coordinator probes on the merged build: every §7 example output reproduced, in the listed locale; `better:low` inverts tones; null gives em dash and muted; wrong types and bad args render raw with a `warn`; `rel` stable across calls in all three locales; `safeHref` refused `javascript:`, leading-space, control-char, `data:`, `vbscript:`, `file:`, `//`, relative and split-scheme URLs; seven 180,000-200,000-char adversarial `parseInline` inputs each ran in at most 25 ms.
+- Test-first gap: the format tests in 5f996c7 were written first but never run red; the worker reported this. Coordinator compensated with six hand mutants of `format.ts` (tone inversion, ASCII minus, grouping, compact digits, `num` digits, null tone). All six were killed, with 2 to 19 tests failing each. This is a sample, not a full mutation run.
+- Worker evidence, not rerun: coverage gate exits 1 at 77.22% with the format and inline tests excluded; `Date.now` spy never called by `rel`; 5,000 × 30 cells validate 53 ms, format 392 ms, measured before the review fixes.
+- Review: fresh reviewer found 2 critical (a 10-char string hung `parseInline` until heap OOM; a 37.5 KB format string threw from `validateText`) and 3 important (quadratic path regex, unchecked `stats` delta, negative zero). All fixed. Declined items are in VD-049.
+- Follow-ups: tasks 06 to 10: pass `generatedAt` as `FormatContext.now`, use the `Formatted` fields, and add a JSON Pointer to each `issues` entry. Task 12 (the worker's note named task 13): `bad-value` and `bad-format-arg` are `warn`, so no exit-code change. Task 21: check `pl-PL` money in Firefox 115; if `useGrouping: 'always'` is unsupported there it prints `1234,50 zł` and differs from the CLI (VD-043, from memory, untested).
+- Note: execution was inline with `executing-plans`, not subagent-driven, because the dispatch preamble says no subagents unless asked.
