@@ -8,10 +8,6 @@ const ESCAPE_SEQUENCE =
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching controls is the point.
 const CONTROL = /[\0-\x08\x0b-\x1f\x7f-\x9f]/g
 
-export function stripEscapes(value: string): string {
-  return value.replace(ESCAPE_SEQUENCE, '')
-}
-
 export function clean(value: string): string {
-  return stripEscapes(value).replace(/\r\n?/g, '\n').replace(CONTROL, '')
+  return value.replace(ESCAPE_SEQUENCE, '').replace(/\r\n?/g, '\n').replace(CONTROL, '')
 }

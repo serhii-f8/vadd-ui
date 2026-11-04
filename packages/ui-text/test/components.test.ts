@@ -73,6 +73,40 @@ describe('envelope and common fields', () => {
   })
 })
 
+describe('links', () => {
+  it('prints the target in plain text unless it says nothing new', () => {
+    both(
+      {
+        type: 'list',
+        items: ['[a](https://a.dev)', '[b](#top)', '[https://c.dev](https://c.dev)'],
+      },
+      '- [a](https://a.dev)\n- [b](#top)\n- [https\\://c.dev](https://c.dev)',
+      '- a (https://a.dev)\n- b\n- https://c.dev',
+    )
+  })
+})
+
+describe('adjacent lists', () => {
+  const list = (ordered: boolean, item: string) => ({ type: 'list', ordered, items: [item] })
+
+  it('change marker, or GFM merges them into one list', () => {
+    both(
+      { body: [list(false, 'a'), list(false, 'b'), list(false, 'c'), 'd', list(false, 'e')] },
+      '- a\n\n* b\n\n- c\n\nd\n\n- e',
+      '- a\n\n- b\n\n- c\n\nd\n\n- e',
+    )
+    both({ body: [list(true, 'a'), list(true, 'b')] }, '1. a\n\n1) b', '1. a\n\n1. b')
+  })
+
+  it('keep the marker when the kind differs, or a list between them is empty', () => {
+    expect(md({ body: [list(false, 'a'), list(true, 'b')] })).toBe('- a\n\n1. b\n')
+    expect(md({ body: [list(false, 'a'), { type: 'list', items: [] }, list(true, 'b')] })).toBe(
+      '- a\n\n1. b\n',
+    )
+    expect(md({ body: [{ type: 'list', items: [] }, list(false, 'a')] })).toBe('- a\n')
+  })
+})
+
 describe('layout', () => {
   it('stack, grid and card print children in order', () => {
     for (const type of ['stack', 'grid', 'card']) {

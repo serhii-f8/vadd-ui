@@ -1,0 +1,5355 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`valid corpus snapshots (§16) > callout valid 0: {} > markdown 1`] = `
+"> ℹ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 0: {} > plain 1`] = `
+"> ℹ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"> ⚠ hi
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"> ⚠ hi
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 2: {"title":"Node title"} > markdown 1`] = `
+"> **Node title**
+>
+> ℹ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 2: {"title":"Node title"} > plain 1`] = `
+"> Node title
+>
+> ℹ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 3: {"tone":"ok"} > markdown 1`] = `
+"> ✓ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 3: {"tone":"ok"} > plain 1`] = `
+"> ✓ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 4: {"tone":"warn"} > markdown 1`] = `
+"> ⚠ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 4: {"tone":"warn"} > plain 1`] = `
+"> ⚠ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 5: {"tone":"err"} > markdown 1`] = `
+"> ✗ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 5: {"tone":"err"} > plain 1`] = `
+"> ✗ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 6: {"tone":"info"} > markdown 1`] = `
+"> ℹ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 6: {"tone":"info"} > plain 1`] = `
+"> ℹ hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 7: {"tone":"muted"} > markdown 1`] = `
+"> hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 7: {"tone":"muted"} > plain 1`] = `
+"> hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 8: {"tone":"accent"} > markdown 1`] = `
+"> hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 8: {"tone":"accent"} > plain 1`] = `
+"> hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 9: {"tone":"default"} > markdown 1`] = `
+"> hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > callout valid 9: {"tone":"default"} > plain 1`] = `
+"> hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > card valid 0: {} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 0: {} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > card valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > card valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > card valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > card valid 3: {"tone":"ok"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 3: {"tone":"ok"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 4: {"tone":"warn"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 4: {"tone":"warn"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 5: {"tone":"err"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 5: {"tone":"err"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 6: {"tone":"info"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 6: {"tone":"info"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 7: {"tone":"muted"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 7: {"tone":"muted"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 8: {"tone":"accent"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 8: {"tone":"accent"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 9: {"tone":"default"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > card valid 9: {"tone":"default"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 0: {} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 0: {} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Area chart: s over a–b._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Area chart: s over a–b.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 5: {"stackTotal":true} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 6: {"height":"sm"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 6: {"height":"sm"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 7: {"height":"md"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 7: {"height":"md"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 8: {"height":"lg"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 8: {"height":"lg"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 9: {"legend":"auto"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 10: {"legend":"none"} > markdown 1`] = `
+"_Area chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 10: {"legend":"none"} > plain 1`] = `
+"Area chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Area chart: s over a–b; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Area chart: s over a–b; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 12: {"x":[1,2]} > markdown 1`] = `
+"_Area chart: s over 1–2._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 12: {"x":[1,2]} > plain 1`] = `
+"Area chart: s over 1–2.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 13: {"x":["2026-11-04","2026-11-05"]} > markdown 1`] = `
+"_Area chart: s over 2026-11-04–2026-11-05._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 13: {"x":["2026-11-04","2026-11-05"]} > plain 1`] = `
+"Area chart: s over 2026-11-04–2026-11-05.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 14: {"x":[],"series":{}} > markdown 1`] = `
+"_Area chart._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart area valid 14: {"x":[],"series":{}} > plain 1`] = `
+"Area chart.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 0: {} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 0: {} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Bar chart: s over a._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Bar chart: s over a.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 5: {"stackTotal":true} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 6: {"height":"sm"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 6: {"height":"sm"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 7: {"height":"md"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 7: {"height":"md"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 8: {"height":"lg"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 8: {"height":"lg"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 9: {"legend":"auto"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 10: {"legend":"none"} > markdown 1`] = `
+"_Bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 10: {"legend":"none"} > plain 1`] = `
+"Bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Bar chart: s over a; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Bar chart: s over a; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 12: {"x":[],"series":{}} > markdown 1`] = `
+"_Bar chart._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 12: {"x":[],"series":{}} > plain 1`] = `
+"Bar chart.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 13: {"series":{"a":[1],"b":[2]}} > markdown 1`] = `
+"_Bar chart: a, b over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart bar valid 13: {"series":{"a":[1],"b":[2]}} > plain 1`] = `
+"Bar chart: a, b over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 0: {} > markdown 1`] = `
+"_Donut chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 0: {} > plain 1`] = `
+"Donut chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Donut chart: s over a–b._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Donut chart: s over a–b.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Donut chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Donut chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 3: {"title":"Share"} > markdown 1`] = `
+"#### Share
+
+_Donut chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 3: {"title":"Share"} > plain 1`] = `
+"Share
+
+Donut chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 4: {"legend":"none"} > markdown 1`] = `
+"_Donut chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart donut valid 4: {"legend":"none"} > plain 1`] = `
+"Donut chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 0: {} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 0: {} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Horizontal bar chart: s over a.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 5: {"stackTotal":true} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 6: {"height":"sm"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 6: {"height":"sm"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 7: {"height":"md"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 7: {"height":"md"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 8: {"height":"lg"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 8: {"height":"lg"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 9: {"legend":"auto"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 10: {"legend":"none"} > markdown 1`] = `
+"_Horizontal bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 10: {"legend":"none"} > plain 1`] = `
+"Horizontal bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Horizontal bar chart: s over a; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Horizontal bar chart: s over a; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 12: {"x":[],"series":{}} > markdown 1`] = `
+"_Horizontal bar chart._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 12: {"x":[],"series":{}} > plain 1`] = `
+"Horizontal bar chart.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 13: {"series":{"a":[1],"b":[2]}} > markdown 1`] = `
+"_Horizontal bar chart: a, b over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart hbar valid 13: {"series":{"a":[1],"b":[2]}} > plain 1`] = `
+"Horizontal bar chart: a, b over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 0: {} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 0: {} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Line chart: s over a–b._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Line chart: s over a–b.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 5: {"stackTotal":true} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 6: {"height":"sm"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 6: {"height":"sm"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 7: {"height":"md"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 7: {"height":"md"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 8: {"height":"lg"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 8: {"height":"lg"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 9: {"legend":"auto"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 10: {"legend":"none"} > markdown 1`] = `
+"_Line chart: s over a–b._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 10: {"legend":"none"} > plain 1`] = `
+"Line chart: s over a–b.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Line chart: s over a–b; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Line chart: s over a–b; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 12: {"x":[1,2]} > markdown 1`] = `
+"_Line chart: s over 1–2._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 12: {"x":[1,2]} > plain 1`] = `
+"Line chart: s over 1–2.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 13: {"x":["2026-11-04","2026-11-05"]} > markdown 1`] = `
+"_Line chart: s over 2026-11-04–2026-11-05._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 13: {"x":["2026-11-04","2026-11-05"]} > plain 1`] = `
+"Line chart: s over 2026-11-04–2026-11-05.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 14: {"x":[],"series":{}} > markdown 1`] = `
+"_Line chart._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart line valid 14: {"x":[],"series":{}} > plain 1`] = `
+"Line chart.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 0: {} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 0: {} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Scatter chart: 2 points._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Scatter chart: 2 points.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 5: {"stackTotal":true} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 6: {"height":"sm"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 6: {"height":"sm"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 7: {"height":"md"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 7: {"height":"md"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 8: {"height":"lg"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 8: {"height":"lg"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 9: {"legend":"auto"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 10: {"legend":"none"} > markdown 1`] = `
+"_Scatter chart: 2 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 10: {"legend":"none"} > plain 1`] = `
+"Scatter chart: 2 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Scatter chart: 2 points; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Scatter chart: 2 points; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 12: {"points":[]} > markdown 1`] = `
+"_Scatter chart: 0 points._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 12: {"points":[]} > plain 1`] = `
+"Scatter chart: 0 points.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 0: {} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 0: {} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Sparkline: ▁█._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Sparkline: ▁█.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 5: {"stackTotal":true} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 6: {"height":"sm"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 6: {"height":"sm"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 7: {"height":"md"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 7: {"height":"md"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 8: {"height":"lg"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 8: {"height":"lg"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 9: {"legend":"auto"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 10: {"legend":"none"} > markdown 1`] = `
+"_Sparkline: ▁█._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 10: {"legend":"none"} > plain 1`] = `
+"Sparkline: ▁█.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Sparkline: ▁█; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Sparkline: ▁█; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 12: {"values":[]} > markdown 1`] = `
+"_Sparkline: ._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart spark valid 12: {"values":[]} > plain 1`] = `
+"Sparkline: .
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 0: {} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 0: {} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_Stacked bar chart: s over a._
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"Stacked bar chart: s over a.
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 3: {"yFormat":"ms"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 3: {"yFormat":"ms"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 4: {"xFormat":"date:short"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 4: {"xFormat":"date:short"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 5: {"stackTotal":true} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 5: {"stackTotal":true} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 6: {"height":"sm"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 6: {"height":"sm"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 7: {"height":"md"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 7: {"height":"md"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 8: {"height":"lg"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 8: {"height":"lg"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 9: {"legend":"auto"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 9: {"legend":"auto"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 10: {"legend":"none"} > markdown 1`] = `
+"_Stacked bar chart: s over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 10: {"legend":"none"} > plain 1`] = `
+"Stacked bar chart: s over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
+"_Stacked bar chart: s over a; SLO 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
+"Stacked bar chart: s over a; SLO 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 12: {"x":[],"series":{}} > markdown 1`] = `
+"_Stacked bar chart._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 12: {"x":[],"series":{}} > plain 1`] = `
+"Stacked bar chart.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 13: {"series":{"a":[1],"b":[2]}} > markdown 1`] = `
+"_Stacked bar chart: a, b over a._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart stacked valid 13: {"series":{"a":[1],"b":[2]}} > plain 1`] = `
+"Stacked bar chart: a, b over a.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 0: {} > markdown 1`] = `
+"- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 0: {} > plain 1`] = `
+"- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- ✓ n
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- ✓ n
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 3: {"items":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > checks valid 3: {"items":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > checks valid 4: {"items":[{"name":"n","status":"ok"}]} > markdown 1`] = `
+"- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 4: {"items":[{"name":"n","status":"ok"}]} > plain 1`] = `
+"- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 5: {"items":[{"name":"n","status":"fail"}]} > markdown 1`] = `
+"- ✗ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 5: {"items":[{"name":"n","status":"fail"}]} > plain 1`] = `
+"- ✗ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 6: {"items":[{"name":"n","status":"warn"}]} > markdown 1`] = `
+"- ⚠ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 6: {"items":[{"name":"n","status":"warn"}]} > plain 1`] = `
+"- ⚠ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 7: {"items":[{"name":"n","status":"info"}]} > markdown 1`] = `
+"- ℹ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 7: {"items":[{"name":"n","status":"info"}]} > plain 1`] = `
+"- ℹ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 8: {"items":[{"name":"n","status":"run"}]} > markdown 1`] = `
+"- ▶ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 8: {"items":[{"name":"n","status":"run"}]} > plain 1`] = `
+"- ▶ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 9: {"items":[{"name":"n","status":"wait"}]} > markdown 1`] = `
+"- … n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 9: {"items":[{"name":"n","status":"wait"}]} > plain 1`] = `
+"- … n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 10: {"items":[{"name":"n","status":"skip"}]} > markdown 1`] = `
+"- ⊘ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 10: {"items":[{"name":"n","status":"skip"}]} > plain 1`] = `
+"- ⊘ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 11: {"items":[{"name":"n","status":"none"}]} > markdown 1`] = `
+"- n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 11: {"items":[{"name":"n","status":"none"}]} > plain 1`] = `
+"- n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 12: {"items":[{"name":"n","status":"ok","cmd > markdown 1`] = `
+"- ✓ n \`pnpm t\` — 10 ms
+  \`\`\`
+  done
+  \`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > checks valid 12: {"items":[{"name":"n","status":"ok","cmd > plain 1`] = `
+"- ✓ n pnpm t — 10 ms
+      done
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 0: {} > markdown 1`] = `
+"\`\`\`
+x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 0: {} > plain 1`] = `
+"    x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"\`\`\`
+x
+\`\`\`
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"    x
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+\`\`\`
+x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+    x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 3: {"lang":"ts"} > markdown 1`] = `
+"\`\`\`ts
+x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 3: {"lang":"ts"} > plain 1`] = `
+"    x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 4: {"lines":true} > markdown 1`] = `
+"\`\`\`
+1  x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 4: {"lines":true} > plain 1`] = `
+"    1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 5: {"mark":[1,2]} > markdown 1`] = `
+"\`\`\`
+> x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 5: {"mark":[1,2]} > plain 1`] = `
+"    > x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 6: {"mark":[]} > markdown 1`] = `
+"\`\`\`
+x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 6: {"mark":[]} > plain 1`] = `
+"    x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 7: {"maxLines":1} > markdown 1`] = `
+"\`\`\`
+x
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > code valid 7: {"maxLines":1} > plain 1`] = `
+"    x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 0: {} > markdown 1`] = `
+"|  | a | b |
+| --- | --- | --- |
+| C | 1 | 2 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 0: {} > plain 1`] = `
+"   a  b
+-  -  -
+C  1  2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"|  | a | b |
+| --- | --- | --- |
+| C | 1 | 2 |
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"   a  b
+-  -  -
+C  1  2
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+|  | a | b |
+| --- | --- | --- |
+| C | 1 | 2 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+   a  b
+-  -  -
+C  1  2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 3: {"pick":1} > markdown 1`] = `
+"|  | a | b ✓ |
+| --- | --- | --- |
+| C | 1 | 2 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 3: {"pick":1} > plain 1`] = `
+"   a  b ✓
+-  -  ---
+C  1  2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 4: {"criteria":[]} > markdown 1`] = `
+"|  | a | b |
+| --- | --- | --- |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 4: {"criteria":[]} > plain 1`] = `
+"  a  b
+  -  -
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 5: {"criteria":[{"label":"C","values":[1,nu > markdown 1`] = `
+"|  | a | b |
+| --- | --- | --- |
+| C ↓ | 1 ms | — |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 5: {"criteria":[{"label":"C","values":[1,nu > plain 1`] = `
+"     a     b
+---  ----  -
+C ↓  1 ms  —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 6: {"criteria":[{"label":"C","values":["x", > markdown 1`] = `
+"|  | a | b |
+| --- | --- | --- |
+| C ↑ | x | true |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 6: {"criteria":[{"label":"C","values":["x", > plain 1`] = `
+"     a  b
+---  -  ----
+C ↑  x  true
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 0: {} > markdown 1`] = `
+"**q**
+
+- **a**
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 0: {} > plain 1`] = `
+"q
+
+- a
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"**q**
+
+- **a**
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"q
+
+- a
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+**q**
+
+- **a**
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+q
+
+- a
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 3: {"pick":0} > markdown 1`] = `
+"**q**
+
+- **a** ✓ recommended
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 3: {"pick":0} > plain 1`] = `
+"q
+
+- a ✓ recommended
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 4: {"context":"c"} > markdown 1`] = `
+"**q**
+
+c
+
+- **a**
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 4: {"context":"c"} > plain 1`] = `
+"q
+
+c
+
+- a
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 5: {"options":[]} > markdown 1`] = `
+"**q**
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 5: {"options":[]} > plain 1`] = `
+"q
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 6: {"options":[{"label":"a","effort":"XS"}] > markdown 1`] = `
+"**q**
+
+- **a**
+  - Effort: XS
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 6: {"options":[{"label":"a","effort":"XS"}] > plain 1`] = `
+"q
+
+- a
+  - Effort: XS
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 7: {"options":[{"label":"a","effort":"S"}]} > markdown 1`] = `
+"**q**
+
+- **a**
+  - Effort: S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 7: {"options":[{"label":"a","effort":"S"}]} > plain 1`] = `
+"q
+
+- a
+  - Effort: S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 8: {"options":[{"label":"a","effort":"M"}]} > markdown 1`] = `
+"**q**
+
+- **a**
+  - Effort: M
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 8: {"options":[{"label":"a","effort":"M"}]} > plain 1`] = `
+"q
+
+- a
+  - Effort: M
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 9: {"options":[{"label":"a","effort":"L"}]} > markdown 1`] = `
+"**q**
+
+- **a**
+  - Effort: L
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 9: {"options":[{"label":"a","effort":"L"}]} > plain 1`] = `
+"q
+
+- a
+  - Effort: L
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 10: {"options":[{"label":"a","effort":"XL"}] > markdown 1`] = `
+"**q**
+
+- **a**
+  - Effort: XL
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 10: {"options":[{"label":"a","effort":"XL"}] > plain 1`] = `
+"q
+
+- a
+  - Effort: XL
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 11: {"options":[{"label":"a","risk":"low"}]} > markdown 1`] = `
+"**q**
+
+- **a**
+  - Risk: low
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 11: {"options":[{"label":"a","risk":"low"}]} > plain 1`] = `
+"q
+
+- a
+  - Risk: low
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 12: {"options":[{"label":"a","risk":"med"}]} > markdown 1`] = `
+"**q**
+
+- **a**
+  - Risk: med
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 12: {"options":[{"label":"a","risk":"med"}]} > plain 1`] = `
+"q
+
+- a
+  - Risk: med
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 13: {"options":[{"label":"a","risk":"high"}] > markdown 1`] = `
+"**q**
+
+- **a**
+  - Risk: high
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 13: {"options":[{"label":"a","risk":"high"}] > plain 1`] = `
+"q
+
+- a
+  - Risk: high
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 14: {"options":[{"label":"a","pros":["p"],"c > markdown 1`] = `
+"**q**
+
+- **a**
+  - Pros: p
+  - Cons: c
+  - Reversible: no
+  - Verify: v
+"
+`;
+
+exports[`valid corpus snapshots (§16) > decision valid 14: {"options":[{"label":"a","pros":["p"],"c > plain 1`] = `
+"q
+
+- a
+  - Pros: p
+  - Cons: c
+  - Reversible: no
+  - Verify: v
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 0: {} > markdown 1`] = `
+"- M \`a.ts\` +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 0: {} > plain 1`] = `
+"- M a.ts +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- M \`a.ts\` +1 −2
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- M a.ts +1 −2
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- M \`a.ts\` +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- M a.ts +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 3: {"files":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > diff valid 3: {"files":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > diff valid 4: {"files":[["a.ts",0,0]]} > markdown 1`] = `
+"- \`a.ts\` +0 −0
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 4: {"files":[["a.ts",0,0]]} > plain 1`] = `
+"- a.ts +0 −0
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 5: {"files":[["a.ts",1,2,"A"]]} > markdown 1`] = `
+"- A \`a.ts\` +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 5: {"files":[["a.ts",1,2,"A"]]} > plain 1`] = `
+"- A a.ts +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 6: {"files":[["a.ts",1,2,"M"]]} > markdown 1`] = `
+"- M \`a.ts\` +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 6: {"files":[["a.ts",1,2,"M"]]} > plain 1`] = `
+"- M a.ts +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 7: {"files":[["a.ts",1,2,"D"]]} > markdown 1`] = `
+"- D \`a.ts\` +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 7: {"files":[["a.ts",1,2,"D"]]} > plain 1`] = `
+"- D a.ts +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 8: {"files":[["a.ts",1,2,"R"]]} > markdown 1`] = `
+"- R \`a.ts\` +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 8: {"files":[["a.ts",1,2,"R"]]} > plain 1`] = `
+"- R a.ts +1 −2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 9: {"hunks":{"a.ts":"@@ -1 +1 @@"}} > markdown 1`] = `
+"- M \`a.ts\` +1 −2
+  \`\`\`diff
+  @@ -1 +1 @@
+  \`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > diff valid 9: {"hunks":{"a.ts":"@@ -1 +1 @@"}} > plain 1`] = `
+"- M a.ts +1 −2
+      @@ -1 +1 @@
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 0: {} > markdown 1`] = `
+"---
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 0: {} > plain 1`] = `
+"---
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"---
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"---
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+---
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+---
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 3: {"label":"or"} > markdown 1`] = `
+"---
+
+_or_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > divider valid 3: {"label":"or"} > plain 1`] = `
+"---
+
+or
+"
+`;
+
+exports[`valid corpus snapshots (§16) > envelope: body alone > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > envelope: body alone > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > envelope: every field > markdown 1`] = `
+"### T
+
+_S_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > envelope: every field > plain 1`] = `
+"T
+
+S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 0: {} > markdown 1`] = `
+"- a
+  - → b (l)
+- b
+- C
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 0: {} > plain 1`] = `
+"- a
+  - → b (l)
+- b
+- C
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- a
+  - → b (l)
+- b
+- C
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- a
+  - → b (l)
+- b
+- C
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- a
+  - → b (l)
+- b
+- C
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- a
+  - → b (l)
+- b
+- C
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 3: {"edges":[]} > markdown 1`] = `
+"- a
+- b
+- C
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 3: {"edges":[]} > plain 1`] = `
+"- a
+- b
+- C
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 4: {"nodes":[],"edges":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > flow valid 4: {"nodes":[],"edges":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > flow valid 5: {"nodes":["a",{"id":"b","label":"B","sta > markdown 1`] = `
+"- a
+  - → B
+- ✓ B
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 5: {"nodes":["a",{"id":"b","label":"B","sta > plain 1`] = `
+"- a
+  - → B
+- ✓ B
+"
+`;
+
+exports[`valid corpus snapshots (§16) > grid valid 0: {} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 0: {} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > grid valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > grid valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > grid valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > grid valid 3: {"cols":1} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 3: {"cols":1} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 4: {"cols":2} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 4: {"cols":2} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 5: {"cols":3} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 5: {"cols":3} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 6: {"cols":4} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 6: {"cols":4} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 7: {"cols":5} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 7: {"cols":5} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 8: {"cols":6} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > grid valid 8: {"cols":6} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > kv valid 0: {} > markdown 1`] = `
+"- **k:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 0: {} > plain 1`] = `
+"- k: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- **k:** 1
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- k: 1
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- **k:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- k: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 3: {"pairs":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > kv valid 3: {"pairs":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > kv valid 4: {"pairs":{}} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > kv valid 4: {"pairs":{}} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > kv valid 5: {"pairs":{"a":1,"b":"x","c":null,"d":tru > markdown 1`] = `
+"- **a:** 1
+- **b:** x
+- **c:** —
+- **d:** true
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 5: {"pairs":{"a":1,"b":"x","c":null,"d":tru > plain 1`] = `
+"- a: 1
+- b: x
+- c: —
+- d: true
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 6: {"pairs":[["k",null]]} > markdown 1`] = `
+"- **k:** —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 6: {"pairs":[["k",null]]} > plain 1`] = `
+"- k: —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 7: {"cols":1} > markdown 1`] = `
+"- **k:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 7: {"cols":1} > plain 1`] = `
+"- k: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 8: {"cols":2} > markdown 1`] = `
+"- **k:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 8: {"cols":2} > plain 1`] = `
+"- k: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 9: {"cols":3} > markdown 1`] = `
+"- **k:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > kv valid 9: {"cols":3} > plain 1`] = `
+"- k: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 0: {} > markdown 1`] = `
+"- a
+- b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 0: {} > plain 1`] = `
+"- a
+- b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- a
+- b
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- a
+- b
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- a
+- b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- a
+- b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 3: {"items":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > list valid 3: {"items":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > list valid 4: {"ordered":true} > markdown 1`] = `
+"1. a
+2. b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 4: {"ordered":true} > plain 1`] = `
+"1. a
+2. b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 5: {"ordered":false} > markdown 1`] = `
+"- a
+- b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 5: {"ordered":false} > plain 1`] = `
+"- a
+- b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 6: {"items":[{"text":"x","status":"ok","not > markdown 1`] = `
+"- ✓ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 6: {"items":[{"text":"x","status":"ok","not > plain 1`] = `
+"- ✓ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 7: {"items":[{"text":"x","status":"fail","n > markdown 1`] = `
+"- ✗ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 7: {"items":[{"text":"x","status":"fail","n > plain 1`] = `
+"- ✗ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 8: {"items":[{"text":"x","status":"warn","n > markdown 1`] = `
+"- ⚠ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 8: {"items":[{"text":"x","status":"warn","n > plain 1`] = `
+"- ⚠ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 9: {"items":[{"text":"x","status":"info","n > markdown 1`] = `
+"- ℹ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 9: {"items":[{"text":"x","status":"info","n > plain 1`] = `
+"- ℹ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 10: {"items":[{"text":"x","status":"run","no > markdown 1`] = `
+"- ▶ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 10: {"items":[{"text":"x","status":"run","no > plain 1`] = `
+"- ▶ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 11: {"items":[{"text":"x","status":"wait","n > markdown 1`] = `
+"- … x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 11: {"items":[{"text":"x","status":"wait","n > plain 1`] = `
+"- … x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 12: {"items":[{"text":"x","status":"skip","n > markdown 1`] = `
+"- ⊘ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 12: {"items":[{"text":"x","status":"skip","n > plain 1`] = `
+"- ⊘ x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 13: {"items":[{"text":"x","status":"none","n > markdown 1`] = `
+"- x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > list valid 13: {"items":[{"text":"x","status":"none","n > plain 1`] = `
+"- x — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 0: {} > markdown 1`] = `
+"\`\`\`log
+INFO up
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 0: {} > plain 1`] = `
+"    INFO up
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"\`\`\`log
+INFO up
+\`\`\`
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"    INFO up
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+\`\`\`log
+INFO up
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+    INFO up
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 3: {"maxLines":5} > markdown 1`] = `
+"\`\`\`log
+INFO up
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 3: {"maxLines":5} > plain 1`] = `
+"    INFO up
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 4: {"text":"ERROR a\\nWARN b\\nDEBUG c"} > markdown 1`] = `
+"\`\`\`log
+ERROR a
+WARN b
+DEBUG c
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > log valid 4: {"text":"ERROR a\\nWARN b\\nDEBUG c"} > plain 1`] = `
+"    ERROR a
+    WARN b
+    DEBUG c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 0: {} > markdown 1`] = `
+"hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 0: {} > plain 1`] = `
+"hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"hi
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"hi
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+hi
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 3: {"text":"### h\\n\\n- a\\n- b\\n\\n> q\\n\\n\`\`\` > markdown 1`] = `
+"### h
+
+- a
+- b
+
+> q
+
+\`\`\`
+code
+\`\`\`
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 3: {"text":"### h\\n\\n- a\\n- b\\n\\n> q\\n\\n\`\`\` > plain 1`] = `
+"h
+
+- a
+- b
+
+> q
+
+    code
+"
+`;
+
+exports[`valid corpus snapshots (§16) > md valid 4: {"text":""} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > md valid 4: {"text":""} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > nesting at exactly 12 > markdown 1`] = `
+"leaf
+"
+`;
+
+exports[`valid corpus snapshots (§16) > nesting at exactly 12 > plain 1`] = `
+"leaf
+"
+`;
+
+exports[`valid corpus snapshots (§16) > nodes at exactly 400 > markdown 1`] = `
+"x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > nodes at exactly 400 > plain 1`] = `
+"x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 0: {} > markdown 1`] = `
+"1/2 done
+
+- ✓ t
+  - ▶ c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 0: {} > plain 1`] = `
+"1/2 done
+
+- ✓ t
+  - ▶ c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"1/2 done
+
+- ✓ t
+  - ▶ c
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"1/2 done
+
+- ✓ t
+  - ▶ c
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+1/2 done
+
+- ✓ t
+  - ▶ c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+1/2 done
+
+- ✓ t
+  - ▶ c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 3: {"items":[]} > markdown 1`] = `
+"0/0 done
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 3: {"items":[]} > plain 1`] = `
+"0/0 done
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 4: {"items":[{"text":"t","status":"wait","n > markdown 1`] = `
+"0/1 done
+
+- … t — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > plan valid 4: {"items":[{"text":"t","status":"wait","n > plain 1`] = `
+"0/1 done
+
+- … t — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 0: {} > markdown 1`] = `
+"1 of 100 (1%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 0: {} > plain 1`] = `
+"1 of 100 (1%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"1 of 100 (1%)
+
+- ✓ L: 1
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"1 of 100 (1%)
+
+- ✓ L: 1
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+1 of 100 (1%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+1 of 100 (1%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 3: {"max":10} > markdown 1`] = `
+"1 of 10 (10%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 3: {"max":10} > plain 1`] = `
+"1 of 10 (10%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 4: {"label":"Done"} > markdown 1`] = `
+"**Done:** 1 of 100 (1%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 4: {"label":"Done"} > plain 1`] = `
+"Done: 1 of 100 (1%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[]} > markdown 1`] = `
+"1 of 100 (1%)
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[]} > plain 1`] = `
+"1 of 100 (1%)
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 6: {"value":0} > markdown 1`] = `
+"0 of 100 (0%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 6: {"value":0} > plain 1`] = `
+"0 of 100 (0%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > markdown 1`] = `
+"120.5 of 100 (121%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > plain 1`] = `
+"120.5 of 100 (121%)
+
+- ✓ L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > prototype-like names as data > markdown 1`] = `
+"_Line chart: \\_\\_proto\\_\\_, constructor over 1._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > prototype-like names as data > plain 1`] = `
+"Line chart: __proto__, constructor over 1.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > relaxed text: every §5.1 extension > markdown 1`] = `
+"### It's
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > relaxed text: every §5.1 extension > plain 1`] = `
+"It's
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 0: {} > markdown 1`] = `
+"#### S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 0: {} > plain 1`] = `
+"S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"#### S
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"S
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 3: {"fold":"open"} > markdown 1`] = `
+"#### S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 3: {"fold":"open"} > plain 1`] = `
+"S
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 4: {"title":"**bold** :ok:"} > markdown 1`] = `
+"#### **bold** ✓ ok
+"
+`;
+
+exports[`valid corpus snapshots (§16) > section valid 4: {"title":"**bold** :ok:"} > plain 1`] = `
+"bold ✓ ok
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 1: empty array > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > shorthand 1: empty array > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > shorthand 1: top-level array > markdown 1`] = `
+"one
+
+two
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 1: top-level array > plain 1`] = `
+"one
+
+two
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 2: top-level node > markdown 1`] = `
+"#### T
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 2: top-level node > plain 1`] = `
+"T
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 3: string in a tab > markdown 1`] = `
+"#### A
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 3: string in a tab > plain 1`] = `
+"A
+
+x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 3: string in body and children > markdown 1`] = `
+"a
+
+b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 3: string in body and children > plain 1`] = `
+"a
+
+b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single check item > markdown 1`] = `
+"- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single check item > plain 1`] = `
+"- ✓ n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single child node > markdown 1`] = `
+"---
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single child node > plain 1`] = `
+"---
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single child string > markdown 1`] = `
+"x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single child string > plain 1`] = `
+"x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single list item string > markdown 1`] = `
+"- x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single list item string > plain 1`] = `
+"- x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single plan child > markdown 1`] = `
+"2/2 done
+
+- ✓ t
+  - ✓ c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single plan child > plain 1`] = `
+"2/2 done
+
+- ✓ t
+  - ✓ c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single timeline item and stat > markdown 1`] = `
+"- **t** x
+
+* **L:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single timeline item and stat > plain 1`] = `
+"- t x
+
+- L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single tree item > markdown 1`] = `
+"- a
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 4: single tree item > plain 1`] = `
+"- a
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 5: columns from the first object > markdown 1`] = `
+"| Name | Time |
+| --- | ---: |
+| x | 1 ms |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 5: columns from the first object > plain 1`] = `
+"Name  Time
+----  ----
+x     1 ms
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 5: no rows and no columns > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > shorthand 5: no rows and no columns > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > shorthand 5: object rows with columns > markdown 1`] = `
+"| a | b |
+| ---: | ---: |
+| 1 | 2 |
+| 3 | — |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 5: object rows with columns > plain 1`] = `
+"a  b
+-  -
+1  2
+3  —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 6: a label with a colon stays whole > markdown 1`] = `
+"| Note: see docs | 10:05 |
+| --- | --- |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 6: a label with a colon stays whole > plain 1`] = `
+"Note: see docs  10:05
+--------------  -----
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 6: string columns and suffixes > markdown 1`] = `
+"| A | B | C | D |
+| --- | ---: | --- | ---: |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > shorthand 6: string columns and suffixes > plain 1`] = `
+"A  B  C  D
+-  -  -  -
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stack valid 0: {} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 0: {} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stack valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stack valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stack valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stack valid 3: {"gap":"sm"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 3: {"gap":"sm"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 4: {"gap":"md"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 4: {"gap":"md"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 5: {"gap":"lg"} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stack valid 5: {"gap":"lg"} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stats valid 0: {} > markdown 1`] = `
+"- **L:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 0: {} > plain 1`] = `
+"- L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- **L:** 1
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- L: 1
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- **L:** 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- L: 1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 3: {"items":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stats valid 3: {"items":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > stats valid 4: {"items":[{"label":"L","value":null}]} > markdown 1`] = `
+"- **L:** —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 4: {"items":[{"label":"L","value":null}]} > plain 1`] = `
+"- L: —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 5: {"items":[{"label":"L","value":"5/6","to > markdown 1`] = `
+"- **L:** 5/6 ⚠
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 5: {"items":[{"label":"L","value":"5/6","to > plain 1`] = `
+"- L: 5/6 ⚠
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 6: {"items":[{"label":"L","value":1,"format > markdown 1`] = `
+"- **L:** 100.0% (+10.0%)
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 6: {"items":[{"label":"L","value":1,"format > plain 1`] = `
+"- L: 100.0% (+10.0%)
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 7: {"items":[{"label":"L","value":1,"spark" > markdown 1`] = `
+"- **L:** 1 ▁▅█
+"
+`;
+
+exports[`valid corpus snapshots (§16) > stats valid 7: {"items":[{"label":"L","value":1,"spark" > plain 1`] = `
+"- L: 1 ▁▅█
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 0: {} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 0: {} > plain 1`] = `
+"A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"A  B
+-  -
+1  x
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+| A | B |
+| ---: | --- |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 3: {"rows":[]} > markdown 1`] = `
+"| A | B |
+| --- | --- |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 3: {"rows":[]} > plain 1`] = `
+"A  B
+-  -
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 4: {"rows":[[null,true]]} > markdown 1`] = `
+"| A | B |
+| --- | --- |
+| — | true |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 4: {"rows":[[null,true]]} > plain 1`] = `
+"A  B
+-  ----
+—  true
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 5: {"rows":[[1,2,{"tone":"warn","note":"n"} > markdown 1`] = `
+"| A | B |
+| ---: | ---: |
+| 1 ⚠ — n | 2 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 5: {"rows":[[1,2,{"tone":"warn","note":"n"} > plain 1`] = `
+"      A  B
+-------  -
+1 ⚠ — n  2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 6: {"rows":[[1,2,{}]]} > markdown 1`] = `
+"| A | B |
+| ---: | ---: |
+| 1 | 2 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 6: {"rows":[[1,2,{}]]} > plain 1`] = `
+"A  B
+-  -
+1  2
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 7: {"sort":[1,"asc"]} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 7: {"sort":[1,"asc"]} > plain 1`] = `
+"A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 8: {"sort":[0,"desc"]} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 8: {"sort":[0,"desc"]} > plain 1`] = `
+"A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 9: {"pageSize":5} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 9: {"pageSize":5} > plain 1`] = `
+"A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 10: {"totals":[1,null]} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+| **1** | **—** |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 10: {"totals":[1,null]} > plain 1`] = `
+"A  B
+-  -
+1  x
+1  —
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 11: {"group":1} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| **x** |  |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 11: {"group":1} > plain 1`] = `
+"A  B
+-  -
+x
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 12: {"sticky":true} > markdown 1`] = `
+"| A | B |
+| ---: | --- |
+| 1 | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 12: {"sticky":true} > plain 1`] = `
+"A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 13: {"columns":[{"key":"a","label":"A","form > markdown 1`] = `
+"| A | B |
+| --- | --- |
+| 100% | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 13: {"columns":[{"key":"a","label":"A","form > plain 1`] = `
+"A     B
+----  -
+100%  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 14: {"columns":[{"key":"a","label":"A","alig > markdown 1`] = `
+"| A | B |
+| ---: | :---: |
+| \`1\` | x |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table valid 14: {"columns":[{"key":"a","label":"A","alig > plain 1`] = `
+"A  B
+-  -
+1  x
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table: sticky defaults on past 15 rows > markdown 1`] = `
+"| a |
+| ---: |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > table: sticky defaults on past 15 rows > plain 1`] = `
+"a
+-
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 0: {} > markdown 1`] = `
+"#### A
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 0: {} > plain 1`] = `
+"A
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"#### A
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"A
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+##### A
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+A
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 3: {"active":0} > markdown 1`] = `
+"#### A
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tabs valid 3: {"active":0} > plain 1`] = `
+"A
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 0: {} > markdown 1`] = `
+"- **Nov 4, 2026, 12:00 AM UTC** t
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 0: {} > plain 1`] = `
+"- Nov 4, 2026, 12:00 AM UTC t
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- **Nov 4, 2026, 12:00 AM UTC** t
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- Nov 4, 2026, 12:00 AM UTC t
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- **Nov 4, 2026, 12:00 AM UTC** t
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- Nov 4, 2026, 12:00 AM UTC t
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 3: {"items":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 3: {"items":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 4: {"items":[{"at":"Monday","text":"t","sta > markdown 1`] = `
+"- **Monday** ✓ t
+"
+`;
+
+exports[`valid corpus snapshots (§16) > timeline valid 4: {"items":[{"at":"Monday","text":"t","sta > plain 1`] = `
+"- Monday ✓ t
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 0: {} > markdown 1`] = `
+"- a
+  - b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 0: {} > plain 1`] = `
+"- a
+  - b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
+"- a
+  - b
+
+_caption with **bold**_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
+"- a
+  - b
+
+caption with bold
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 2: {"title":"Node title"} > markdown 1`] = `
+"#### Node title
+
+- a
+  - b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 2: {"title":"Node title"} > plain 1`] = `
+"Node title
+
+- a
+  - b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 3: {"items":[]} > markdown 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > tree valid 3: {"items":[]} > plain 1`] = `""`;
+
+exports[`valid corpus snapshots (§16) > tree valid 4: {"paths":["src/a.ts","src/b.ts"]} > markdown 1`] = `
+"- a
+  - b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 4: {"paths":["src/a.ts","src/b.ts"]} > plain 1`] = `
+"- a
+  - b
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 5: {"items":[{"name":"a","status":"ok","not > markdown 1`] = `
+"- ✓ a — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > tree valid 5: {"items":[{"name":"a","status":"ok","not > plain 1`] = `
+"- ✓ a — n
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §5.2 envelope > markdown 1`] = `
+"### Test run — auth module
+
+_main @ 4f2c1a9_
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §5.2 envelope > plain 1`] = `
+"Test run — auth module
+
+main @ 4f2c1a9
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §6.6 table > markdown 1`] = `
+"| Test | Status | Time | Coverage |
+| --- | --- | ---: | ---: |
+| login | ✓ ok | 120 ms | 92% |
+| refresh | ✗ fail | 340 ms | 71% |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §6.6 table > plain 1`] = `
+"Test     Status    Time  Coverage
+-------  ------  ------  --------
+login    ✓ ok    120 ms       92%
+refresh  ✗ fail  340 ms       71%
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §6.7 decision > markdown 1`] = `
+"**Cache layer for catalog queries?**
+
+- **In-process LRU**
+  - Pros: No infra
+  - Cons: Per-pod
+  - Effort: S
+  - Reversible: yes
+- **Redis** ✓ recommended
+  - Pros: Shared
+  - Cons: New dependency
+  - Effort: M
+  - Reversible: yes
+  - Verify: p95 < 80 ms in bench
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §6.7 decision > plain 1`] = `
+"Cache layer for catalog queries?
+
+- In-process LRU
+  - Pros: No infra
+  - Cons: Per-pod
+  - Effort: S
+  - Reversible: yes
+- Redis ✓ recommended
+  - Pros: Shared
+  - Cons: New dependency
+  - Effort: M
+  - Reversible: yes
+  - Verify: p95 < 80 ms in bench
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §19.1 verification report > markdown 1`] = `
+"### Objective #14 — refresh-token rotation
+
+_branch vadd/obj-14 @ 4f2c1a9_
+
+- **Checks:** 5/6 ⚠
+- **Tests:** 142 (−3)
+- **Coverage:** 87.4% (+1.2%)
+- **Duration:** 48.20 s
+
+* ✓ Typecheck \`pnpm tsc -b\` — 9.10 s
+* ✓ Unit tests \`pnpm vitest run\` — 21.40 s
+* ✗ E2E \`pnpm e2e\` — 17.70 s
+  \`\`\`
+  auth.spec.ts:88  expected 401, got 200
+  \`\`\`
+
+> ⚠ E2E fails on expired-token replay. Rotation is not invalidating the old token.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §19.1 verification report > plain 1`] = `
+"Objective #14 — refresh-token rotation
+
+branch vadd/obj-14 @ 4f2c1a9
+
+- Checks: 5/6 ⚠
+- Tests: 142 (−3)
+- Coverage: 87.4% (+1.2%)
+- Duration: 48.20 s
+
+- ✓ Typecheck pnpm tsc -b — 9.10 s
+- ✓ Unit tests pnpm vitest run — 21.40 s
+- ✗ E2E pnpm e2e — 17.70 s
+      auth.spec.ts:88  expected 401, got 200
+
+> ⚠ E2E fails on expired-token replay. Rotation is not invalidating the old token.
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §19.2 change summary with a plan > markdown 1`] = `
+"#### Plan
+
+1/3 done
+
+- ✓ Add rotation table
+- ▶ Invalidate on refresh
+- … Replay protection test
+
+#### Changes
+
+- M \`src/auth/refresh.ts\` +64 −12
+- A \`src/auth/rotation.repo.ts\` +88 −0
+- A \`migrations/0042_token_rotation.sql\` +21 −0
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §19.2 change summary with a plan > plain 1`] = `
+"Plan
+
+1/3 done
+
+- ✓ Add rotation table
+- ▶ Invalidate on refresh
+- … Replay protection test
+
+Changes
+
+- M src/auth/refresh.ts +64 −12
+- A src/auth/rotation.repo.ts +88 −0
+- A migrations/0042_token_rotation.sql +21 −0
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §19.3 benchmark table with a chart > markdown 1`] = `
+"### Catalog query latency
+
+| Query | Calls | p95 | Hit rate |
+| --- | ---: | ---: | ---: |
+| searchSku ⚠ | 2,204 | 212 ms | 41.0% |
+| listProducts | 18,420 | 84 ms | 93.0% |
+| getVariant | 9,310 | 61 ms | 88.0% |
+
+_Line chart: p50, p95 over 10:00–10:20; SLO 100 ms._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > §19.3 benchmark table with a chart > plain 1`] = `
+"Catalog query latency
+
+Query          Calls     p95  Hit rate
+------------  ------  ------  --------
+searchSku ⚠    2,204  212 ms     41.0%
+listProducts  18,420   84 ms     93.0%
+getVariant     9,310   61 ms     88.0%
+
+Line chart: p50, p95 over 10:00–10:20; SLO 100 ms.
+"
+`;

@@ -393,3 +393,51 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: fix each one; none changes what a real document shows.
 - Rationale: smallest honest scope. All are reversible.
 - Spec sections: §4.2, §5.5, §7, §15.1.
+
+## VD-050 — A chart's caption follows a table right after it — DEVIATION
+- Date: 2026-11-04 · Task: 05
+- Context: §5.2 renders `body` top to bottom, and §19.3 puts the chart before the table, yet §19.5 prints the table first and the chart's caption last. The acceptance criterion requires §19.5.
+- Decision: DEVIATION from §5.2, as §19.5 requires. A chart, or a run of charts, followed directly by a `table` sibling prints after that table. Everything else keeps document order, including a chart followed by anything else. It applies per child list. §19.5 is matched byte for byte against the spec file.
+- Alternatives: move every chart to the end of its container, which reorders far more than the example needs and can put a caption under the wrong section; keep document order, which fails the criterion.
+- Rationale: the narrowest rule that reproduces the example. A caption under the data it summarizes also reads naturally.
+- Spec sections: §5.2, §19.3, §19.5.
+
+## VD-051 — Text marks for status and tone
+- Date: 2026-11-04 · Task: 05
+- Context: §15.2 requires an icon and a label for every status, and §19.5 shows only ⚠, with no list of icons.
+- Decision: status `ok ✓`, `fail ✗`, `warn ⚠`, `info ℹ`, `run ▶`, `wait …`, `skip ⊘`, `none` has no mark. Tone `ok ✓`, `warn ⚠`, `err ✗`, `info ℹ`; `muted`, `accent`, `default` have no mark. A status token or `status` cell prints mark and label, per §15.2; a list-like item with a `status` field prints the mark, since its text labels it. Row tones go in the first cell, after the value, as in §19.5.
+- Alternatives: words only, which contradicts §19.5.
+- Rationale: plain Unicode that survives terminals and PR comments. Task 09 or later may share these if the DOM wants the same glyphs.
+- Spec sections: §15.2, §19.5.
+
+## VD-052 — Text output has no interaction, so nothing is hidden
+- Date: 2026-11-04 · Task: 05
+- Context: §9.3 uses `pageSize`, `maxLines`, `fold` and `active` for height safety in a frame. A text host has no frame and no control to reveal the rest.
+- Decision: print all rows, all lines, every tab and every folded node. `sort` still applies, since §19.5 applies it. `checks.output` keeps its last 20 lines, because §6.5 states that as content, with `… N earlier lines` in front. Chart data is not printed; §19.5 prints a caption. A `compare` cell, a `bar` and a `delta` print their text only, with no drawing or tone mark.
+- Alternatives: honor `pageSize`, which drops rows with no way to see them.
+- Rationale: a degraded host should lose visuals, not data. §13.4 already bounds the size.
+- Spec sections: §6.5, §9.3, §13.4, §19.5.
+
+## VD-053 — How markdown output stays inert
+- Date: 2026-11-04 · Task: 05
+- Context: §5.5 and §15.1 say raw HTML renders as text and that the renderer loads no remote assets. Passing document text into markdown would break both, in any host that renders it. A check through `marked` and `markdown-it` found two escapes that hand-written tests missed: `![x](url)` becoming a live image, and a bare URL's autolink swallowing a backslash or a code span's opening backtick, which freed the `<b>` after it.
+- Decision: text is escaped in one place, `markdown.ts`. `<` before a tag start and `&` before an entity become `&lt;` and `&amp;`, not backslash escapes, so no tag can start even if an autolink runs over the text. A bare URL gets no autolink (`http\://`, `www\.`): §5.5 has none, and §5.5 links stay live. A `!` before a link is escaped. Link targets percent-encode `( ) | \ < >`. Inline text is flattened to one line, and line-start syntax is escaped. Fences are longer than any backtick run inside. Adjacent lists alternate markers (`-`, `*`; `1.`, `1)`), or GFM merges them. A last pass removes ANSI sequences and C0/C1 controls except tab and newline, in both formats, because §15.1 treats documents as hostile and `vui render` prints to a terminal.
+- Alternatives: fenced or HTML-escaped output, which is unreadable; relying on the host's sanitizer, which plain markdown viewers do not have.
+- Rationale: only markup the serializer writes is live. Checked outside the repo with 20,000 fuzzed and 400 fixed documents through both engines: no tag, image or unsafe scheme.
+- Spec sections: §5.5, §15.1.
+
+## VD-054 — What the `md` node accepts in text output
+- Date: 2026-11-04 · Task: 05
+- Context: §6.2 lists the block subset of `md` without detail, and a text renderer must not pass the source through (VD-053).
+- Decision: parse lines into blocks. Only `###` and `####` are headings; `#`, `##`, `#####` and deeper stay text, as §6.2 reads. Blockquotes do not nest, and their text is paragraphs. Lists nest by indent and ordered lists renumber from 1, because the first marker of a list sets its kind. An indented line under an item joins it. A blank line between items does not end a list. An open fence closes at the end of the text. Tables, rules, HTML and task-list syntax stay text. Soft-wrapped lines join with a space. Task 07 should follow the same reading so that hosts agree; it cannot import this, since `ui-render` does not depend on `ui-text` (§3).
+- Alternatives: clamp `#` and `##` to h3, friendlier but not what §6.2 says, and easy to add later in both renderers.
+- Rationale: literal subset, one line-based pass, and linear on hostile input.
+- Spec sections: §3, §6.2.
+
+## VD-055 — Sort order and default alignment
+- Date: 2026-11-04 · Task: 05
+- Context: §6.6 gives `sort` and "numbers default right" and leaves the rest open. §19.5 needs both.
+- Decision: sort raw values, not display strings. Numbers compare numerically and strings with `Intl.Collator` for the document locale; a string in default format compares by its inline-free text. In a mixed column numbers come before strings, reversed by `desc`. Empty cells stay last in both directions. The sort is stable, and a `sort` past the last column is ignored. A column is right-aligned when it has a numeric format (`num int compact pct pct100 delta ms dur bytes money`), or has no format and every non-empty cell is a number. Task 08 should match this rule; both live in `packages/ui-text/src/table.ts` and could move to `ui-spec`.
+- Alternatives: move the helpers to `ui-spec` now, which adds a public API for a second caller that does not exist yet.
+- Rationale: smallest change here, and written down so the DOM can agree.
+- Spec sections: §6.6, §19.5.

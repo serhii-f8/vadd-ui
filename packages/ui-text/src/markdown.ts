@@ -4,8 +4,14 @@ import { type Align, type Block, type Entry, type Inline, statusText } from './b
 // markup is what this file writes (§5.5, §15.1, VD-053).
 
 // `_` inside a word is not emphasis in GFM. `&` matters only before an entity, and `<` only
-// where a tag or autolink could start.
-const SPECIAL = /[\\`*[\]~|]|(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])|&(?=#?\w+;)|<(?=[A-Za-z/!?])/gu
+// where a tag or autolink could start. Those two become entities, not backslash escapes: a
+// bare-URL autolink swallows the backslash, and `http://a.dev\\<b>` would leave a live tag.
+//
+// A bare URL gets no autolink: §5.5 has none, and an autolink runs over what follows it, so
+// `http://a.dev` before a code span would swallow the opening backtick and free its content.
+const SPECIAL =
+  /:(?=\/\/)|(?<=\b[wW]{3})\.|[\\`*[\]~|]|(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])|&(?=#?\w+;)|<(?=[A-Za-z/!?])/gu
+const ENTITIES: Readonly<Record<string, string>> = { '<': '&lt;', '&': '&amp;' }
 const HREF_SPECIAL = /[()|\\<>]/g
 
 /** Inline text is one line: a value can never start a block or break a table row. */
@@ -14,7 +20,7 @@ export function oneLine(value: string): string {
 }
 
 function escapeText(value: string): string {
-  return oneLine(value).replace(SPECIAL, '\\$&')
+  return oneLine(value).replace(SPECIAL, (match) => ENTITIES[match] ?? `\\${match}`)
 }
 
 function longestRun(value: string, pattern: RegExp): number {
@@ -37,10 +43,14 @@ function encodeHref(href: string): string {
 
 function inline(tokens: Inline): string {
   return tokens
-    .map((token) => {
+    .map((token, index) => {
       switch (token.type) {
-        case 'text':
-          return escapeText(token.text)
+        case 'text': {
+          // Text before a link: a bare `!` would make it an image, a remote load (§15.1).
+          const beforeLink = tokens[index + 1]?.type === 'link'
+          const escaped = escapeText(token.text)
+          return beforeLink ? escaped.replace(/!$/, '\\!') : escaped
+        }
         case 'code':
           return codeSpan(token.text)
         case 'status':
@@ -100,7 +110,15 @@ function entry(item: Entry, marker: string): string {
   return [head, ...nested].join('\n')
 }
 
-function serialize(block: Block): string {
+function listBody(block: Extract<Block, { kind: 'list' }>, alternate: boolean): string {
+  const bullet = alternate ? '*' : '-'
+  const closer = alternate ? ')' : '.'
+  return block.items
+    .map((item, index) => entry(item, block.ordered ? `${index + 1}${closer}` : bullet))
+    .join('\n')
+}
+
+function serialize(block: Block, alternate = false): string {
   switch (block.kind) {
     case 'heading':
       return `${'#'.repeat(block.level)} ${inline(block.text)
@@ -112,9 +130,7 @@ function serialize(block: Block): string {
       return block.muted === true ? `_${line}_` : guardLineStart(line)
     }
     case 'list':
-      return block.items
-        .map((item, index) => entry(item, block.ordered ? `${index + 1}.` : '-'))
-        .join('\n')
+      return listBody(block, alternate)
     case 'table':
       return [
         tableRow(block.header.map(tableCell)),
@@ -133,9 +149,19 @@ function serialize(block: Block): string {
   }
 }
 
+/** Two neighboring lists of one kind need different markers, or GFM reads one list. */
 export function blocksToMarkdown(blocks: Block[]): string {
-  return blocks
-    .map(serialize)
-    .filter((part) => part !== '')
-    .join('\n\n')
+  const parts: string[] = []
+  let previous: Block | undefined
+  let alternate = false
+  for (const block of blocks) {
+    const follows = block.kind === 'list' && previous?.kind === 'list'
+    alternate =
+      follows && previous?.kind === 'list' && previous.ordered === block.ordered && !alternate
+    const part = serialize(block, alternate)
+    if (part === '') continue
+    parts.push(part)
+    previous = block
+  }
+  return parts.join('\n\n')
 }

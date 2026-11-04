@@ -12,13 +12,13 @@ const cast = (value: unknown) => value as VuiDocument
 
 describe('document text stays text in markdown (§5.5, §15.1)', () => {
   it.each([
-    ['<script>alert(1)</script>', '\\<script>alert(1)\\</script>'],
-    ['<img src=x onerror=alert(1)>', '\\<img src=x onerror=alert(1)>'],
-    ['<!-- c -->', '\\<!-- c -->'],
-    ['<?php ?>', '\\<?php ?>'],
-    ['<http://a.dev>', '\\<http://a.dev>'],
-    ['&lt;b&gt;', '\\&lt;b\\&gt;'],
-    ['&#60;', '\\&#60;'],
+    ['<script>alert(1)</script>', '&lt;script>alert(1)&lt;/script>'],
+    ['<img src=x onerror=alert(1)>', '&lt;img src=x onerror=alert(1)>'],
+    ['<!-- c -->', '&lt;!-- c -->'],
+    ['<?php ?>', '&lt;?php ?>'],
+    ['<http://a.dev>', '&lt;http\\://a.dev>'],
+    ['&lt;b&gt;', '&amp;lt;b&amp;gt;'],
+    ['&#60;', '&amp;#60;'],
     ['a < b && c > d', 'a < b && c > d'],
     ['[x](javascript:alert(1))', '\\[x\\](javascript:alert(1))'],
     ['[x](data:text/html,a)', '\\[x\\](data:text/html,a)'],
@@ -47,6 +47,39 @@ describe('document text stays text in markdown (§5.5, §15.1)', () => {
   ])('%s cannot start a block', (source, expected) => {
     expect(md({ type: 'list', title: 'T', note: 'n', items: [source] })).toContain(
       `- ${expected}\n`,
+    )
+  })
+
+  it('never turns a `!` before a link into an image, which would load a remote asset', () => {
+    const source = '![x](https://evil.dev/p.png)'
+    const expected = '\\![x](https://evil.dev/p.png)'
+    expect(md({ type: 'list', items: [source] })).toBe(`- ${expected}\n`)
+    expect(md({ type: 'md', text: `a ${source}` })).toBe(`a ${expected}\n`)
+    expect(md({ type: 'list', items: ['**a**![x](https://a.dev)'] })).toBe(
+      '- **a**\\![x](https://a.dev)\n',
+    )
+  })
+
+  it('leaves a `!` elsewhere alone', () => {
+    expect(md({ type: 'list', items: ['Done! [x](https://a.dev)!'] })).toBe(
+      '- Done! [x](https://a.dev)!\n',
+    )
+  })
+
+  it('gives a bare URL no autolink, which would run over what follows it', () => {
+    expect(md({ type: 'list', items: ['see http://a.dev`<b>`'] })).toBe(
+      '- see http\\://a.dev`<b>`\n',
+    )
+    expect(md({ type: 'list', items: ['HTTPS://a.dev www.a.dev WWW.a.dev awww.a.dev'] })).toBe(
+      '- HTTPS\\://a.dev www\\.a.dev WWW\\.a.dev awww.a.dev\n',
+    )
+    expect(plain({ type: 'list', items: ['see http://a.dev'] })).toBe('- see http://a.dev\n')
+  })
+
+  it('keeps a written link live', () => {
+    expect(md({ type: 'list', items: ['[a](http://a.dev)'] })).toBe('- [a](http://a.dev)\n')
+    expect(md({ type: 'kv', pairs: [['a', 'http://a.dev', 'link']] })).toBe(
+      '- **a:** [http\\://a.dev](http://a.dev)\n',
     )
   })
 

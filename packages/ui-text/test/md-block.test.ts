@@ -89,7 +89,7 @@ describe('md node (§6.2)', () => {
   it('treats what the subset leaves out as text', () => {
     both('---', '\\---', '---')
     both('a | b\n--- | ---', 'a \\| b --- \\| ---', 'a | b --- | ---')
-    both('<div>x</div>', '\\<div>x\\</div>', '<div>x</div>')
+    both('<div>x</div>', '&lt;div>x&lt;/div>', '<div>x</div>')
     both('- [ ] task', '- \\[ \\] task', '- [ ] task')
   })
 

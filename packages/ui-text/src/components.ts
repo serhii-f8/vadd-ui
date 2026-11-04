@@ -27,7 +27,6 @@ import {
   trailed,
 } from './blocks.js'
 import { chartBlocks, sparkline } from './chart.js'
-import { stripEscapes } from './clean.js'
 import { mdBlocks } from './md-block.js'
 import { tableBlocks } from './table.js'
 import { type Context, format, tokensOf } from './value.js'
@@ -59,7 +58,7 @@ function checkEntry(item: CheckItem, context: Context): Entry {
   if (item.cmd !== undefined) tokens.push(text(' '), code(item.cmd))
   if (item.ms !== undefined) tokens.push(text(` — ${format(item.ms, 'ms', context).text}`))
   if (item.output === undefined) return { text: tokens }
-  const lines = stripEscapes(item.output).split(/\r\n|\r|\n/)
+  const lines = item.output.split(/\r\n|\r|\n/)
   const hidden = lines.length - CHECK_OUTPUT_LINES
   const shown = hidden > 0 ? [`… ${hidden} earlier lines`, ...lines.slice(hidden)] : lines
   return { text: tokens, blocks: [{ kind: 'code', text: shown.join('\n') }] }
