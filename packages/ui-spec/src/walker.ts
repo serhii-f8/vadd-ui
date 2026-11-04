@@ -61,8 +61,8 @@ function range({ min, max }: { min?: number; max?: number }): string {
   return max === undefined ? `an integer of at least ${min}` : `an integer from ${min} to ${max}`
 }
 
-/** Shallow test that picks the branch of a `oneOf`. */
-function accepts(rule: Rule, value: JsonValue): boolean {
+/** Does the outer type of `value` fit `rule`? */
+function fits(rule: Rule, value: JsonValue): boolean {
   switch (rule.kind) {
     case 'string':
       return typeof value === 'string'
@@ -70,15 +70,25 @@ function accepts(rule: Rule, value: JsonValue): boolean {
       return typeof value === 'number'
     case 'scalar':
       return value === null || typeof value !== 'object'
-    case 'array': {
-      const [first] = Array.isArray(value) ? value : []
-      return Array.isArray(value) && (first === undefined || accepts(rule.items, first))
-    }
+    case 'array':
     case 'tuple':
       return Array.isArray(value)
     default:
       return isJsonObject(value)
   }
+}
+
+/**
+ * The branch of a `oneOf` to check `value` against. An array's first item tells branches
+ * of arrays apart, so a later item of another type is reported at that item.
+ */
+function chooseOption(options: Rule[], value: JsonValue): Rule | undefined {
+  const fitting = options.filter((option) => fits(option, value))
+  const [first] = Array.isArray(value) ? value : []
+  const byItem = fitting.find(
+    (option) => option.kind === 'array' && first !== undefined && fits(option.items, first),
+  )
+  return byItem ?? fitting[0]
 }
 
 function asArray(value: JsonValue | undefined): JsonValue[] | undefined {
@@ -196,7 +206,7 @@ class Walker {
         if (!isJsonObject(value)) this.badType(rule, value, pointer, required)
         return
       case 'oneOf': {
-        const option = rule.options.find((candidate) => accepts(candidate, value))
+        const option = chooseOption(rule.options, value)
         if (option === undefined) {
           this.badType(rule, value, pointer, required)
           return
@@ -244,7 +254,7 @@ class Walker {
   }
 
   private scalar(rule: Rule, value: JsonValue, pointer: string, required: boolean): void {
-    if (!accepts(rule, value) || (typeof value === 'number' && !Number.isFinite(value))) {
+    if (!fits(rule, value) || (typeof value === 'number' && !Number.isFinite(value))) {
       this.badType(rule, value, pointer, required)
       return
     }
@@ -376,7 +386,13 @@ class Walker {
 
 type CrossField = (report: Report, value: JsonObject, pointer: string) => void
 
-function checkIndex(report: Report, index: JsonValue | undefined, size: number, pointer: string) {
+function checkIndex(
+  report: Report,
+  index: JsonValue | undefined,
+  size: number | undefined,
+  pointer: string,
+) {
+  if (size === undefined) return
   if (typeof index === 'number' && Number.isInteger(index) && index >= size) {
     report('warn', pointer, 'bad-index', `index ${index} is past the ${size} available`)
   }
@@ -474,8 +490,7 @@ function checkFlow(report: Report, flow: JsonObject, pointer: string) {
 
 function checkCount(field: string, list: string): CrossField {
   return (report, value, pointer) => {
-    const size = asArray(value[list])?.length ?? 0
-    checkIndex(report, value[field], size, joinPointer(pointer, field))
+    checkIndex(report, value[field], asArray(value[list])?.length, joinPointer(pointer, field))
   }
 }
 
@@ -485,7 +500,8 @@ const CROSS_FIELD: Record<string, CrossField> = {
   DecisionNode: checkCount('pick', 'options'),
   CompareNode(report, compare, pointer) {
     checkCount('pick', 'options')(report, compare, pointer)
-    const size = asArray(compare.options)?.length ?? 0
+    const size = asArray(compare.options)?.length
+    if (size === undefined) return
     asArray(compare.criteria)?.forEach((criterion, index) => {
       const values = isJsonObject(criterion) ? asArray(criterion.values) : undefined
       if (values) {
