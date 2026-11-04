@@ -37,6 +37,8 @@ export type DiagnosticCode =
   | 'length-mismatch'
   | 'bad-ref'
   | 'unknown-format'
+  | 'bad-format-arg'
+  | 'bad-value'
   | 'dropped-cell'
   | 'unknown-field'
   | 'too-many-diagnostics'
@@ -74,7 +76,7 @@ function isHighSurrogate(code: number): boolean {
   return code >= 0xd800 && code <= 0xdbff
 }
 
-function clip(text: string, max: number): string {
+export function clip(text: string, max: number): string {
   if (text.length <= max) return text
   const end = isHighSurrogate(text.charCodeAt(max - 2)) ? max - 2 : max - 1
   return `${text.slice(0, end)}…`
