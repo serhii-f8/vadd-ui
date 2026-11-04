@@ -615,6 +615,7 @@ const CROSS_FIELD: Record<string, CrossField> = {
   },
   StatItem(report, item, pointer) {
     checkCell(report, specOf(item.format), item.value, joinPointer(pointer, 'value'))
+    checkCell(report, specOf(item.deltaFormat), item.delta, joinPointer(pointer, 'delta'))
     const spark = asArray(item.spark)
     if (spark) checkPoints(report, spark.length, joinPointer(pointer, 'spark'))
   },

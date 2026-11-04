@@ -28,22 +28,30 @@ const MAX_DECIMALS = 20
 const MAX_SHA = 64
 
 const ISO_8601 =
-  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:?\d{2})?)?$/
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}(?::?\d{2})?)?)?$/
 
 export function isKnownFormat(name: string): boolean {
   return KNOWN.has(name)
 }
 
-export function parseFormat(format = 'text'): FormatSpec {
+function splitFormat(format: string): FormatSpec {
   const colon = format.indexOf(':')
-  const name = colon === -1 ? format : format.slice(0, colon)
-  const arg = colon === -1 ? undefined : format.slice(colon + 1)
-  if (name !== 'delta') return arg === undefined ? { name } : { name, arg }
-  const match = arg === undefined ? null : BETTER.exec(arg)
-  const rest = match === null ? arg : (arg as string).slice(0, match.index)
-  const spec: FormatSpec = { name, base: parseFormat(rest || 'num') }
-  if (match !== null) spec.better = match[1] as 'low' | 'high'
-  return spec
+  if (colon === -1) return { name: format }
+  return { name: format.slice(0, colon), arg: format.slice(colon + 1) }
+}
+
+export function parseFormat(format = 'text'): FormatSpec {
+  const spec = splitFormat(format)
+  if (spec.name !== 'delta') return spec
+  const arg = spec.arg ?? ''
+  const match = BETTER.exec(arg)
+  // One level only: `delta` is never a legal base, and a format string can be 20,000 chars.
+  const parsed: FormatSpec = {
+    name: 'delta',
+    base: splitFormat((match === null ? arg : arg.slice(0, match.index)) || 'num'),
+  }
+  if (match !== null) parsed.better = match[1] as 'low' | 'high'
+  return parsed
 }
 
 function isDecimals(arg: string): boolean {
@@ -101,12 +109,21 @@ export function checkFormat(spec: FormatSpec): FormatIssue | undefined {
 
 /** The same format with a bad argument dropped: the §7 default, or `num` for `money`. */
 export function withoutBadArg(spec: FormatSpec): FormatSpec {
-  if (spec.base !== undefined) return { ...spec, base: withoutBadArg(sanitizeBase(spec.base)) }
+  if (spec.base !== undefined) {
+    const base = DELTA_BASES.includes(spec.base.name) ? withoutBadArg(spec.base) : { name: 'num' }
+    return { ...spec, base }
+  }
   return spec.name === 'money' ? { name: 'num' } : { name: spec.name }
 }
 
-function sanitizeBase(base: FormatSpec): FormatSpec {
-  return DELTA_BASES.includes(base.name) ? base : { name: 'num' }
+/** Minutes east of UTC, or undefined outside the range of real offsets. */
+function offsetMinutes(zone: string): number | undefined {
+  const digits = zone.slice(1).replace(':', '')
+  const hours = Number(digits.slice(0, 2))
+  const minutes = Number(digits.slice(2) || 0)
+  const total = hours * 60 + minutes
+  if (minutes > 59 || total > 14 * 60) return undefined
+  return zone[0] === '-' ? -total : total
 }
 
 /** Epoch ms for an ISO 8601 string, in UTC unless it has an offset (VD-047). */
@@ -115,14 +132,14 @@ function parseIso(text: string): number | undefined {
   if (match === null) return undefined
   const [year, month, day, hour, minute, second] = match
     .slice(1, 7)
-    .map((field) => Number(field ?? 0))
+    .map((field) => Number(field ?? 0)) as [number, number, number, number, number, number]
   const milliseconds = Number((match[7] ?? '').padEnd(3, '0').slice(0, 3))
-  const date = new Date(
-    Date.UTC(year as number, (month as number) - 1, day, hour, minute, second, milliseconds),
-  )
+  // Not `Date.UTC`, which reads years 0 to 99 as 19xx.
+  const date = new Date(0)
+  date.setUTCFullYear(year, month - 1, day)
+  date.setUTCHours(hour, minute, second, milliseconds)
   const roundTrips =
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === (month as number) - 1 &&
+    date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day &&
     date.getUTCHours() === hour &&
     date.getUTCMinutes() === minute &&
@@ -130,9 +147,8 @@ function parseIso(text: string): number | undefined {
   if (!roundTrips) return undefined
   const zone = match[8]
   if (zone === undefined || zone === 'Z') return date.getTime()
-  const digits = zone.slice(1).replace(':', '')
-  const offset = Number(digits.slice(0, 2)) * 60 + Number(digits.slice(2))
-  return date.getTime() - (zone[0] === '-' ? -offset : offset) * 60_000
+  const offset = offsetMinutes(zone)
+  return offset === undefined ? undefined : date.getTime() - offset * 60_000
 }
 
 /** Epoch ms for an ISO 8601 string or a number that fits a `Date`, otherwise undefined. */
@@ -158,9 +174,14 @@ export function parseLink(value: string): LinkTarget | undefined {
   return href === undefined ? undefined : { text: value, href }
 }
 
+/** Total, including for what only a non-JSON caller can pass. */
 export function rawText(value: JsonValue | undefined): string {
   if (typeof value === 'string') return value
-  return value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value)
+  try {
+    return (typeof value === 'object' && value !== null && JSON.stringify(value)) || String(value)
+  } catch {
+    return '[unprintable]'
+  }
 }
 
 function fits(name: string, value: JsonValue): boolean {

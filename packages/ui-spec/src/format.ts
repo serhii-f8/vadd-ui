@@ -131,7 +131,7 @@ function clock(locale: string, seconds: number): string {
 }
 
 function formatMs(locale: string, value: number): string {
-  const rounded = Math.round(value) + 0
+  const rounded = Math.round(value)
   if (Math.abs(rounded) < SECOND) {
     return unitFormat(locale, 'millisecond', 'short', fixed(0)).format(rounded)
   }
@@ -141,7 +141,7 @@ function formatMs(locale: string, value: number): string {
 }
 
 function formatDur(locale: string, value: number): string {
-  const rounded = Math.round(value) + 0
+  const rounded = Math.round(value)
   if (Math.abs(rounded) < 60) return spaced(locale, rounded, 'second', 0)
   return clock(locale, value)
 }
@@ -160,7 +160,7 @@ function formatBytes(locale: string, value: number, arg: string | undefined): st
     scaled /= step
     exponent++
   }
-  const signed = (value < 0 ? -scaled : scaled) + 0
+  const signed = value < 0 ? -scaled : scaled
   const decimals = exponent === 0 ? 0 : 1
   if (arg === 'si') return spaced(locale, signed, SI_UNITS[exponent] as string, decimals)
   return `${numberFormat(locale, fixed(decimals)).format(signed)} ${IEC_UNITS[exponent]}`
@@ -174,7 +174,16 @@ function percent(locale: string, ratio: number, arg: string | undefined): string
   return numberFormat(locale, { style: 'percent', ...fixed(decimalsOf(arg, 1)) }).format(ratio)
 }
 
+/** A negative that rounds to zero prints as zero, as in `formatDelta`: `$0.00`, not `-$0.00`. */
 function formatNumeric(locale: string, spec: FormatSpec, value: number): string {
+  if (value > 0) return formatMagnitude(locale, spec, value)
+  const zero = formatMagnitude(locale, spec, 0)
+  return formatMagnitude(locale, spec, -value) === zero
+    ? zero
+    : formatMagnitude(locale, spec, value)
+}
+
+function formatMagnitude(locale: string, spec: FormatSpec, value: number): string {
   const { name, arg } = spec
   switch (name) {
     case 'int':
@@ -236,9 +245,22 @@ function formatRel(locale: string, time: number, now: number): string {
   return /^en\b/i.test(locale) ? text.replace(/\.(?= |$)/g, '') : text
 }
 
+function isSeparator(character: string | undefined): boolean {
+  return character === '/' || character === '\\'
+}
+
+/** The last segment with its trailing separators. A reverse scan: a regex here is quadratic. */
+function basename(path: string): string {
+  let start = path.length
+  while (isSeparator(path[start - 1])) start--
+  if (start === 0) return path
+  while (start > 0 && !isSeparator(path[start - 1])) start--
+  return path.slice(start)
+}
+
 /** Keeps the end of a path and cuts the middle (§7): the basename survives if it can. */
 function truncatePath(value: string): Formatted {
-  const base = (/[^\\/]*[\\/]*$/.exec(value) as RegExpExecArray)[0]
+  const base = basename(value)
   const characters = Array.from(value)
   if (characters.length <= MAX_MONO) return { text: value, mono: true, base }
   const baseLength = Array.from(base).length

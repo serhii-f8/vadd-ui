@@ -295,6 +295,25 @@ describe('value checks', () => {
     expect(node(compare)).toMatchObject([{ ...warn, path: '/body/0/criteria/0/values/1' }])
   })
 
+  it('checks a stats delta against its deltaFormat', () => {
+    const stats = {
+      type: 'stats',
+      items: [{ label: 'l', value: 1, delta: 2, deltaFormat: 'status' }],
+    }
+    expect(node(stats)).toMatchObject([{ ...warn, path: '/body/0/items/0/delta' }])
+    const fine = {
+      type: 'stats',
+      items: [{ label: 'l', value: 1, delta: 2, deltaFormat: 'delta:pct' }],
+    }
+    expect(node(fine)).toEqual([])
+  })
+
+  it('survives a long format string', () => {
+    const format = 'delta:'.repeat(6_250)
+    const text = JSON.stringify({ body: [{ type: 'kv', pairs: [['k', 1, format]] }] })
+    expect(() => validateText(text)).not.toThrow()
+  })
+
   it('warns on a bad format argument wherever a format is declared', () => {
     const bad = { code: 'bad-format-arg', severity: 'warn' }
     expect(node({ type: 'table', columns: ['A:pct:abc'], rows: [] })).toMatchObject([

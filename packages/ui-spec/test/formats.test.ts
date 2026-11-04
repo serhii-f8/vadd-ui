@@ -165,6 +165,29 @@ describe('bytes', () => {
   })
 })
 
+describe('negative zero', () => {
+  it.each([
+    [-0.4, 'int', '0'],
+    [-0.004, 'num', '0'],
+    [-0, 'num', '0'],
+    [-0.04, 'compact', '0'],
+    [-0.0001, 'pct', '0.0%'],
+    [-0.001, 'pct:0', '0%'],
+    [-0.001, 'pct100:0', '0%'],
+    [-0.001, 'money:USD', '$0.00'],
+    [-0.4, 'bytes', '0 B'],
+    [-0.4, 'bytes:si', '0 B'],
+    [-0.4, 'dur', '0 s'],
+  ])('%d as %s prints %s', (value, format, expected) => {
+    expect(formatValue(value, format, { locale: 'en-US' }).text).toBe(expected)
+  })
+
+  it('keeps a real negative', () => {
+    expect(formatValue(-0.5, 'num').text).toBe('-0.5')
+    expect(formatValue(-1, 'money:USD').text).toBe('-$1.00')
+  })
+})
+
 describe('delta', () => {
   it('formats through its base in each locale', () => {
     expectRows([
@@ -233,6 +256,8 @@ describe('date', () => {
     ['2026-11-04T23:30:00+02:00', 'Nov 4, 2026, 9:30 PM UTC'],
     ['2026-11-04T23:30:00-0200', 'Nov 5, 2026, 1:30 AM UTC'],
     ['2024-02-29', 'Feb 29, 2024, 12:00 AM UTC'],
+    ['2026-11-04T23:30:00+02', 'Nov 4, 2026, 9:30 PM UTC'],
+    ['0050-01-01', 'Jan 1, 50, 12:00 AM UTC'],
   ])('reads %s as UTC', (value, expected) => {
     expect(formatValue(value, 'date:datetime', { locale: 'en-US' }).text).toBe(expected)
   })
@@ -247,7 +272,9 @@ describe('date', () => {
     '11/04/2026',
     '20261104',
     '',
-    '0050-01-01',
+    '2026-11-04T10:00:00+99:99',
+    '2026-11-04T10:00:00+14:01',
+    '2026-11-04T10:00:00+01:60',
   ])('renders %j raw with a warn', (value) => {
     const result = formatValue(value, 'date')
     expect(result.text).toBe(value)
@@ -357,6 +384,12 @@ describe('text-like formats', () => {
     expect(formatValue(value, 'path')).toEqual({ text: value, mono: true, base })
   })
 
+  it('path stays fast on a long segment', () => {
+    const start = performance.now()
+    for (let round = 0; round < 125; round++) formatValue(`${'a'.repeat(20_000)}/x`, 'path')
+    expect(performance.now() - start).toBeLessThan(200)
+  })
+
   it('path keeps the basename when it middle-truncates', () => {
     const value = `${'a/'.repeat(50)}format.ts`
     const result = formatValue(value, 'path')
@@ -449,6 +482,14 @@ describe('null and invalid values', () => {
     expect(result.tone).toBeUndefined()
     const [issue] = result.issues ?? []
     expect(issue?.message).toContain(format.split(':')[0])
+  })
+
+  it('survives values JSON cannot print', () => {
+    const cyclic: Record<string, unknown> = {}
+    cyclic.self = cyclic
+    for (const value of [cyclic, { big: 1n }, 1n]) {
+      expect(formatValue(value as unknown as JsonValue, 'num').issues).toHaveLength(1)
+    }
   })
 
   it('reports an unknown format and renders raw, without markup', () => {
@@ -628,6 +669,14 @@ describe('parseFormat', () => {
     ],
   ])('parses %s', (format, expected) => {
     expect(parseFormat(format)).toEqual(expected)
+  })
+})
+
+describe('a long delta chain', () => {
+  it('does not recurse', () => {
+    const format = 'delta:'.repeat(50_000)
+    expect(parseFormat(format).base?.name).toBe('delta')
+    expect(formatValue(1, format).text).toBe('+1')
   })
 })
 

@@ -343,7 +343,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Context: §7 shows `1 234,50 zł`, but Intl prints `1234,50 zł` in `pl-PL`, whose minimum grouping is two digits. Intl also separates with NBSP (U+00A0) where the spec prints a space.
 - Decision: pass `useGrouping: 'always'` to every number format, so a Polish column does not mix `1234` and `12 345`. Keep Intl's NBSP and U+202F; the spec's space is read as typography, and tests assert the exact code points.
 - Alternatives: a locale table; normalizing spaces, which lets a value wrap mid-number.
-- Rationale: Intl-only and stays aligned in columns. All §17.4 engines accept `'always'`; an older one would coerce it to `true`, the default, and still not throw.
+- Rationale: Intl-only and stays aligned in columns. An engine without the string form coerces `'always'` to `true`, the default, so it never throws. Firefox 115, the §17.4 floor, may be such an engine (not tested in a browser; from memory the string form arrived in Firefox 116): there `pl-PL` would print `1234,50 zł`, the plain Intl output, and differ from the CLI until the floor moves.
 - Spec sections: §7, §17.4.
 
 ## VD-044 — `ms` and `dur` take unit names from Intl parts
@@ -373,7 +373,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-047 — `date` is always UTC and strict ISO 8601
 - Date: 2026-11-04 · Task: 04
 - Context: §7 requires identical strings in the DOM and text renderers, yet Intl defaults to the machine's zone, and `Date.parse` accepts engine-specific forms: V8 reads `2026-02-31` as 3 March.
-- Decision: format in UTC, printing `UTC` wherever a time is shown. Strings must match ISO 8601, a time without an offset is UTC, and fields are round-tripped through `Date.UTC`, so an impossible date renders raw with a `warn`. `short` is the §7 example `Nov 4, 2026`.
+- Decision: format in UTC, printing `UTC` wherever a time is shown. Strings must match ISO 8601, a time without an offset is UTC, an offset must lie within ±14:00, and fields are round-tripped through `Date.UTC`, so an impossible date renders raw with a `warn`. `short` is the §7 example `Nov 4, 2026`.
 - Alternatives: the viewer's zone, which breaks snapshots and differs between renderers.
 - Rationale: the document has no zone field, and an explicit `UTC` label keeps it honest.
 - Spec sections: §7, §9.3, §16.
@@ -385,3 +385,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: warn only from the renderer, which the CLI would never print.
 - Rationale: the CLI should warn exactly where the renderer falls back, so both call the same check.
 - Spec sections: §4.2, §5.4, §5.5, §7, §13.3, §15.1.
+
+## VD-049 — Review findings declined for task 04
+- Date: 2026-11-04 · Task: 04
+- Context: the task review raised items this task does not take.
+- Decision: `T24:00:00` stays invalid, since `date` round-trips fields and no agent writes it. Markup delimiters inside a URL can still split a link, as in `*a [b](http://x/*y)*`: masking well-formed links for one rare input adds a second pass. `code` counts UTF-16 units and `path` counts code points, and `sha` may split a surrogate, which only a non-hex value can reach. `#fragment` is not a DEVIATION: §4.2 lists it beside the three schemes, and it has no scheme.
+- Alternatives: fix each one; none changes what a real document shows.
+- Rationale: smallest honest scope. All are reversible.
+- Spec sections: §4.2, §5.5, §7, §15.1.

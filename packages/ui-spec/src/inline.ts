@@ -39,12 +39,15 @@ function blankCode(text: string): string {
   return text.replace(/`[^`]+`/g, (span) => '\0'.repeat(span.length))
 }
 
-/** The `)` closing a URL that starts at `start`, allowing one level of parens. */
-function urlEnd(text: string, start: number): number {
-  const stop = Math.min(text.length, start + MAX_URL)
+/**
+ * The `)` closing a URL that starts at `start`, allowing one level of parens. Takes the
+ * mask: a `)` inside a code span must not end the URL, or the scan lands inside the span.
+ */
+function urlEnd(mask: string, start: number): number {
+  const stop = Math.min(mask.length, start + MAX_URL)
   let open = 0
   for (let index = start; index < stop; index++) {
-    const character = text[index]
+    const character = mask[index]
     if (character === '(' && ++open > 1) return -1
     if (character === ')' && open-- === 0) return index
   }
@@ -113,11 +116,11 @@ class Scanner {
 
   private code(): void {
     const { index, text } = this
-    if (this.mask[index] !== '\0') {
+    const end = text.indexOf('`', index + 1)
+    if (this.mask[index] !== '\0' || end === -1) {
       this.index++
       return
     }
-    const end = text.indexOf('`', index + 1)
     this.emit({ type: 'code', text: text.slice(index + 1, end) }, end + 1)
   }
 
@@ -181,7 +184,7 @@ class Scanner {
     const { index, mask, text } = this
     const close = this.cached(']', index, () => mask.indexOf(']', index + 1))
     const start = close + 2
-    const end = close > index + 1 && text[close + 1] === '(' ? urlEnd(text, start) : -1
+    const end = close > index + 1 && text[close + 1] === '(' ? urlEnd(mask, start) : -1
     if (end === -1) {
       this.index++
       return

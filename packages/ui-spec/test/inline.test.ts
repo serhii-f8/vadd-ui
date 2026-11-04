@@ -165,6 +165,57 @@ describe('parseInline', () => {
     expect(parseInline(input)).toEqual([text(input)])
   })
 
+  it('never ends a URL inside a code span', () => {
+    expect(parseInline('[x](#`a)`b')).toEqual([
+      text('[x](#'),
+      { type: 'code', text: 'a)' },
+      text('b'),
+    ])
+    expect(parseInline('[x](javascript:`a)`b')).toEqual([
+      text('[x](javascript:'),
+      { type: 'code', text: 'a)' },
+      text('b'),
+    ])
+    expect(parseInline('[x](http://a`b`c)')).toEqual([
+      { type: 'link', href: 'http://a`b`c', children: [text('x')] },
+    ])
+  })
+
+  it('terminates and keeps every token sound on mixed fragments', () => {
+    const fragments = [
+      '*',
+      '**',
+      '~~',
+      '`',
+      '[',
+      ']',
+      '(',
+      ')',
+      '](',
+      '](#y)',
+      ':ok:',
+      ':',
+      ' ',
+      'a',
+      '\n',
+      '#',
+      '<b>',
+    ]
+    let seed = 42
+    const next = (limit: number) => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
+      return seed % limit
+    }
+    for (let round = 0; round < 50_000; round++) {
+      let input = ''
+      for (let length = next(14); length >= 0; length--) {
+        input += fragments[next(fragments.length)]
+      }
+      const tokens = parseInline(input)
+      expect(inlineToPlain(tokens).length, input).toBeLessThanOrEqual(input.length)
+    }
+  })
+
   it('stays fast on hostile input', () => {
     const size = 20_000
     const inputs = [
