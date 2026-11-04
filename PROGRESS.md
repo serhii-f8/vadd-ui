@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T18:51:52Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T20:00:14Z · Mode: manual
 
 ## Summary
-Done 2 / 22 · In progress: none · Blocked: none · Next: 03 — ui-spec: validator, diagnostics, limits, schema, conformance
+Done 3 / 22 · In progress: none · Blocked: none · Next: 04 — ui-spec: value formats, inline text, status tokens
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -30,7 +30,7 @@ Recorded 2026-11-04 during bootstrap.
 |----|-------|--------|------------|--------|----------|----------|-------------|------|---------------|-----------|
 | 01 | Monorepo scaffolding | §3, §15.1, §16 | none | done | removed | ctx_5c58f32c1b79 | [design](docs/superpowers/specs/2026-11-04-monorepo-scaffold-design.md) | [plan](docs/superpowers/plans/2026-11-04-monorepo-scaffold.md) | 5205219 | 2026-11-04 |
 | 02 | ui-spec: parser, envelope, normalizer | §2, §5, §5.1, §5.2, §5.3 | 01 | done | removed | ctx_2abe81f7d30f | [design](docs/superpowers/specs/2026-11-04-spec-parser-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-parser.md) | 8abe48f | 2026-11-04 |
-| 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | todo | | | | | | |
+| 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | done | removed | ctx_16d884678f96 | [design](docs/superpowers/specs/2026-11-04-spec-validator-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-validator.md) | 4149910 | 2026-11-04 |
 | 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | todo | | | | | | |
 | 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | todo | | | | | | |
 | 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | todo | | | | | | |
@@ -71,3 +71,14 @@ none
 - Review: fresh reviewer found one Important issue, unbounded table expansion (a 54 KB document threw after 13 s). Fixed red to green (VD-028). Minors fixed.
 - Follow-ups: task 03: `normalize` returns `{document, paths.toInput(), dropped}`; report `dropped` as warn (VD-026); map parse code too-deep to exit 3 (VD-023); the walker needs a depth guard, because subtrees past depth 128 come back raw; tables over the cap keep object rows, and §13.4 limits report them (VD-028). Task 04: wire the coverage gate (VD-027). Task 06: `render(object)` must sanitize host objects before `normalize`, which does not handle cycles or non-JSON values; over-limit truncation must tolerate unconverted object rows. Task 17: tell agents to give explicit columns with year-like keys (VD-026). `generatedAt` stays absent unless the CLI passes `options.generatedAt` (VD-024).
 - Note: Superpowers `sdd-workspace` scripts have CRLF shebangs and do not run in WSL; the worker kept the ledger by hand.
+
+### 03 — ui-spec: validator, diagnostics, limits, schema, conformance
+- Built: `validate` and `validateText`, hand-written walker for common fields and all 24 components, §13.2 diagnostics, all §13.4 limits as stable `limit-*` codes with `isLimitCode`, Levenshtein hints, schema generator reading `types.ts` (`dist/vui.schema.json`, exported as `@vadd/ui-spec/schema.json`, checked by `pnpm check`), conformance corpus.
+- Decisions: VD-029 to VD-041, no DEVIATION. VD-029: TypeScript 7 has no stable compiler API, so the generator is its own reader of the `types.ts` subset. VD-030 defines agreement: the schema rejects exactly when the walker reports a code in `SCHEMA_CODES`.
+- Evidence (coordinator rerun on `main` at 4149910): `pnpm gate` exit 0. Vitest 29 files, 1,619 tests. Playwright 1 test. Banned-API check clean on 19 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. `ui-spec` coverage: lines 100% (779/779), statements 99.66%. Spec hash unchanged.
+- Coordinator probes on the branch build: every §13.4 limit tested gives its `limit-*` code, except chart points, chart series and `flow` nodes, which were not probed; input size passes at 262,144 bytes and fails at 262,145; 12 nested stacks pass and 13 fail; the §11.3 examples and hex parse error match; hostile documents (long key, 192 KB of unknown nodes, dense flow, cycle through `validate`) ran in under 100 ms and under 30 MB of heap, with no message over 120 chars; a field added to `types.ts` makes `generate-schema --check` exit 1.
+- Worker evidence, not rerun: corpus of 321 valid, 279 invalid and 423 notice cases, with §19.1-19.3 compared to the spec file (§19.4 and §19.5 hold no new document); schema and walker agree on every case with a document and on 4,000 seeded mutations.
+- Review: fresh reviewer found two crash bugs and a 129 s flow check within 256 KiB. All fixed with tests. Those fixes were retested but not re-reviewed, and the long-key out-of-memory test never ran red locally, so the coordinator probes above stand in for both.
+- Task 02 defects corrected here: the VD-028 cell cap is now per document (VD-038); `FlowNodeObject.label` is required, as §6.5 writes it (VD-040).
+- Tooling changes accepted at merge: `ajv` as a root dev dependency (VD-035); `pnpm build` generates the schema and `pnpm check` verifies it.
+- Follow-ups: tasks 05 and later can import `packages/ui-spec/test/corpus/cases.ts`. Task 04 still wires the coverage gate (VD-027). Task 12 (CLI) must escape `Diagnostic.path` when printing, since a key with a control character reaches it raw (VD-041; the worker's note named task 13, but task 12 owns the CLI output); it appends `hint` as in §11.3 and maps `isLimitCode` to exit 3. No column hint on `dropped-cell` yet (VD-041).
