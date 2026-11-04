@@ -44,6 +44,7 @@ describe('document text stays text in markdown (§5.5, §15.1)', () => {
     ['1. one', '1\\. one'],
     ['2) two', '2\\) two'],
     ['---', '\\---'],
+    ['-- -', '\\-- -'],
   ])('%s cannot start a block', (source, expected) => {
     expect(md({ type: 'list', title: 'T', note: 'n', items: [source] })).toContain(
       `- ${expected}\n`,
@@ -126,8 +127,62 @@ describe('document text stays text in markdown (§5.5, §15.1)', () => {
     expect(md({ type: 'kv', pairs: [['a', 'x`y', 'code']] })).toBe('- **a:** ``x`y``\n')
     expect(md({ type: 'kv', pairs: [['a', '`y', 'code']] })).toBe('- **a:** `` `y ``\n')
     expect(md({ type: 'kv', pairs: [['a', '', 'code']] })).toBe('- **a:**\n')
-    expect(md({ type: 'code', text: '```\n````\n' })).toBe('`````\n```\n````\n\n`````\n')
+    expect(md({ type: 'code', text: '```\n````\n' })).toBe('`````\n```\n````\n`````\n')
     expect(md({ type: 'code', text: 'x', lang: 'ts`` "><b>' })).toBe('```tsb\nx\n```\n')
+  })
+})
+
+describe('a control character cannot build markup (§15.1)', () => {
+  const control = '\u0000'
+
+  it.each([
+    ['a tag', `<${control}script>`, '- &lt;script>\n'],
+    ['an image', `!${control}[x](https://evil.dev/p.png)`, '- \\![x](https://evil.dev/p.png)\n'],
+    ['a heading', `${control}# h`, '- \\# h\n'],
+    ['an autolink', `http:${control}//evil.dev`, '- http\\://evil.dev\n'],
+  ])('%s', (_, source, expected) => {
+    expect(md({ type: 'list', items: [source] })).toBe(expected)
+  })
+
+  it('a bell does the same as a null', () => {
+    expect(md({ type: 'callout', text: '<\u0007img src=x>', tone: 'muted' })).toBe(
+      '> &lt;img src=x>\n',
+    )
+  })
+
+  it('a fence stays longer than the run a control character was hiding', () => {
+    expect(md({ type: 'code', text: `\`\`${control}\`\n<img>` })).toBe('````\n```\n<img>\n````\n')
+  })
+
+  it('a carriage return cannot leave a nested block', () => {
+    const input = { type: 'diff', files: [['a', 1, 1]], hunks: { a: '+x\r<script>' } }
+    expect(md(input)).toBe('- `a` +1 −1\n  ```diff\n  +x\n  <script>\n  ```\n')
+  })
+
+  it('reaches object keys', () => {
+    expect(md({ type: 'kv', pairs: { [`<${control}b>`]: 1 } })).toBe('- **&lt;b>:** 1\n')
+    const series = { [`<${control}b>`]: [1] }
+    expect(md({ type: 'chart', kind: 'line', x: ['a'], series })).toContain('&lt;b>')
+  })
+
+  it('leaves no residue of an escape sequence in markdown', () => {
+    expect(md({ type: 'list', items: ['\u001b[31mred\u001b[0m'] })).toBe('- red\n')
+  })
+
+  it('does not count an escape sequence in a plain column', () => {
+    expect(
+      plain({ type: 'table', columns: ['A', 'B'], rows: [['\u001b[31mred\u001b[0m', 'x']] }),
+    ).toBe('A    B\n---  -\nred  x\n')
+  })
+
+  it('numbers every line after a carriage return', () => {
+    expect(md({ type: 'code', text: 'a\rb', lines: true })).toBe('```\n1  a\n2  b\n```\n')
+  })
+
+  it('does not change the input', () => {
+    const document = cast({ locale: 'en-US', title: `a${control}`, body: [] })
+    renderMarkdown(document)
+    expect(document.title).toBe(`a${control}`)
   })
 })
 
@@ -147,6 +202,15 @@ describe('terminal safety (§15.1)', () => {
       expect(output).not.toMatch(/[\0-\x09\x0b-\x1f\x7f-\x9f]/)
       expect(output).toContain('red')
     }
+  })
+
+  it('ends an unterminated OSC at the line, so it cannot hide what follows', () => {
+    const body: JsonValue[] = [
+      { type: 'log', text: 'tail \u001b]0;x\nnext' },
+      { type: 'checks', items: [{ name: 'e2e', status: 'fail' }] },
+    ]
+    expect(md({ body })).toBe('```log\ntail \nnext\n```\n\n- ✗ e2e\n')
+    expect(plain({ body })).toBe('    tail \n    next\n\n- ✗ e2e\n')
   })
 
   it('removes a whole sequence from plain text', () => {
@@ -216,6 +280,32 @@ describe('lenient rendering (§9.3, §17.1)', () => {
     expect(renderMarkdown(cast({ locale: 'en-US', body: [table] }))).toBe('| A |\n| --- |\n| — |\n')
   })
 
+  it.each([
+    ['divider label', { type: 'divider', label: 5 }],
+    ['code lang', { type: 'code', text: 'x', lang: 5 }],
+    ['code text', { type: 'code', text: 5 }],
+    ['check cmd', { type: 'checks', items: [{ name: 'a', status: 'ok', cmd: 5 }] }],
+    ['hunk', { type: 'diff', files: [['a', 1, 1]], hunks: { a: 5 } }],
+    ['log text', { type: 'log', text: 5 }],
+  ] as [string, JsonValue][])('a bad %s costs at most its own node', (_, node) => {
+    const output = md({ body: [node, 'after'] })
+    expect(output).toContain('after')
+    expect(output).not.toContain('this document')
+  })
+
+  it('drops a bad title or subtitle and keeps the document', () => {
+    expect(renderMarkdown(cast({ locale: 'en-US', title: 5, subtitle: 5, body: [] }))).toBe('')
+    const body = [{ type: 'md', text: 'x' }]
+    expect(renderMarkdown(cast({ locale: 'en-US', title: 5, subtitle: {}, body }))).toBe('x\n')
+  })
+
+  it('survives nesting deeper than the stack, in any kind of value', () => {
+    let deep: unknown = 'x'
+    for (let depth = 0; depth < 200_000; depth++) deep = [deep]
+    const document = cast({ locale: 'en-US', meta: deep, body: [{ type: 'md', text: 'after' }] })
+    expect(renderMarkdown(document)).toBe('after\n')
+  })
+
   it('survives a cyclic value from a host', () => {
     const node: Record<string, unknown> = { type: 'stack' }
     node.children = [node]
@@ -260,6 +350,21 @@ describe('hostile size stays fast', () => {
     expect(renderMarkdown(document)).not.toMatch(/Could not render/)
     expect(renderPlain(document)).not.toMatch(/Could not render/)
     expect(performance.now() - started).toBeLessThan(250)
+  })
+
+  it('caps tree depth, which path splitting would hide from §13.4', () => {
+    const path = 'a/'.repeat(990)
+    const output = md({
+      type: 'tree',
+      paths: Array.from({ length: 125 }, (_, i) => `${i}/${path}`),
+    })
+    expect(output).not.toMatch(/Could not render/)
+    expect(output.length).toBeLessThan(500_000)
+    const lines = plain({ type: 'tree', paths: ['1/2/3/4/5/6/7/8/9/10/11/12/13/14/15'] }).split(
+      '\n',
+    )
+    expect(lines).toHaveLength(13)
+    expect(lines[11]).toBe(`${' '.repeat(22)}- 12/13/14/15`)
   })
 
   it('handles more items than a spread can take', () => {

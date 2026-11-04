@@ -53,11 +53,15 @@ function parseRow(row: Row): ParsedRow {
 
 type SortKey = number | string | null
 
+function formatName(column: Column): string {
+  return typeof column.format === 'string' ? parseFormat(column.format).name : 'text'
+}
+
 function sortKey(value: JsonValue | undefined, column: Column): SortKey {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
   const raw = String(value)
-  return column.format === undefined ? inlineToPlain(parseInline(raw)) : raw
+  return formatName(column) === 'text' ? inlineToPlain(parseInline(raw)) : raw
 }
 
 function collator(locale: string): Intl.Collator {
@@ -89,7 +93,7 @@ function sorted(rows: ParsedRow[], node: TableNode, locale: string): ParsedRow[]
 
 function alignOf(column: Column, index: number, rows: ParsedRow[]): Align {
   if (column.align !== undefined) return column.align
-  const name = typeof column.format === 'string' ? parseFormat(column.format).name : 'text'
+  const name = formatName(column)
   if (NUMERIC.has(name)) return 'right'
   if (name !== 'text') return 'left'
   const values = rows.map((row) => row.cells[index] ?? null).filter((value) => value !== null)
@@ -103,7 +107,10 @@ function cell(value: JsonValue | undefined, column: Column, context: Context): I
     column.cell === 'badge' && column.tones !== undefined && hasOwn(column.tones, formatted.text)
       ? column.tones[formatted.text]
       : undefined
-  const body = column.cell === 'code' && value !== null ? [code(formatted.text)] : tokens
+  const body =
+    column.cell === 'code' && value !== null && value !== undefined
+      ? [code(formatted.text)]
+      : tokens
   return trailed(body, toneMark(tone))
 }
 

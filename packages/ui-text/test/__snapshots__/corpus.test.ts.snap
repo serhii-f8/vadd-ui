@@ -1101,12 +1101,12 @@ exports[`valid corpus snapshots (§16) > chart spark valid 11: {"refLines":[{"y"
 `;
 
 exports[`valid corpus snapshots (§16) > chart spark valid 12: {"values":[]} > markdown 1`] = `
-"_Sparkline: ._
+"_Sparkline._
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart spark valid 12: {"values":[]} > plain 1`] = `
-"Sparkline: .
+"Sparkline.
 "
 `;
 

@@ -4,6 +4,7 @@ import {
   hasOwn,
   isJsonObject,
   type JsonValue,
+  LIMITS,
   type ListItem,
   type ListNode,
   type PlanItem,
@@ -15,6 +16,7 @@ import {
   type Block,
   bold,
   code,
+  codeBlock,
   type Entry,
   type Inline,
   led,
@@ -58,10 +60,13 @@ function checkEntry(item: CheckItem, context: Context): Entry {
   if (item.cmd !== undefined) tokens.push(text(' '), code(item.cmd))
   if (item.ms !== undefined) tokens.push(text(` — ${format(item.ms, 'ms', context).text}`))
   if (item.output === undefined) return { text: tokens }
-  const lines = item.output.split(/\r\n|\r|\n/)
+  const lines = item.output.replace(/\n$/, '').split('\n')
   const hidden = lines.length - CHECK_OUTPUT_LINES
-  const shown = hidden > 0 ? [`… ${hidden} earlier lines`, ...lines.slice(hidden)] : lines
-  return { text: tokens, blocks: [{ kind: 'code', text: shown.join('\n') }] }
+  const shown =
+    hidden > 0
+      ? [`… ${hidden} earlier line${hidden === 1 ? '' : 's'}`, ...lines.slice(hidden)]
+      : lines
+  return { text: tokens, blocks: [codeBlock(shown.join('\n'))] }
 }
 
 function planEntries(items: PlanItem[]): Entry[] {
@@ -98,11 +103,19 @@ function trieItems(trie: PathTrie): TreeItem[] {
   return Array.from(trie, ([name, children]) => ({ name, children: trieItems(children) }))
 }
 
+/** §13.4 cannot see nesting that comes from a path, so the cap on it is applied here. */
+function segmentsOf(path: string): string[] {
+  const parts = path.split('/').filter((part) => part !== '')
+  if (parts.length <= LIMITS.depth) return parts
+  const last = LIMITS.depth - 1
+  return [...parts.slice(0, last), parts.slice(last).join('/')]
+}
+
 function itemsFromPaths(paths: string[]): TreeItem[] {
   const root: PathTrie = new Map()
   for (const path of paths) {
     let node = root
-    for (const segment of path.split('/').filter((part) => part !== '')) {
+    for (const segment of segmentsOf(path)) {
       const child: PathTrie = node.get(segment) ?? new Map()
       node.set(segment, child)
       node = child
@@ -141,7 +154,7 @@ function decisionEntry(
 
 function codeLines({ text: value, lines, mark }: Extract<VuiNode, { type: 'code' }>): string {
   if (lines !== true && (mark === undefined || mark.length === 0)) return value
-  const all = value.split('\n')
+  const all = value.replace(/\n$/, '').split('\n')
   const size = String(all.length).length
   const marked = new Set(mark ?? [])
   return all
@@ -194,11 +207,7 @@ const RENDERERS: Renderers = {
     const blocks = [...title, para(led(toneMark(node.tone), parseInline(node.text)))]
     return [{ kind: 'quote', blocks }]
   },
-  code: (node) => [
-    node.lang === undefined
-      ? { kind: 'code', text: codeLines(node) }
-      : { kind: 'code', text: codeLines(node), lang: node.lang },
-  ],
+  code: (node) => [codeBlock(codeLines(node), node.lang)],
   table: tableBlocks,
   kv: (node, context) => {
     const entries: Entry[] = isJsonObject(node.pairs)
@@ -255,7 +264,7 @@ const RENDERERS: Renderers = {
       rows: node.criteria.map((criterion) => [
         trailed(
           [text(criterion.label)],
-          { high: '↑', low: '↓', none: '' }[criterion.better ?? 'none'],
+          criterion.better === 'high' ? '↑' : criterion.better === 'low' ? '↓' : '',
         ),
         ...node.options.map((_, index) =>
           tokensOf(format(criterion.values[index], criterion.format, context)),
@@ -281,14 +290,14 @@ const RENDERERS: Renderers = {
       const hunk = hasOwn(hunks, path) ? hunks[path] : undefined
       return hunk === undefined
         ? { text: tokens }
-        : { text: tokens, blocks: [{ kind: 'code', text: hunk, lang: 'diff' }] }
+        : { text: tokens, blocks: [codeBlock(hunk, 'diff')] }
     })
     const orphans = Object.entries(hunks)
       .filter(([path]) => !paths.has(path))
       .map(
         ([path, hunk]): Entry => ({
           text: [code(path)],
-          blocks: [{ kind: 'code', text: hunk, lang: 'diff' }],
+          blocks: [codeBlock(hunk, 'diff')],
         }),
       )
     return [list([...entries, ...orphans])]
@@ -310,7 +319,7 @@ const RENDERERS: Renderers = {
     ...(node.context === undefined ? [] : [para(parseInline(node.context))]),
     list(node.options.map((option, index) => decisionEntry(option, index === node.pick))),
   ],
-  log: (node) => [{ kind: 'code', text: node.text, lang: 'log' }],
+  log: (node) => [codeBlock(node.text, 'log')],
   flow: (node) => [list(flowEntries(node))],
 }
 

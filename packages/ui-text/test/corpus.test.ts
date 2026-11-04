@@ -16,6 +16,7 @@ const run = ({ text, input }: Source): ValidationResult =>
   text === undefined ? validate(input as JsonValue) : validateText(text)
 
 const FAILURE = /Could not render|Unsupported component/
+const WHOLE_FAILURE = 'Could not render this document'
 
 describe('valid corpus snapshots (§16)', () => {
   it('holds at least 150 documents', () => {
@@ -75,8 +76,9 @@ describe('never throws, never logs (§15.1)', () => {
     for (const item of cases) {
       const { document } = run(item)
       if (document === undefined) continue
-      expect(typeof renderMarkdown(document)).toBe('string')
-      expect(typeof renderPlain(document)).toBe('string')
+      // §9.3: a bad field costs one node at most, never the document.
+      expect(renderMarkdown(document)).not.toContain(WHOLE_FAILURE)
+      expect(renderPlain(document)).not.toContain(WHOLE_FAILURE)
       rendered++
     }
     expect(rendered).toBeGreaterThan(0)

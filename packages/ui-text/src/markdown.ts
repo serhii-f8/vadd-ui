@@ -1,4 +1,4 @@
-import { type Align, type Block, type Entry, type Inline, statusText } from './blocks.js'
+import { type Align, type Block, type Entry, type Inline, oneLine, statusText } from './blocks.js'
 
 // GitHub-flavored markdown. Document text is escaped here and nowhere else, so the only live
 // markup is what this file writes (§5.5, §15.1, VD-053).
@@ -13,11 +13,6 @@ const SPECIAL =
   /:(?=\/\/)|(?<=\b[wW]{3})\.|[\\`*[\]~|]|(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])|&(?=#?\w+;)|<(?=[A-Za-z/!?])/gu
 const ENTITIES: Readonly<Record<string, string>> = { '<': '&lt;', '&': '&amp;' }
 const HREF_SPECIAL = /[()|\\<>]/g
-
-/** Inline text is one line: a value can never start a block or break a table row. */
-export function oneLine(value: string): string {
-  return value.replace(/[\r\n\u2028\u2029]+/g, ' ')
-}
 
 function escapeText(value: string): string {
   return oneLine(value).replace(SPECIAL, (match) => ENTITIES[match] ?? `\\${match}`)
@@ -41,6 +36,15 @@ function encodeHref(href: string): string {
   })
 }
 
+/** GFM reads no emphasis with a space inside its markers, or nothing between them. */
+function wrap(marker: string, inner: string): string {
+  const body = inner.trim()
+  if (body === '') return inner
+  const before = inner.slice(0, inner.length - inner.trimStart().length)
+  const after = inner.slice(inner.trimEnd().length)
+  return `${before}${marker}${body}${marker}${after}`
+}
+
 function inline(tokens: Inline): string {
   return tokens
     .map((token, index) => {
@@ -56,11 +60,11 @@ function inline(tokens: Inline): string {
         case 'status':
           return statusText(token.status)
         case 'bold':
-          return `**${inline(token.children)}**`
+          return wrap('**', inline(token.children))
         case 'italic':
-          return `*${inline(token.children)}*`
+          return wrap('*', inline(token.children))
         case 'strike':
-          return `~~${inline(token.children)}~~`
+          return wrap('~~', inline(token.children))
         default:
           return `[${inline(token.children)}](${encodeHref(token.href)})`
       }
@@ -72,7 +76,7 @@ function inline(tokens: Inline): string {
 function guardLineStart(line: string): string {
   return line
     .replace(/^(\d{1,9})([.)])(?=\s|$)/, '$1\\$2')
-    .replace(/^(?:#{1,6}(?=\s|$)|[-+](?=\s|$)|-{3,}\s*$|>)/, '\\$&')
+    .replace(/^(?:#{1,6}(?=\s|$)|[-+](?=\s|$)|-[- \t]*$|>)/, '\\$&')
 }
 
 const ALIGN_RULES: Readonly<Record<Align, string>> = {
@@ -87,7 +91,9 @@ function tableRow(cells: string[]): string {
 
 /** A code span keeps its `|`, which GFM would still read as a cell break. */
 function tableCell(tokens: Inline): string {
-  return inline(tokens).replace(/(?<!\\)\|/g, '\\|')
+  return inline(tokens)
+    .trim()
+    .replace(/(?<!\\)\|/g, '\\|')
 }
 
 function fence(value: string, lang: string | undefined): string {

@@ -1,5 +1,4 @@
-import { type Align, type Block, type Entry, type Inline, statusText } from './blocks.js'
-import { oneLine } from './markdown.js'
+import { type Align, type Block, type Entry, type Inline, oneLine, statusText } from './blocks.js'
 
 // Plain text: the same blocks with the markup gone.
 

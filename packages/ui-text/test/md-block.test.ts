@@ -43,6 +43,10 @@ describe('md node (§6.2)', () => {
     both('1. a\n   - b\n2. c', '1. a\n   - b\n2. c')
   })
 
+  it('keeps every item when indentation steps back to a new level', () => {
+    both('- a\n    - b\n    - b2\n  - c\n- d', '- a\n  - b\n  - b2\n  - c\n- d')
+  })
+
   it('folds an indented continuation into its item', () => {
     both('- a\n  more\n- b', '- a more\n- b')
   })
@@ -72,6 +76,15 @@ describe('md node (§6.2)', () => {
 
   it('closes a fence only with a run as long as the opener', () => {
     both('````\n```\n````\nafter', '````\n```\n````\n\nafter', '    ```\n\nafter')
+  })
+
+  it('reads a one-line triple-backtick span as text, not a fence', () => {
+    both(
+      '```foo``` is the call\n\n### Next',
+      '\\`\\``foo`\\`\\` is the call\n\n### Next',
+      '``foo`` is the call\n\nNext',
+    )
+    both('~~~a`b\nx\n~~~', '```a\nx\n```', '    x')
   })
 
   it('closes an open fence at the end of the text', () => {

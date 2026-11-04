@@ -33,7 +33,7 @@ export function sparkline(values: readonly number[]): string {
 function subject(node: ChartNode, context: Context): string {
   switch (node.kind) {
     case 'spark':
-      return `: ${sparkline(node.values)}`
+      return node.values.length > 0 ? `: ${sparkline(node.values)}` : ''
     case 'scatter':
       return `: ${node.points.length} points`
     default: {

@@ -1,11 +1,12 @@
 import { parseInline } from '@vadd/ui-spec'
-import { type Block, type Entry, list, para } from './blocks.js'
+import { type Block, codeBlock, type Entry, list, para } from './blocks.js'
 
 // The §6.2 subset, and nothing else: anything it does not name stays a paragraph. The
 // serializer escapes that paragraph, so `<div>`, `# h1` and a table remain the text they are
 // (VD-054). Quotes do not nest, which also keeps the work linear on a run of `>`.
 
-const FENCE = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)/
+// A backtick fence has no backtick after it, or a one-line ```a``` would swallow the node.
+const FENCE = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})[ \t]*([^\s`]*)/
 const HEADING = /^ {0,3}(#{3,4})[ \t]+(\S.*)$/
 const QUOTE = /^ {0,3}>[ \t]?(.*)$/
 const ITEM = /^([ \t]*)([-*+]|\d{1,9}\.)[ \t]+(\S.*)$/
@@ -69,10 +70,7 @@ class Reader {
       this.index++
     }
     this.index++
-    const text = body.join('\n')
-    this.blocks.push(
-      lang === '' ? { kind: 'code', text } : { kind: 'code', text, lang: lang as string },
-    )
+    this.blocks.push(codeBlock(body.join('\n'), lang === '' ? undefined : lang))
   }
 
   private heading([, marks, title]: RegExpExecArray): void {
@@ -113,10 +111,18 @@ class Reader {
       const top = stack[stack.length - 1]
       const item: OpenItem = { raw: raw as string }
       if (top === undefined || indent > top.indent) {
-        const open = { ordered: /\d/.test(marker as string), indent, items: [item] }
         const parent = top?.items[top.items.length - 1]
-        if (parent !== undefined) parent.children = open
-        stack.push(open)
+        const open = parent?.children
+        if (open === undefined) {
+          const created = { ordered: /\d/.test(marker as string), indent, items: [item] }
+          if (parent !== undefined) parent.children = created
+          stack.push(created)
+        } else {
+          // Indentation stepped back to a level between two others: the same child list.
+          open.indent = indent
+          open.items.push(item)
+          stack.push(open)
+        }
       } else {
         top.items.push(item)
       }
@@ -151,7 +157,7 @@ class Reader {
 
 /** The text of an `md` node as blocks. */
 export function mdBlocks(value: string): Block[] {
-  const reader = new Reader(value.split(/\r\n|\r|\n/))
+  const reader = new Reader(value.split('\n'))
   reader.run()
   return reader.blocks
 }

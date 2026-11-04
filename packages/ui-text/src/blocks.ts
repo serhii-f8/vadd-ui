@@ -59,8 +59,15 @@ export function statusText(status: Status): string {
   return `${statusMark(status)} ${status}`.trim()
 }
 
-export const text = (value: string): InlineToken => ({ type: 'text', text: value })
-export const code = (value: string): InlineToken => ({ type: 'code', text: value })
+/** Inline text is one line: a value can never start a block or break a table row. */
+export function oneLine(value: string): string {
+  return value.replace(/[\n\u2028\u2029]+/g, ' ')
+}
+
+// `String`: a wrong type in an optional field survives validation as a `warn` (VD-031), and
+// the serializers run outside the node guard.
+export const text = (value: string): InlineToken => ({ type: 'text', text: String(value) })
+export const code = (value: string): InlineToken => ({ type: 'code', text: String(value) })
 export const bold = (...children: Inline): InlineToken => ({ type: 'bold', children })
 
 /** `tokens` after a mark, for marks that lead (`✓ name`). */
@@ -71,6 +78,14 @@ export function led(mark: string, tokens: Inline): Inline {
 /** `tokens` before a mark, for marks that trail (`searchSku ⚠`). */
 export function trailed(tokens: Inline, mark: string): Inline {
   return mark === '' ? tokens : [...tokens, text(` ${mark}`)]
+}
+
+/** Code without the final newline, which would print as an empty line. */
+export function codeBlock(value: string, lang?: string): Block {
+  const body = String(value).replace(/\n$/, '')
+  return typeof lang === 'string'
+    ? { kind: 'code', text: body, lang }
+    : { kind: 'code', text: body }
 }
 
 export const para = (tokens: Inline): Block => ({ kind: 'para', text: tokens })

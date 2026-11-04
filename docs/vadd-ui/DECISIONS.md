@@ -421,15 +421,15 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-053 — How markdown output stays inert
 - Date: 2026-11-04 · Task: 05
 - Context: §5.5 and §15.1 say raw HTML renders as text and that the renderer loads no remote assets. Passing document text into markdown would break both, in any host that renders it. A check through `marked` and `markdown-it` found two escapes that hand-written tests missed: `![x](url)` becoming a live image, and a bare URL's autolink swallowing a backslash or a code span's opening backtick, which freed the `<b>` after it.
-- Decision: text is escaped in one place, `markdown.ts`. `<` before a tag start and `&` before an entity become `&lt;` and `&amp;`, not backslash escapes, so no tag can start even if an autolink runs over the text. A bare URL gets no autolink (`http\://`, `www\.`): §5.5 has none, and §5.5 links stay live. A `!` before a link is escaped. Link targets percent-encode `( ) | \ < >`. Inline text is flattened to one line, and line-start syntax is escaped. Fences are longer than any backtick run inside. Adjacent lists alternate markers (`-`, `*`; `1.`, `1)`), or GFM merges them. A last pass removes ANSI sequences and C0/C1 controls except tab and newline, in both formats, because §15.1 treats documents as hostile and `vui render` prints to a terminal.
+- Decision: text is escaped in one place, `markdown.ts`. `<` before a tag start and `&` before an entity become `&lt;` and `&amp;`, not backslash escapes, so no tag can start even if an autolink runs over the text. A bare URL gets no autolink (`http\://`, `www\.`): §5.5 has none, and §5.5 links stay live. A `!` before a link is escaped. Link targets percent-encode `( ) | \ < >`. Inline text is flattened to one line, and line-start syntax is escaped. Fences are longer than any backtick run inside. Adjacent lists alternate markers (`-`, `*`; `1.`, `1)`), or GFM merges them. Before anything is escaped, a walk over the whole document removes ANSI sequences and C0/C1 controls except tab and newline, from values and object keys, in both formats, because §15.1 treats documents as hostile and `vui render` prints to a terminal. It must come first: the task review showed that cleaning finished output let `<\0script>` turn into a live tag after the escaper had passed it. An OSC with no terminator ends with its line, so it cannot delete what follows.
 - Alternatives: fenced or HTML-escaped output, which is unreadable; relying on the host's sanitizer, which plain markdown viewers do not have.
-- Rationale: only markup the serializer writes is live. Checked outside the repo with 20,000 fuzzed and 400 fixed documents through both engines: no tag, image or unsafe scheme.
+- Rationale: only markup the serializer writes is live. Checked outside the repo with 40,000 fuzzed and 400 fixed documents, with control characters in the fuzz alphabet, through `marked`, `markdown-it` and `cmark-gfm`: no tag, image or unsafe scheme. That is evidence, not proof, and the check is not part of `pnpm gate`, since those parsers are not dependencies.
 - Spec sections: §5.5, §15.1.
 
 ## VD-054 — What the `md` node accepts in text output
 - Date: 2026-11-04 · Task: 05
 - Context: §6.2 lists the block subset of `md` without detail, and a text renderer must not pass the source through (VD-053).
-- Decision: parse lines into blocks. Only `###` and `####` are headings; `#`, `##`, `#####` and deeper stay text, as §6.2 reads. Blockquotes do not nest, and their text is paragraphs. Lists nest by indent and ordered lists renumber from 1, because the first marker of a list sets its kind. An indented line under an item joins it. A blank line between items does not end a list. An open fence closes at the end of the text. Tables, rules, HTML and task-list syntax stay text. Soft-wrapped lines join with a space. Task 07 should follow the same reading so that hosts agree; it cannot import this, since `ui-render` does not depend on `ui-text` (§3).
+- Decision: parse lines into blocks. Only `###` and `####` are headings; `#`, `##`, `#####` and deeper stay text, as §6.2 reads. Blockquotes do not nest, and their text is paragraphs. Lists nest by indent and ordered lists renumber from 1, because the first marker of a list sets its kind. When indentation steps back to a level between two others, the item joins the existing child list, so no item is lost. An indented line under an item joins it. A blank line between items does not end a list. An open fence closes at the end of the text. A backtick fence may have no backtick after it, as in CommonMark, so a one-line ```` ```a``` ```` is a paragraph. Tables, rules, HTML and task-list syntax stay text. Soft-wrapped lines join with a space. Task 07 should follow the same reading so that hosts agree; it cannot import this, since `ui-render` does not depend on `ui-text` (§3).
 - Alternatives: clamp `#` and `##` to h3, friendlier but not what §6.2 says, and easy to add later in both renderers.
 - Rationale: literal subset, one line-based pass, and linear on hostile input.
 - Spec sections: §3, §6.2.
@@ -441,3 +441,19 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: move the helpers to `ui-spec` now, which adds a public API for a second caller that does not exist yet.
 - Rationale: smallest change here, and written down so the DOM can agree.
 - Spec sections: §6.6, §19.5.
+
+## VD-056 — `tree.paths` nesting is capped at the §13.4 depth
+- Date: 2026-11-04 · Task: 05
+- Context: `paths` is a flat string list, so §13.4 sees no depth in it, and VD-032 counts depth by items. Splitting on `/` created it here: review measured a 242 KiB valid document giving 123 MB of output in 25 s, and a 1 KiB one overflowing the stack.
+- Decision: split into at most 12 levels, and print what is left of the path as one segment (`12/13/14/15`). Task 11's DOM `tree` should do the same.
+- Alternatives: reject deep paths in the validator, which refuses a real path for what is only a display problem; pass an indent prefix down, which leaves a stack overflow.
+- Rationale: nothing is hidden, and output stays proportional to input.
+- Spec sections: §6.5, §13.4, §15.1.
+
+## VD-057 — Review findings declined for task 05
+- Date: 2026-11-04 · Task: 05
+- Context: the task review set these aside for a ruling.
+- Decision: bidi controls such as U+202E pass through: §15.1 lists no such threat, and stripping them is a one-line change in `clean.ts` if it does. `@mentions` and `#123` stay live, and so does email autolinking, which cannot run over a code span: a PR comment author may want them, and task 13 can add a flag. `code` and `path` print `formatValue`'s truncated string, because §7 requires identical strings; this is the one exception to VD-052. `#id` links have no anchor in markdown, since no HTML is written. An unknown component prints one line, without §9.3's folded JSON, which is written for the DOM. Plain table width counts code points, so CJK and emoji can misalign. `**a.**b` is bold to `parseInline` and not to GFM flanking rules, a gap in `ui-spec`.
+- Alternatives: fix each; none changes what a normal document shows.
+- Rationale: smallest honest scope. All are reversible.
+- Spec sections: §5.5, §7, §9.3, §15.1.

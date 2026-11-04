@@ -158,6 +158,11 @@ describe('text', () => {
     both({ type: 'code', text: 'a' }, '```\na\n```', '    a')
   })
 
+  it('code and log print no blank line for a final newline', () => {
+    both({ type: 'code', text: 'a\n' }, '```\na\n```', '    a')
+    both({ type: 'log', text: 'a\n' }, '```log\na\n```', '    a')
+  })
+
   it('code keeps every line past maxLines', () => {
     const text = Array.from({ length: 5 }, (_, i) => `l${i}`).join('\n')
     expect(md({ type: 'code', text, maxLines: 2 })).toContain('l4')
@@ -313,6 +318,41 @@ describe('table', () => {
     expect(output.match(/\*\*a\*\*/g)).toHaveLength(2)
   })
 
+  it('shows a missing code cell the same as a null one', () => {
+    const columns = [
+      { key: 'a', label: 'A' },
+      { key: 'b', label: 'B', cell: 'code' },
+    ]
+    const document = documentOf({ body: [] })
+    document.body = [
+      { type: 'table', columns, rows: [['x'], ['y', null]], pageSize: 25, sticky: false },
+    ] as never
+    expect(renderMarkdown(document)).toBe('| A | B |\n| --- | --- |\n| x | — |\n| y | — |\n')
+  })
+
+  it('writes no empty emphasis', () => {
+    const output = md({ type: 'table', columns: ['A'], rows: [['']], totals: [''], group: 0 })
+    expect(output).not.toContain('****')
+  })
+
+  it('keeps edge spaces outside emphasis, where GFM needs them', () => {
+    expect(md({ type: 'kv', pairs: [[' k', 1]] })).toBe('- **k:** 1\n')
+    expect(md({ type: 'list', items: ['*a* [ b](https://a.dev)'] })).toContain('*a*')
+    expect(
+      md({ body: [{ type: 'table', columns: ['A', 'B'], rows: [], totals: [' a ', null] }] }),
+    ).toContain('| **a** |')
+  })
+
+  it('sorts an explicit text column like a default one', () => {
+    const output = md({
+      type: 'table',
+      columns: [{ key: 'a', label: 'A', format: 'text' }],
+      rows: [['**z**'], ['b']],
+      sort: [0, 'asc'],
+    })
+    expect(output.indexOf('| b |')).toBeLessThan(output.indexOf('| **z** |'))
+  })
+
   it('prints all rows past pageSize', () => {
     const rows = Array.from({ length: 30 }, (_, i) => [`r${i}`])
     expect(md({ type: 'table', columns: ['A'], rows, pageSize: 2 })).toContain('r29')
@@ -415,6 +455,15 @@ describe('data', () => {
     both({ type: 'progress', value: 1, max: 0 }, '1 of 0')
   })
 
+  it('compare ignores an unknown better value', () => {
+    const input = {
+      type: 'compare',
+      options: ['A'],
+      criteria: [{ label: 'c', values: [1], better: 'constructor' }],
+    }
+    expect(md(input)).toContain('| c | 1 |')
+  })
+
   it('compare is a matrix with the pick marked', () => {
     both(
       {
@@ -497,6 +546,10 @@ describe('chart', () => {
     )
   })
 
+  it('leaves an empty spark with no subject', () => {
+    both({ type: 'chart', kind: 'spark', values: [] }, '_Sparkline._', 'Sparkline.')
+  })
+
   it('samples a long spark to 40 bars', () => {
     const values = Array.from({ length: 10_000 }, (_, i) => i)
     const line = plain({ type: 'chart', kind: 'spark', values })
@@ -544,6 +597,17 @@ describe('dev workflow', () => {
     expect(rendered).not.toContain('line 5\n')
     expect(rendered).not.toContain('[31m')
     expect(rendered.endsWith('  line 25\n  ```\n')).toBe(true)
+  })
+
+  it('checks output counts a trailing newline as no line', () => {
+    const lines = (count: number) => Array.from({ length: count }, (_, i) => `l${i + 1}`).join('\n')
+    const render = (output: string) =>
+      md({ type: 'checks', items: [{ name: 'a', status: 'ok', output }] })
+    const twenty = render(`${lines(20)}\n`)
+    expect(twenty).not.toContain('earlier')
+    expect(twenty).toContain('  l1\n')
+    expect(twenty.endsWith('  l20\n  ```\n')).toBe(true)
+    expect(render(`${lines(21)}\n`)).toContain('… 1 earlier line\n')
   })
 
   it('plan counts every level and nests', () => {
