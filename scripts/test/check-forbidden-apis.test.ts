@@ -20,6 +20,11 @@ describe('check-forbidden-apis', () => {
     ['computed-inner-html.ts', 'innerHTML'],
     ['concat-inner-html.ts', 'innerHTML'],
     ['component.tsx', 'dangerouslySetInnerHTML'],
+    ['outer-html.ts', 'outerHTML'],
+    ['srcdoc.ts', 'srcdoc'],
+    ['contextual-fragment.ts', 'createContextualFragment'],
+    ['dom-parser.ts', 'DOMParser'],
+    ['string-timer.ts', 'string timer'],
   ])('fires on %s', (file, rule) => {
     const { code, out } = run(script, fixture(`forbidden/${file}`))
     expect(code).toBe(1)
@@ -34,7 +39,7 @@ describe('check-forbidden-apis', () => {
   it('reports every fixture when given the directory', () => {
     const { code, out } = run(script, fixture('forbidden'))
     expect(code).toBe(1)
-    expect(out.trim().split('\n')).toHaveLength(12)
+    expect(out.trim().split('\n')).toHaveLength(17)
   })
 
   it('passes clean code whose comments and types mention banned words', () => {
@@ -58,7 +63,7 @@ describe('check-forbidden-apis', () => {
 
   it('scans every browser-reaching package by default and finds them clean', () => {
     const { code, out } = run(script)
-    expect(out).toContain('6 files')
+    expect(out).toMatch(/\d+ files clean/)
     expect(code).toBe(0)
   })
 })

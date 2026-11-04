@@ -10,7 +10,9 @@ import { readJson } from './lib/workspace.mjs'
 /** @type {string[]} */
 const findings = []
 const root = rootArg(process.argv.slice(2))
-const expected = readJson(root, 'package.json', findings)?.version
+const rootManifest = readJson(root, 'package.json', findings)
+const expected = rootManifest?.version
+if (rootManifest && typeof expected !== 'string') findings.push('package.json: missing version')
 
 let checked = 0
 for (const parent of ['packages', 'skills']) {

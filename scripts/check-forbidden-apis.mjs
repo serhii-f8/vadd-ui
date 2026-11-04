@@ -18,11 +18,16 @@ import { PACKAGES } from './lib/workspace.mjs'
 /** @type {[string, RegExp][]} */
 const RULES = [
   ['innerHTML', /\binnerHTML\b/],
+  ['outerHTML', /\bouterHTML\b/],
   ['dangerouslySetInnerHTML', /\bdangerouslySetInnerHTML\b/],
   ['insertAdjacentHTML', /\binsertAdjacentHTML\b/],
   ['document.write', /\bdocument\s*\.\s*write(?:ln)?\b/],
+  ['srcdoc', /\bsrcdoc\b/],
+  ['createContextualFragment', /\bcreateContextualFragment\b/],
+  ['DOMParser', /\bDOMParser\b/],
   ['eval', /\beval\b/],
   ['Function', /\bFunction\s*\(/],
+  ['string timer', /\bset(?:Timeout|Interval)\s*\(\s*["'`]/],
 ]
 
 /** @type {Record<string, 'ts' | 'tsx' | 'js' | 'jsx'>} */

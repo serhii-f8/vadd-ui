@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { editJson, makeWorkspace, run } from './helpers.js'
 
@@ -37,6 +39,19 @@ describe('check-versions', () => {
       pkg.version = '1.0.0'
     })
     expect(check(root).code).toBe(1)
+  })
+
+  it('fails when no manifest has a version, rather than matching undefined', () => {
+    const root = makeWorkspace()
+    const manifests = readdirSync(join(root, 'packages')).map((n) => `packages/${n}/package.json`)
+    for (const file of ['package.json', 'skills/vadd-ui/package.json', ...manifests]) {
+      editJson(root, file, (pkg) => {
+        delete pkg.version
+      })
+    }
+    const { code, out } = check(root)
+    expect(code).toBe(1)
+    expect(out).toContain('package.json: missing version')
   })
 
   it('fails on a missing version', () => {
