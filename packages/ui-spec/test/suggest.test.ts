@@ -32,6 +32,10 @@ describe('suggest', () => {
     expect(suggest('abc', ['abd', 'abe'])).toBe('abd')
   })
 
+  it('breaks a tie towards the nearest length', () => {
+    expect(suggest('tabel', ['tabs', 'table'])).toBe('table')
+  })
+
   it('skips huge values without comparing them', () => {
     const started = performance.now()
     expect(suggest('x'.repeat(262_144), ['table'])).toBeUndefined()

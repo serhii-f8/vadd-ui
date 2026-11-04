@@ -18,17 +18,23 @@ export function levenshtein(a: string, b: string): number {
   return previous[b.length] as number
 }
 
-/** The closest candidate within 2 edits (§11.3), first in list order on a tie. */
+/**
+ * The closest candidate within 2 edits (§11.3). On a tie the nearest length wins, so
+ * "tabel" finds "table" rather than "tabs", then list order.
+ */
 export function suggest(value: string, candidates: readonly string[]): string | undefined {
   let best: string | undefined
   let bestDistance = MAX_DISTANCE + 1
+  let bestGap = 0
   for (const candidate of candidates) {
     // The length gap bounds the distance, so a huge value never costs a full comparison.
-    if (Math.abs(candidate.length - value.length) >= bestDistance) continue
+    const gap = Math.abs(candidate.length - value.length)
+    if (gap > MAX_DISTANCE) continue
     const distance = levenshtein(value, candidate)
-    if (distance < bestDistance) {
+    if (distance < bestDistance || (distance === bestDistance && gap < bestGap)) {
       best = candidate
       bestDistance = distance
+      bestGap = gap
     }
   }
   return best
