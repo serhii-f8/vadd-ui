@@ -329,3 +329,59 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: escape `path` here, which stops it resolving in the input.
 - Rationale: smallest honest scope; the renderer and CLI tasks own the rest.
 - Spec sections: §11.3, §13.2, §13.3.
+
+## VD-042 — Delta syntax: `delta[:base[:arg]][:better:low|high]`
+- Date: 2026-11-04 · Task: 04
+- Context: §7 gives `delta:pct` and says `better:low` inverts tones, but not how the two combine.
+- Decision: a trailing `better:low` or `better:high` is stripped first and the rest is `base[:arg]`: `delta:better:low`, `delta:pct:better:low`, `delta:pct:2:better:low`, `delta:money:PLN:better:low`. Bases are the numeric formats; the default is `num`. A value that rounds to the base format of 0 has no sign and `muted` tone, because §7 defines tones only for gains and losses. The sign is a literal `+` or U+2212 in front of the base format of the absolute value, since §7 prints U+2212 where Intl prints a hyphen, and a base such as `ms` has no Intl sign to reuse.
+- Alternatives: a comma (`delta:pct,better:low`), which adds a separator nothing else uses; a separate field, which the §6.6 column has no room for.
+- Rationale: colon is §7's only separator, and it passes the VD-026 column suffix: `"p95:delta:ms:better:low"` works unchanged.
+- Spec sections: §5.3, §7.
+
+## VD-043 — Grouping is always on, and Intl spaces are kept
+- Date: 2026-11-04 · Task: 04
+- Context: §7 shows `1 234,50 zł`, but Intl prints `1234,50 zł` in `pl-PL`, whose minimum grouping is two digits. Intl also separates with NBSP (U+00A0) where the spec prints a space.
+- Decision: pass `useGrouping: 'always'` to every number format, so a Polish column does not mix `1234` and `12 345`. Keep Intl's NBSP and U+202F; the spec's space is read as typography, and tests assert the exact code points.
+- Alternatives: a locale table; normalizing spaces, which lets a value wrap mid-number.
+- Rationale: Intl-only and stays aligned in columns. All §17.4 engines accept `'always'`; an older one would coerce it to `true`, the default, and still not throw.
+- Spec sections: §7, §17.4.
+
+## VD-044 — `ms` and `dur` take unit names from Intl parts
+- Date: 2026-11-04 · Task: 04
+- Context: Intl `short` gives `1.24 sec`, and `narrow` gives `1.24s`; §7 wants `1.24 s`. It also wants `2m 05s` and `1h 02m`, and defines no tiers.
+- Decision: under 1 s, Intl `short` milliseconds, rounded. Under 60 s, number plus a space plus the `narrow` unit symbol from `formatToParts`, with 2 decimals for `ms` and 0 for `dur`. From 60 s, two `narrow` Intl units with the second padded to 2 digits and hours unbounded, so `pl-PL` gives `2 min 05 s` and `uk-UA` gives `2х 05с`. Thresholds apply to the rounded value.
+- Alternatives: hard-coded `s` and `m`, which are not localized; `Intl.DurationFormat`, which is absent from Node 22 and outside §17.4.
+- Rationale: reproduces every §7 example and stays locale-driven.
+- Spec sections: §7.
+
+## VD-045 — `bytes` with `iec` uses literal unit symbols
+- Date: 2026-11-04 · Task: 04
+- Context: Intl has `megabyte` but no `mebibyte`.
+- Decision: `si` uses Intl `unit`, so `uk-UA` gives `1,5 МБ`. `iec` uses Intl digits with the literal symbols `B KiB MiB GiB TiB PiB`, in every locale, joined by NBSP. Bytes have 0 decimals, and larger units 1. A value that rounds up to the next unit moves to it.
+- Alternatives: translating IEC prefixes by hand, which breaks the Intl-only rule.
+- Rationale: IEC symbols are international; it is the one place a unit is not localized.
+- Spec sections: §7.
+
+## VD-046 — `rel` tiers and the English abbreviation dot
+- Date: 2026-11-04 · Task: 04
+- Context: Intl `short` prints `3 min. ago` in English, while §7 prints `3 min ago`. Polish and Ukrainian abbreviations need their dots. §7 sets no tiers, and §5.2 sets `generatedAt` as now.
+- Decision: use `style: 'short'`, truncating to whole seconds, minutes, hours, days, months (30 days) and years (365 days), and print `now` under 1 s. Strip the abbreviation dot only for language `en`. With no usable `generatedAt`, print the absolute datetime and a `warn`; never read a clock. `numeric: 'always'`, because `yesterday` can be wrong by calendar day across truncation.
+- Alternatives: `narrow` (`3m ago`), which does not match §7.
+- Rationale: truncation cannot roll over to `60 min ago`, and the only non-Intl step is one punctuation fix that §7's example requires.
+- Spec sections: §5.2, §7, §9.3.
+
+## VD-047 — `date` is always UTC and strict ISO 8601
+- Date: 2026-11-04 · Task: 04
+- Context: §7 requires identical strings in the DOM and text renderers, yet Intl defaults to the machine's zone, and `Date.parse` accepts engine-specific forms: V8 reads `2026-02-31` as 3 March.
+- Decision: format in UTC, printing `UTC` wherever a time is shown. Strings must match ISO 8601, a time without an offset is UTC, and fields are round-tripped through `Date.UTC`, so an impossible date renders raw with a `warn`. `short` is the §7 example `Nov 4, 2026`.
+- Alternatives: the viewer's zone, which breaks snapshots and differs between renderers.
+- Rationale: the document has no zone field, and an explicit `UTC` label keeps it honest.
+- Spec sections: §7, §9.3, §16.
+
+## VD-048 — Value checks in the validator, and in-document links
+- Date: 2026-11-04 · Task: 04
+- Context: §13.3 makes a cell type mismatch a `warn`, and task 03 left that out. §15.1 lists three link schemes, while §4.2 and §5.4 also promise `#id` links. §7 does not cover a bad format arg.
+- Decision: add `bad-value` and `bad-format-arg`, both `warn`. The walker reports `bad-format-arg` wherever a format is declared, and `bad-value` for table rows and totals, `kv` tuples, `stats` `value` and `delta`, and `compare` `values`. Chart data is left out: the number rule covers it, and an `x` label may be text. `#fragment` is accepted as a link because it has no scheme and leaves the document; relative URLs stay text. Inline text has no backslash escapes, and its nesting stops at depth 8.
+- Alternatives: warn only from the renderer, which the CLI would never print.
+- Rationale: the CLI should warn exactly where the renderer falls back, so both call the same check.
+- Spec sections: §4.2, §5.4, §5.5, §7, §13.3, §15.1.
