@@ -357,7 +357,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-045 — `bytes` with `iec` uses literal unit symbols
 - Date: 2026-11-04 · Task: 04
 - Context: Intl has `megabyte` but no `mebibyte`.
-- Decision: `si` uses Intl `unit`, so `uk-UA` gives `1,5 МБ`. `iec` uses Intl digits with the literal symbols `B KiB MiB GiB TiB PiB`, in every locale, joined by NBSP. Bytes have 0 decimals, and larger units 1. A value that rounds up to the next unit moves to it.
+- Decision: `si` uses Intl `unit`, so `uk-UA` gives `1,5 МБ`. `iec` uses Intl digits with the literal symbols `B KiB MiB GiB TiB PiB`, in every locale, joined by a space as in Intl `unit` output. Bytes have 0 decimals, and larger units 1. A value that rounds up to the next unit moves to it.
 - Alternatives: translating IEC prefixes by hand, which breaks the Intl-only rule.
 - Rationale: IEC symbols are international; it is the one place a unit is not localized.
 - Spec sections: §7.
@@ -381,7 +381,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-048 — Value checks in the validator, and in-document links
 - Date: 2026-11-04 · Task: 04
 - Context: §13.3 makes a cell type mismatch a `warn`, and task 03 left that out. §15.1 lists three link schemes, while §4.2 and §5.4 also promise `#id` links. §7 does not cover a bad format arg.
-- Decision: add `bad-value` and `bad-format-arg`, both `warn`. The walker reports `bad-format-arg` wherever a format is declared, and `bad-value` for table rows and totals, `kv` tuples, `stats` `value` and `delta`, and `compare` `values`. Chart data is left out: the number rule covers it, and an `x` label may be text. `#fragment` is accepted as a link because it has no scheme and leaves the document; relative URLs stay text. Inline text has no backslash escapes, and its nesting stops at depth 8.
+- Decision: add `bad-value` and `bad-format-arg`, both `warn`. The walker reports `bad-format-arg` wherever a format is declared, and `bad-value` for table rows and totals, `kv` tuples, `stats` `value` and `delta`, and `compare` `values`. Chart data is left out: the number rule covers it, and an `x` label may be text. `#fragment` is accepted as a link because it has no scheme and leaves the document; relative URLs stay text. Inline text has no backslash escapes.
 - Alternatives: warn only from the renderer, which the CLI would never print.
 - Rationale: the CLI should warn exactly where the renderer falls back, so both call the same check.
 - Spec sections: §4.2, §5.4, §5.5, §7, §13.3, §15.1.
