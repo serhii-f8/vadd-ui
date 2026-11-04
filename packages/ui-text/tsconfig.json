@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.browser.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "lib": ["ES2020"]
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../ui-spec"
+    }
+  ]
+}

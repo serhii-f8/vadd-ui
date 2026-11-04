@@ -1,0 +1,24 @@
+{
+  "name": "@vadd/ui-cli",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@vadd/ui-spec": "workspace:*",
+    "@vadd/ui": "workspace:*",
+    "@vadd/ui-text": "workspace:*",
+    "@vadd/ui-viewer": "workspace:*"
+  }
+}

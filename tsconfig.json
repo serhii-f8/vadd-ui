@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/ui-spec" },
+    { "path": "packages/ui-render" },
+    { "path": "packages/ui-text" },
+    { "path": "packages/ui" },
+    { "path": "packages/ui-viewer" },
+    { "path": "packages/ui-cli" },
+    { "path": "packages/ui-react" }
+  ]
+}

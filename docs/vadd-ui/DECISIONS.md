@@ -121,3 +121,51 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: launch workers without bypass, which would stop on prompts.
 - Rationale: the `git push` deny and the absence of a remote both guard the main risk. The spec's hash is checked at integration.
 - Spec sections: none.
+
+## VD-016 — "No runtime dependency" allows §3 workspace edges
+- Date: 2026-11-04 · Task: 01
+- Context: the task says a script fails on any runtime dependency in `ui-spec`, `ui-render` or `ui`, but §3 has `ui-render` depending on `ui-spec` and `ui` on both.
+- Decision: `scripts/check-runtime-deps.mjs` allows exactly the §3 `workspace:*` edges in `dependencies` and fails on anything else, in `dependencies`, `peerDependencies`, `optionalDependencies` or `bundleDependencies`. It also holds every package's `@vadd/*` dependencies equal to §3.
+- Alternatives: move workspace edges to `devDependencies`, which makes published `ui-render` unable to resolve `ui-spec`.
+- Rationale: the rule protects against third-party code; §3 is the source of truth for the graph.
+- Spec sections: §3.
+
+## VD-017 — Banned-API lint runs on esbuild output and covers every browser-reaching package
+- Date: 2026-11-04 · Task: 01
+- Context: §15.1 needs a lint ban. Biome has no rule for most of the list, and a regex over raw source cannot separate comments from code. TypeScript 7 has no JS compiler API to walk an AST with.
+- Decision: `scripts/check-forbidden-apis.mjs` passes each file through esbuild `transform` with `minifySyntax`, then applies regexes to the result, strings included. Scope is `src` of `ui-spec`, `ui-render`, `ui-text`, `ui`, `ui-viewer`, `ui-react`; `ui-cli` is Node-only and out. Browser-reaching code must live in one of those `src` trees, or the §3 table in `scripts/lib/workspace.mjs` must gain it, so the Viewer's feed app belongs under `packages/ui-viewer/src`. `Function` is banned with or without `new` (§15.1 says `Function`), and five siblings of the §15.1 list are added because they reach the same outcome: `outerHTML`, `srcdoc`, `createContextualFragment`, `DOMParser`, and `setTimeout` or `setInterval` with a string literal. `dangerouslySetInnerHTML` is added because `ui-react` is in scope. There is no allowlist, so a string that merely contains a banned word fails. Task 11's bundle grep can reuse the exported `scanSource`.
+- Alternatives: a Biome GritQL plugin; a hand-written comment stripper, which misreads regex literals.
+- Rationale: smallest check that catches computed and concatenated access with no false hits from comments or types.
+- Spec sections: §15.1, §16.
+
+## VD-018 — Packages export `dist`; tests alias to `src`
+- Date: 2026-11-04 · Task: 01
+- Context: VADD's private packages point `exports` at `src/*.ts`. These packages are published (§10.3), so they must export compiled files.
+- Decision: `exports` points at `dist` with `types`. `vitest.config.ts` aliases `@vadd/*` to `src/index.ts`, so tests need no build and never run stale output. `skills/vadd-ui` is a private workspace package named `@vadd/ui-skill`, so it shares the version (§17.2) and holds a test.
+- Alternatives: a custom export condition; building before every test run.
+- Rationale: one alias in one file. A later package subpath needs its own alias entry.
+- Spec sections: §3, §10.3, §17.2.
+
+## VD-019 — Compile targets
+- Date: 2026-11-04 · Task: 01
+- Context: §17.4 sets ES2020 for browsers and Node 20 for the CLI. `ui-spec` and `ui-text` run in both.
+- Decision: `tsconfig.browser.json` targets ES2020 and serves `ui-spec`, `ui-render`, `ui-text`, `ui`, `ui-react`. `ui-spec` and `ui-text` narrow `lib` to ES2020, so DOM use does not compile. `tsconfig.node.json` targets ES2023, which Node 20 runs in full, and serves `ui-viewer` and `ui-cli`. `@types/node` stays on `^20` so newer APIs do not typecheck. esbuild targets `es2020` and `node20` live in `scripts/lib/targets.mjs`. The Viewer's browser app gets its own config in the task that writes it.
+- Alternatives: `@types/node` at VADD's `^26`, which would hide use of APIs Node 20 lacks.
+- Rationale: the compiler enforces the limits instead of review.
+- Spec sections: §3, §17.4.
+
+## VD-020 — Bundle-size check fails once the bundle is declared
+- Date: 2026-11-04 · Task: 01
+- Context: the check must report "no bundle yet" until task 11, but a check that passes on a missing file would hide a dropped build step afterwards.
+- Decision: a missing `packages/ui/dist/vui.min.js` passes only while `packages/ui/package.json` `exports` does not mention `vui.min.js`. Task 11 must add that entry and build the bundle within `pnpm build`.
+- Alternatives: flip the check by hand in task 11, which is easy to forget.
+- Rationale: the spec's CDN path already needs the export entry.
+- Spec sections: §9.5, §10.3.
+
+## VD-021 — Playwright in the gate; Biome skips Markdown
+- Date: 2026-11-04 · Task: 01
+- Context: §16 runs browser tests with Playwright, so `pnpm gate` needs Chromium. Biome 2.6 also formats Markdown, which would rewrite the spec and these docs.
+- Decision: `pnpm gate` runs `playwright test`; CI installs Chromium first, and a new machine needs `pnpm exec playwright install chromium`. Biome excludes `**/*.md`. Vitest stays on VADD's `^4.1.10` although 5.x exists (VD-005).
+- Alternatives: keep Playwright outside the gate until task 06, which leaves it unproven.
+- Rationale: every gate is real from the first task, and the spec's bytes stay untouched.
+- Spec sections: §16.
