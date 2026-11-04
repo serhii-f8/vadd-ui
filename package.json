@@ -14,7 +14,9 @@
     "lint": "biome check . && node scripts/check-forbidden-apis.mjs",
     "format": "biome check --write .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check": "node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs",
+    "gate": "pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm check"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
