@@ -44,17 +44,22 @@ function tokenize(source) {
 }
 
 /**
- * Keywords from the doc tags of a type alias.
+ * Keywords from the doc tags of a type alias. Any other tag is refused, so a typo cannot
+ * quietly weaken the schema.
  *
  * @param {string | undefined} doc
+ * @param {(message: string) => never} fail
  * @returns {Schema}
  */
-function readTags(doc = '') {
+function readTags(doc, fail) {
   /** @type {Schema} */
   const tags = {}
-  if (doc.includes('@integer')) tags.type = 'integer'
-  for (const [, name, value] of doc.matchAll(/@(minimum|maximum) (-?\d+)/g)) {
-    tags[/** @type {string} */ (name)] = Number(value)
+  for (const [, name, value] of (doc ?? '').matchAll(/@(\w+)(?:\s+(-?[\d.]+))?/g)) {
+    if (name === 'integer') tags.type = 'integer'
+    else if (name !== 'minimum' && name !== 'maximum') fail(`unsupported doc tag @${name}`)
+    else if (value === undefined || !Number.isInteger(Number(value))) {
+      fail(`@${name} needs an integer, not ${value ?? 'nothing'}`)
+    } else tags[name] = Number(value)
   }
   return tags
 }
@@ -112,8 +117,12 @@ class Reader {
     while (this.token !== undefined) {
       const { doc } = this.token
       this.eat('export')
+      if (this.eat('type')) {
+        this.alias(doc)
+        continue
+      }
+      if (doc?.includes('@')) this.fail('doc tags work only on a type alias')
       if (this.eat('const')) this.constant()
-      else if (this.eat('type')) this.alias(doc)
       else if (this.eat('interface')) this.interface()
       else this.fail(`unsupported statement "${this.token?.text}"`)
     }
@@ -148,7 +157,8 @@ class Reader {
   alias(doc) {
     const name = this.name()
     this.expect('=')
-    this.declarations.set(name, { kind: 'alias', schema: this.type(), tags: readTags(doc) })
+    const tags = readTags(doc, (message) => this.fail(message))
+    this.declare(name, { kind: 'alias', schema: this.type(), tags })
   }
 
   interface() {
@@ -158,13 +168,23 @@ class Reader {
     /** @type {Member[]} */
     const members = []
     while (!this.eat('}')) {
+      if (this.token?.doc?.includes('@')) this.fail('doc tags work only on a type alias')
       const member = this.name()
       const optional = this.eat('?')
       this.expect(':')
       members.push({ name: member, optional, schema: this.type() })
       this.eat(';')
     }
-    this.declarations.set(name, { kind: 'interface', members, ...(base ? { base } : {}) })
+    this.declare(name, { kind: 'interface', members, ...(base ? { base } : {}) })
+  }
+
+  /**
+   * @param {string} name
+   * @param {Declaration} declaration
+   */
+  declare(name, declaration) {
+    if (this.declarations.has(name)) this.fail(`${name} is declared twice`)
+    this.declarations.set(name, declaration)
   }
 
   type() {
@@ -309,7 +329,10 @@ export function generateSchema(source) {
     if (name in defs) continue
     const declaration = /** @type {Declaration} */ (declarations.get(name))
     if (declaration.kind === 'alias') {
-      defs[name] = { ...declaration.schema(ref), ...declaration.tags }
+      const schema = declaration.schema(ref)
+      const tagged = Object.keys(declaration.tags).length > 0
+      if (tagged && schema.type !== 'number') throw new Error(`types: ${name}: tags need a number`)
+      defs[name] = { ...schema, ...declaration.tags }
     } else {
       const members = [...flatten(declarations, name).values()]
       defs[name] = {

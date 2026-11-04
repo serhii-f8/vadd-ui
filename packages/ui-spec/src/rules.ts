@@ -266,7 +266,7 @@ export const SHAPES: Record<string, Shape> = {
     pick: opt(nonNegativeInt),
   }),
   LogNode: nodeShape({ text: req(longString), maxLines: dflt(positiveInt) }),
-  FlowNodeObject: { fields: { id: req(string), label: opt(string), status: opt(status) } },
+  FlowNodeObject: { fields: { id: req(string), label: req(string), status: opt(status) } },
   FlowNode: nodeShape({
     nodes: req(list(oneOf('an id or a node', string, object('FlowNodeObject')))),
     edges: req(list(tuple(2, string, string, string))),

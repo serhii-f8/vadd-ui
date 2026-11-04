@@ -297,3 +297,35 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: Damerau distance, which departs from the "Levenshtein" §11.3 names.
 - Rationale: reproduces the spec's example with the spec's metric.
 - Spec sections: §11.3.
+
+## VD-038 — The cell cap is per document
+- Date: 2026-11-04 · Task: 03
+- Context: VD-028 capped expansion per table and said this kept `normalize` total. Review disproved it: 72 tables of 500 × 500 cells in 254 KB each stay under the cap, and together they threw `Map maximum size exceeded`.
+- Decision: supersedes the per-table cap of VD-028. `MAX_TABLE_CELLS` is a running budget across the document, counting only cells from object rows. A table that would pass it keeps its object rows, and the validator reports `bad-type` on them. Its cells alone exceed `limit-canonical-size` in `validateText`.
+- Alternatives: one path entry per row rather than per cell, which leaves the cell arrays in place; a lower cap per table, which only moves the threshold.
+- Rationale: no deliverable document can reach the budget, since 250,000 cells need at least 1.25 MB of canonical JSON.
+- Spec sections: §13.4, §15.1, §16.
+
+## VD-039 — Diagnostic cap, and keys count as strings
+- Date: 2026-11-04 · Task: 03
+- Context: review showed a 256 KB document killing Node with out-of-memory: a 130,000-char series key and 42,000 bad points gave 42,000 paths of 130 KB each. VD-032 had left object keys uncounted, which is what allowed it. `try/catch` cannot stop this.
+- Decision: amends VD-032. Keys of §6 maps (`series`, `hunks`, `tones`, `kv` objects) count towards `limit-string`, and the walker skips the value of an over-limit key. `validate` keeps 1,000 diagnostics plus the first of each limit code, so the exit code stays right, then one `too-many-diagnostics` with the count, at the worst severity it left out, so `ok` stays right. A repeat of the last code at the same path is dropped.
+- Alternatives: only the key limit, which leaves a document of 200,000 small mistakes costing memory for nothing the CLI prints.
+- Rationale: the CLI prints 20, so 1,000 loses nothing a reader would use.
+- Spec sections: §11.3, §13.4, §15.1, §16.
+
+## VD-040 — A tree needs a usable source; flow labels are required
+- Date: 2026-11-04 · Task: 03
+- Context: `{type: 'tree', items: ['src/a.ts']}`, a natural mix-up of `items` and `paths`, passed VD-034's check because the key existed, although nothing can render. Separately, task 02 typed `FlowNodeObject.label` as optional, while §6.5 writes `{id, label, status?}`, and the walker copied that.
+- Decision: amends VD-034. `tree-source` fires unless `items` or `paths` is a list that is empty or holds at least one entry of its kind. `FlowNodeObject.label` is required, as written; a node with no label is the plain string form.
+- Alternatives: keep `label` optional and log a DEVIATION, which the decision order rules out where the spec is clear.
+- Rationale: the error means "nothing can render", so it has to follow that, not key presence.
+- Spec sections: §6.5.
+
+## VD-041 — Review findings declined, and a note for task 13
+- Date: 2026-11-04 · Task: 03
+- Context: the task review raised minor items that this task does not take.
+- Decision: no column hint on `dropped-cell`, since `dropped` carries pointers only and the hint needs the table; a later task can extend it. §13.3's "ignored option" stays empty beyond unknown fields: nothing in §6 defines an option that a valid document can ignore, and rules such as `fold` without `title` would be invented. For task 13: `Diagnostic.path` must stay the exact pointer (§13.2), so a key with a line break or control character reaches `path` raw, and the CLI must escape `path` when printing. `message` and `hint` are already safe.
+- Alternatives: escape `path` here, which stops it resolving in the input.
+- Rationale: smallest honest scope; the renderer and CLI tasks own the rest.
+- Spec sections: §11.3, §13.2, §13.3.

@@ -1,6 +1,7 @@
 import {
   type Diagnostic,
   type DiagnosticCode,
+  DiagnosticLog,
   makeDiagnostic,
   type Severity,
 } from './diagnostics.js'
@@ -46,7 +47,7 @@ function utf8Length(text: string): number {
  */
 export function validate(input: JsonValue, options?: NormalizeOptions): ValidationResult {
   const { document, paths, dropped } = normalize(input, options)
-  const diagnostics: Diagnostic[] = []
+  const log = new DiagnosticLog()
   const report = (
     severity: Severity,
     pointer: string,
@@ -54,13 +55,17 @@ export function validate(input: JsonValue, options?: NormalizeOptions): Validati
     message: string,
     hint?: string,
   ) => {
-    diagnostics.push(makeDiagnostic(severity, paths.toInput(pointer), code, message, hint))
+    if (!log.wants(severity, code)) return
+    log.add(makeDiagnostic(severity, paths.toInput(pointer), code, message, hint))
   }
   walk(document as unknown as JsonObject, report)
   for (const path of dropped) {
     const message = 'object-row key matches no column, so its value is dropped'
-    diagnostics.push(makeDiagnostic('warn', path, 'dropped-cell', message))
+    if (log.wants('warn', 'dropped-cell')) {
+      log.add(makeDiagnostic('warn', path, 'dropped-cell', message))
+    }
   }
+  const diagnostics = log.finish()
   return { ok: hasNoError(diagnostics), diagnostics, document }
 }
 

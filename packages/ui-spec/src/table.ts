@@ -3,9 +3,9 @@ import type { PathMapBuilder } from './path-map.js'
 import { joinPointer } from './pointer.js'
 
 /**
- * Object rows past this many cells stay unconverted, because expansion would otherwise
- * turn a 54 KB document into 25 million cells. It exceeds 30 columns × 5,000 rows, so any
- * table it stops already breaks a §13.4 limit, which task 03 reports (VD-028).
+ * Object rows past this many cells in one document stay unconverted, because expansion
+ * would otherwise turn a 54 KB document into 25 million cells. It exceeds 30 columns ×
+ * 5,000 rows, and its cells alone exceed the canonical size limit (VD-028, VD-038).
  */
 export const MAX_TABLE_CELLS = 250_000
 
@@ -13,6 +13,8 @@ export interface WalkContext {
   paths: PathMapBuilder
   /** Input pointers of object-row keys that match no column (VD-025). */
   dropped: string[]
+  /** Cells written so far from object rows, across the document (VD-038). */
+  cells: number
 }
 
 export interface ParsedColumn {
@@ -128,7 +130,10 @@ export function expandTable(table: JsonObject, cp: string, ip: string, ctx: Walk
   if (sources === undefined) return
   table.columns = sources.map((source) => source.column)
   const { rows } = table
-  if (!Array.isArray(rows) || sources.length * rows.length > MAX_TABLE_CELLS) return
+  if (!Array.isArray(rows)) return
+  const cells = sources.length * rows.filter((row) => isJsonObject(row)).length
+  if (ctx.cells + cells > MAX_TABLE_CELLS) return
+  ctx.cells += cells
   const rowsPointer = joinPointer(cp, 'rows')
   const rowsInput = joinPointer(ip, 'rows')
   table.rows = rows.map((row, index) =>

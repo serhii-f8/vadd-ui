@@ -441,6 +441,22 @@ const nodeShapeCases: DiagnosedCase[] = [
     diagnostics: [error('tree-source', '/body/0')],
   },
   {
+    name: 'tree whose items hold no item',
+    input: { body: [{ type: 'tree', items: ['src/a.ts'] }] },
+    diagnostics: [
+      { severity: 'warn', code: 'bad-type', path: '/body/0/items/0' },
+      error('tree-source', '/body/0'),
+    ],
+  },
+  {
+    name: 'tree whose only source is no list',
+    input: { body: [{ type: 'tree', items: 5 }] },
+    diagnostics: [
+      { severity: 'warn', code: 'bad-type', path: '/body/0/items' },
+      error('tree-source', '/body/0'),
+    ],
+  },
+  {
     name: 'flow with no nodes',
     input: { body: [{ type: 'flow', edges: [] }] },
     diagnostics: [error('missing-field', '/body/0')],
@@ -476,11 +492,13 @@ const limitCases: DiagnosedCase[] = [
   {
     name: 'limit: canonical bytes',
     text: JSON.stringify({
-      body: repeat(2, () => ({
-        type: 'table',
-        columns: repeat(30, (i) => `c${i}`),
-        rows: repeat(5000, () => ({})),
-      })),
+      body: [
+        {
+          type: 'table',
+          columns: repeat(30, (i) => `c${i}`),
+          rows: repeat(5000, () => ({})),
+        },
+      ],
     }),
     diagnostics: [error('limit-canonical-size', '')],
   },
@@ -587,6 +605,18 @@ const limitCases: DiagnosedCase[] = [
     name: 'limit: string in check output',
     input: { body: [{ type: 'checks', items: [{ name: 'n', status: 'ok', output: big(2_001) }] }] },
     diagnostics: [error('limit-string', '/body/0/items/0/output')],
+  },
+  {
+    name: 'limit: stat sparkline points',
+    input: {
+      body: [{ type: 'stats', items: [{ label: 'L', value: 1, spark: repeat(10_001, () => 1) }] }],
+    },
+    diagnostics: [error('limit-chart-points', '/body/0/items/0/spark')],
+  },
+  {
+    name: 'limit: record key',
+    input: { body: [{ type: 'diff', files: [], hunks: { [big(2_001)]: 'x' } }] },
+    diagnostics: [error('limit-string', `/body/0/hunks/${big(2_001)}`)],
   },
   {
     name: 'limit: flow nodes',

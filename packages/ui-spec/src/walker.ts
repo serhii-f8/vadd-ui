@@ -161,7 +161,7 @@ class Walker {
         return
       case 'version':
         if (value !== 1) {
-          const shown = JSON.stringify(value).slice(0, 20)
+          const shown = typeof value === 'number' ? value : typeName(value)
           this.report(
             'error',
             pointer,
@@ -191,7 +191,12 @@ class Walker {
           return
         }
         for (const [key, item] of Object.entries(value)) {
-          this.check(rule.values, item, joinPointer(pointer, key), required, depth)
+          const itemPointer = joinPointer(pointer, key)
+          if (key.length > LIMITS.string) {
+            this.length(key, LIMITS.string, itemPointer)
+          } else {
+            this.check(rule.values, item, itemPointer, required, depth)
+          }
         }
         return
       case 'object':
@@ -271,6 +276,7 @@ class Walker {
       return
     }
     if (rule.values.includes(value)) return
+    this.length(value, LIMITS.string, pointer)
     const hint = didYouMean(value, rule.values)
     const message = `${quote(value)} is not ${rule.label}; use ${rule.values.join('|')}`
     this.report('warn', pointer, 'bad-enum', message, hint)
@@ -362,6 +368,16 @@ class Walker {
     return undefined
   }
 
+  private missing(field: string, value: JsonObject, pointer: string, fields: Shape['fields']) {
+    const near = suggest(
+      field,
+      Object.keys(value).filter((key) => !hasOwn(fields, key)),
+    )
+    const hint = near && `did you mean ${quote(field)} instead of ${quote(near)}?`
+    const message = `missing required field ${quote(field)}`
+    this.report('error', pointer, 'missing-field', message, hint)
+  }
+
   private shape(name: string, value: JsonObject, pointer: string, depth: number): void {
     const { fields } = SHAPES[name] as Shape
     for (const [field, { rule, presence }] of Object.entries(fields)) {
@@ -369,7 +385,7 @@ class Walker {
         const required = presence === 'required'
         this.check(rule, value[field] as JsonValue, joinPointer(pointer, field), required, depth)
       } else if (presence === 'required') {
-        this.report('error', pointer, 'missing-field', `missing required field ${quote(field)}`)
+        this.missing(field, value, pointer, fields)
       }
     }
     const known = Object.keys(fields)
@@ -459,7 +475,7 @@ function checkSeries(report: Report, chart: JsonObject, pointer: string) {
   if (chart.kind === 'donut') checkLength(report, entries.length, 1, seriesPointer)
   const x = asArray(chart.x)
   for (const [name, data] of entries) {
-    if (!Array.isArray(data)) continue
+    if (!Array.isArray(data) || name.length > LIMITS.string) continue
     const dataPointer = joinPointer(seriesPointer, name)
     checkPoints(report, data.length, dataPointer)
     if (x) checkLength(report, data.length, x.length, dataPointer)
@@ -471,6 +487,7 @@ function checkFlow(report: Report, flow: JsonObject, pointer: string) {
   if (nodes.length > LIMITS.flowNodes) {
     const message = `flow has ${nodes.length} nodes; the limit is ${LIMITS.flowNodes}`
     report('error', joinPointer(pointer, 'nodes'), 'limit-flow-nodes', message)
+    return
   }
   const ids = nodes.map((node) => (isJsonObject(node) ? node.id : node))
   const edgesPointer = joinPointer(pointer, 'edges')
@@ -485,6 +502,11 @@ function checkFlow(report: Report, flow: JsonObject, pointer: string) {
       report('warn', endPointer, 'bad-ref', message, hint)
     }
   })
+}
+
+/** Usable as a tree source: a list that is empty or holds at least one entry of its kind. */
+function hasEntries(source: JsonValue | undefined, isEntry: (entry: JsonValue) => boolean) {
+  return Array.isArray(source) && (source.length === 0 || source.some(isEntry))
 }
 
 function checkCount(field: string, list: string): CrossField {
@@ -520,8 +542,13 @@ const CROSS_FIELD: Record<string, CrossField> = {
     if (points) checkPoints(report, points.length, joinPointer(pointer, 'points'))
   },
   FlowNode: checkFlow,
+  StatItem(report, item, pointer) {
+    const spark = asArray(item.spark)
+    if (spark) checkPoints(report, spark.length, joinPointer(pointer, 'spark'))
+  },
   TreeNode(report, tree, pointer) {
-    if (hasOwn(tree, 'items') || hasOwn(tree, 'paths')) return
+    if (hasEntries(tree.items, isJsonObject)) return
+    if (hasEntries(tree.paths, (path) => typeof path === 'string')) return
     report('error', pointer, 'tree-source', 'a tree needs "items" or "paths"')
   },
 }

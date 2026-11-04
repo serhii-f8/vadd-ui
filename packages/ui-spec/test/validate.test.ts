@@ -211,7 +211,7 @@ describe('cross-field rules', () => {
   it('warns on a flow edge to an undeclared node', () => {
     const flow = {
       type: 'flow',
-      nodes: ['a', { id: 'b' }],
+      nodes: ['a', { id: 'b', label: 'B' }],
       edges: [
         ['a', 'b'],
         ['a', 'c'],
@@ -490,10 +490,7 @@ describe('validateText', () => {
   it('reports a canonical form over the POST limit (VD-012)', () => {
     const columns = repeat(30, (i) => `c${i}`)
     const text = JSON.stringify({
-      body: [
-        { type: 'table', columns, rows: repeat(5_000, () => ({})) },
-        { type: 'table', columns, rows: repeat(5_000, () => ({})) },
-      ],
+      body: [{ type: 'table', columns, rows: repeat(5_000, () => ({})) }],
     })
     expect(text.length).toBeLessThan(LIMITS.inputBytes)
     const result = validateText(text)

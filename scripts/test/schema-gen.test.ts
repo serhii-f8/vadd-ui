@@ -118,6 +118,22 @@ describe('generateSchema on the subset', () => {
   })
 })
 
+describe('generateSchema refuses what it would otherwise lose', () => {
+  const root = 'export interface VuiDocument { x: T }\n'
+
+  it.each([
+    ['an unknown tag', '/** @interger */ export type T = number', /@interger/],
+    ['a fractional bound', '/** @minimum 0.5 */ export type T = number', /@minimum needs/],
+    ['a bound with no value', '/** @maximum */ export type T = number', /@maximum needs/],
+    ['a tag on a union', '/** @integer */ export type T = number | string', /tags need a number/],
+    ['a tag on an interface', '/** @integer */ export interface T {}', /type alias/],
+    ['a tag on a member', 'export interface T {\n /** @integer */\n a: number }', /type alias/],
+    ['a second declaration', 'export interface T {}\nexport interface T {}', /declared twice/],
+  ])('%s', (_, body, message) => {
+    expect(() => generateSchema(root + body)).toThrow(message)
+  })
+})
+
 describe('the schema follows the types', () => {
   const base = generateSchema(source) as { $defs: Record<string, { properties?: object }> }
 

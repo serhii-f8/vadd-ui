@@ -69,7 +69,7 @@ const everyComponent: VuiNode[] = [
     pick: 0,
   },
   { type: 'log', text: 'x', maxLines: 40 },
-  { type: 'flow', nodes: ['a', { id: 'b', status: 'ok' }], edges: [['a', 'b', 'l']] },
+  { type: 'flow', nodes: ['a', { id: 'b', label: 'B', status: 'ok' }], edges: [['a', 'b', 'l']] },
 ]
 
 // §6.4 writes `{y, label, tone}` with no `?`.

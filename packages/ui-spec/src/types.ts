@@ -399,7 +399,7 @@ export interface LogNode extends NodeBase {
 
 export interface FlowNodeObject {
   id: string
-  label?: string
+  label: string
   status?: Status
 }
 

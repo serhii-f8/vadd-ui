@@ -20,6 +20,8 @@ export const schema = generateSchema(readFileSync(typesPath, 'utf8'))
 const ajv = new (Ajv2020 as unknown as typeof Ajv2020.default)({ strict: false, allErrors: false })
 const accepts = ajv.compile(schema)
 
+const UNSAFE = /[\p{Cc}\p{Zl}\p{Zp}]/u
+
 const schemaCodes: ReadonlySet<string> = new Set(SCHEMA_CODES)
 
 /** VD-030: the schema rejects exactly when the walker reports a schema code. */
@@ -51,6 +53,7 @@ export function expectWellFormed(result: ValidationResult, input?: JsonValue): v
   for (const diagnostic of result.diagnostics) {
     expect(diagnostic.message.length, diagnostic.message).toBeLessThanOrEqual(120)
     expect(diagnostic.message.length).toBeGreaterThan(0)
+    expect(diagnostic.message, 'no control characters').not.toMatch(UNSAFE)
     expect(['error', 'warn', 'info']).toContain(diagnostic.severity)
     expect(diagnostic.path === '' || diagnostic.path.startsWith('/')).toBe(true)
     if (diagnostic.hint !== undefined) expect(diagnostic.hint).toMatch(/^did you mean /)

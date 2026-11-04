@@ -517,8 +517,6 @@ export const componentTables: ComponentTable[] = [
       ['/items/0/children/0/name', null],
     ],
     warnings: [
-      ['/items', 5],
-      ['/items/0', 5],
       ['/items/0/status', 'nope', 'bad-enum'],
       ['/items/0/note', 5],
       ['/items/0/children', 5],
@@ -583,16 +581,17 @@ export const componentTables: ComponentTable[] = [
   },
   {
     name: 'flow',
-    base: { type: 'flow', nodes: ['a', 'b', { id: 'c' }], edges: [['a', 'b', 'l']] },
+    base: { type: 'flow', nodes: ['a', 'b', { id: 'c', label: 'C' }], edges: [['a', 'b', 'l']] },
     ok: [
       { edges: [] },
       { nodes: [], edges: [] },
       { nodes: ['a', { id: 'b', label: 'B', status: 'ok' }], edges: [['a', 'b']] },
     ],
-    missing: ['/edges', '/nodes/2/id'],
+    missing: ['/edges', '/nodes/2/id', '/nodes/2/label'],
     errors: [
       ['/nodes/2', 5],
       ['/nodes/2/id', 5],
+      ['/nodes/2/label', 5],
       ['/edges', 5],
       ['/edges/0', 5],
       ['/edges/0', ['a']],
@@ -605,7 +604,6 @@ export const componentTables: ComponentTable[] = [
       ['/edges/0/1', 'z', 'bad-ref'],
       ['/edges/0/2', 5],
       ['/nodes/2/status', 'nope', 'bad-enum'],
-      ['/nodes/2/label', 5],
     ],
   },
 ]
