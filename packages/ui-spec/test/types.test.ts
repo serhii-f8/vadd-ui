@@ -3,6 +3,10 @@ import {
   COMPONENT_TYPES,
   type ComponentType,
   DENSITIES,
+  FILE_EXTENSION,
+  type LineChart,
+  MEDIA_TYPE,
+  type RefLine,
   STATUSES,
   TONES,
   type VuiDocument,
@@ -42,7 +46,13 @@ const everyComponent: VuiNode[] = [
     pick: 0,
   },
   { type: 'chart', kind: 'bar', x: ['a'], series: { s: [1] }, height: 'md', legend: 'auto' },
-  { type: 'chart', kind: 'line', x: [1], series: { s: [1] }, refLines: [{ y: 1 }] },
+  {
+    type: 'chart',
+    kind: 'line',
+    x: [1],
+    series: { s: [1] },
+    refLines: [{ y: 1, label: 'SLO', tone: 'err' }],
+  },
   { type: 'chart', kind: 'donut', x: ['a'], series: { s: [1] } },
   { type: 'chart', kind: 'spark', values: [1] },
   { type: 'chart', kind: 'scatter', points: [[1, 2, 'p']] },
@@ -62,6 +72,14 @@ const everyComponent: VuiNode[] = [
   { type: 'flow', nodes: ['a', { id: 'b', status: 'ok' }], edges: [['a', 'b', 'l']] },
 ]
 
+// §6.4 writes `{y, label, tone}` with no `?`.
+// @ts-expect-error label and tone are required
+export const bareRefLine: RefLine = { y: 1 }
+
+// §6.4 allows labels or numbers, not a mix.
+// @ts-expect-error a mixed axis is not a chart axis
+export const mixedAxis: LineChart['x'] = [1, 'a']
+
 describe('canonical types', () => {
   it('lists the 24 components of §6', () => {
     expect(COMPONENT_TYPES).toHaveLength(24)
@@ -77,6 +95,11 @@ describe('canonical types', () => {
     expect(STATUSES).toEqual(['ok', 'fail', 'warn', 'info', 'run', 'wait', 'skip', 'none'])
     expect(TONES).toEqual(['ok', 'warn', 'err', 'info', 'muted', 'accent', 'default'])
     expect(DENSITIES).toEqual(['compact', 'comfortable'])
+  })
+
+  it('names the media type and file extension of §2', () => {
+    expect(MEDIA_TYPE).toBe('application/vui+json')
+    expect(FILE_EXTENSION).toBe('.vui.json')
   })
 
   it('describes a canonical document', () => {

@@ -2,6 +2,13 @@ import { hasOwn, isJsonObject, type JsonObject, type JsonValue } from './json.js
 import type { PathMapBuilder } from './path-map.js'
 import { joinPointer } from './pointer.js'
 
+/**
+ * Object rows past this many cells stay unconverted, because expansion would otherwise
+ * turn a 54 KB document into 25 million cells. It exceeds 30 columns × 5,000 rows, so any
+ * table it stops already breaks a §13.4 limit, which task 03 reports (VD-028).
+ */
+export const MAX_TABLE_CELLS = 250_000
+
 export interface WalkContext {
   paths: PathMapBuilder
   /** Input pointers of object-row keys that match no column (VD-025). */
@@ -54,11 +61,18 @@ function expandColumns(columns: JsonValue[], pointer: string, input: string, ctx
   })
 }
 
-/** Shorthand 5: with no `columns`, the keys of the first object row become the columns. */
+/**
+ * Shorthand 5: with no `columns`, the keys of the first object row become the columns.
+ * With no rows at all the table is simply empty; array rows alone leave `columns` missing.
+ */
 function deriveColumns(rows: JsonValue[], cp: string, ip: string, ctx: WalkContext) {
+  const pointer = joinPointer(cp, 'columns')
+  if (rows.length === 0) {
+    ctx.paths.set(pointer, ip)
+    return []
+  }
   const firstIndex = rows.findIndex((row) => isJsonObject(row))
   if (firstIndex === -1) return undefined
-  const pointer = joinPointer(cp, 'columns')
   const rowInput = joinPointer(joinPointer(ip, 'rows'), firstIndex)
   ctx.paths.set(pointer, ip)
   return Object.keys(rows[firstIndex] as JsonObject).map((key, index): ColumnSource => {
@@ -114,7 +128,7 @@ export function expandTable(table: JsonObject, cp: string, ip: string, ctx: Walk
   if (sources === undefined) return
   table.columns = sources.map((source) => source.column)
   const { rows } = table
-  if (!Array.isArray(rows)) return
+  if (!Array.isArray(rows) || sources.length * rows.length > MAX_TABLE_CELLS) return
   const rowsPointer = joinPointer(cp, 'rows')
   const rowsInput = joinPointer(ip, 'rows')
   table.rows = rows.map((row, index) =>

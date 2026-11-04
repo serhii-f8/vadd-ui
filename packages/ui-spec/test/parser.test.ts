@@ -168,7 +168,9 @@ describe('refusals', () => {
     'True',
     'nul',
     'foo',
-    '﻿{}',
+    '\ufeff',
+    '[\ufeff1]',
+    '\ufeff\ufeff1',
     ' 1',
     '}',
   ])('refuses %j', (text) => {
@@ -177,6 +179,17 @@ describe('refusals', () => {
     expect(error.message.length).toBeLessThanOrEqual(120)
     expect(error.line).toBeGreaterThanOrEqual(1)
     expect(error.column).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('byte order mark', () => {
+  it('is ignored at the very start', () => {
+    expect(value('\ufeff{a: 1}')).toEqual({ a: 1 })
+  })
+
+  it('does not count towards the column', () => {
+    expect(failure('\ufeffx')).toMatchObject({ line: 1, column: 1, offset: 1 })
+    expect(failure('\ufeff[1,\n x]')).toMatchObject({ line: 2, column: 2 })
   })
 })
 

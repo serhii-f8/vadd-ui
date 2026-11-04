@@ -13,13 +13,14 @@ export interface ParseError {
   message: string
   /** 1-based. `\n`, `\r\n` and `\r` each end a line. */
   line: number
-  /** 1-based, in UTF-16 code units. */
+  /** 1-based, in UTF-16 code units. A leading byte order mark does not count. */
   column: number
   offset: number
 }
 
 export type ParseResult = { ok: true; value: JsonValue } | { ok: false; error: ParseError }
 
+const BOM = 0xfeff
 const SPACE = 0x20
 const TAB = 0x09
 const LF = 0x0a
@@ -81,6 +82,7 @@ class Parser {
   constructor(private readonly text: string) {}
 
   document(): JsonValue {
+    if (this.peek() === BOM) this.pos++
     const value = this.value(0)
     this.skipTrivia()
     if (this.pos < this.text.length) this.fail(`unexpected ${this.describeHere()} after the value`)
@@ -305,7 +307,7 @@ class Parser {
 
 function locate(text: string, offset: number): { line: number; column: number } {
   let line = 1
-  let lineStart = 0
+  let lineStart = text.charCodeAt(0) === BOM ? 1 : 0
   for (let i = 0; i < offset; i++) {
     const code = text.charCodeAt(i)
     const crlf = code === CR && text.charCodeAt(i + 1) === LF

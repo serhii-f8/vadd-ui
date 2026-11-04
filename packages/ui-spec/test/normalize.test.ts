@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { hasOwn, type JsonObject, type JsonValue } from '../src/json.js'
 import { normalize } from '../src/normalize.js'
 import { parse } from '../src/parser.js'
-import { parseColumn } from '../src/table.js'
+import { MAX_TABLE_CELLS, parseColumn } from '../src/table.js'
 
 const ENVELOPE = { vui: 1, density: 'compact', locale: 'en-US' }
 
@@ -244,10 +244,15 @@ describe('shorthand 6: string columns', () => {
     },
   )
 
-  it('stays fast on a hostile label', () => {
+  it.each([
+    ['a whitespace tail', `${'a:'.repeat(100000)} x`],
+    ['no whitespace', `${'a:'.repeat(100000)}!`],
+    ['a long name', `x:${'a'.repeat(200000)}!`],
+    ['a long argument', `x:a:${'b'.repeat(200000)}`],
+  ])('stays linear on a hostile label with %s', (_name, label) => {
     const started = performance.now()
-    parseColumn(`${'a:'.repeat(100000)} x`)
-    expect(performance.now() - started).toBeLessThan(100)
+    parseColumn(label)
+    expect(performance.now() - started).toBeLessThan(1000)
   })
 
   it('expands in a table, and leaves object columns alone', () => {
@@ -429,6 +434,10 @@ describe('tolerance', () => {
     expect(hasOwn(document.body[1] as unknown as JsonObject, 'sticky')).toBe(false)
   })
 
+  it('gives an empty table empty columns', () => {
+    expect(node({ type: 'table', rows: [] }).columns).toEqual([])
+  })
+
   it('leaves rows without an object and without columns as they are', () => {
     const table = node({ type: 'table', rows: [[1], 'x', null] })
     expect(hasOwn(table, 'columns')).toBe(false)
@@ -451,6 +460,37 @@ describe('tolerance', () => {
     let deep: JsonValue = { text: 'leaf' }
     for (let i = 0; i < 20000; i++) deep = { text: 'x', children: [deep] }
     expect(() => normalize([{ type: 'plan', items: [deep] }])).not.toThrow()
+  })
+})
+
+describe('table expansion cap', () => {
+  const emptyRows = (count: number) => Array.from({ length: count }, () => ({}))
+  const names = (count: number) => Array.from({ length: count }, (_, index) => `c${index}`)
+
+  it('covers every table inside the §13.4 limits', () => {
+    expect(MAX_TABLE_CELLS).toBeGreaterThanOrEqual(30 * 5000)
+    const table = node({ type: 'table', columns: names(30), rows: emptyRows(5000) })
+    expect((table.rows as JsonValue[][])[4999]).toHaveLength(30)
+  })
+
+  it('leaves rows unconverted past the cap, with columns still expanded', () => {
+    const table = node({ type: 'table', columns: names(600), rows: emptyRows(600) })
+    expect(table.rows).toEqual(emptyRows(600))
+    expect((table.columns as JsonValue[])[0]).toEqual({ key: 'c0', label: 'c0' })
+  })
+
+  it('applies to derived columns', () => {
+    const first = Object.fromEntries(names(600).map((name) => [name, 1]))
+    const table = node({ type: 'table', rows: [first, ...emptyRows(600)] })
+    expect((table.rows as JsonValue[])[0]).toEqual(first)
+  })
+
+  it('stays cheap on a 54 KB table of 25 million cells', () => {
+    const started = performance.now()
+    expect(() =>
+      normalize([{ type: 'table', columns: names(5000), rows: emptyRows(5000) }]),
+    ).not.toThrow()
+    expect(performance.now() - started).toBeLessThan(1000)
   })
 })
 

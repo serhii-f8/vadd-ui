@@ -173,7 +173,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-022 — Parser grammar is strict JSON plus only what §5.1 lists — DEVIATION
 - Date: 2026-11-04 · Task: 02
 - Context: §5.1 calls the input a JSON5 subset and names what is added and what is refused, but JSON5 also allows `+1`, `.5`, `5.`, `\x41`, `\v`, raw tabs in strings, a BOM and extra whitespace. Separately, §5.1 says strict JSON is always valid, while `1e999` is valid JSON that becomes `Infinity`, which §5.1 refuses and strict canonical JSON cannot hold.
-- Decision: accept strict JSON plus exactly the five relaxations named. `\'` is accepted in both quote styles, because a single-quoted string needs it and one escape table is simpler. Everything else in JSON5 is refused. DEVIATION: a number that overflows to infinity is a parse error, although `JSON.parse` accepts it. A BOM is refused as in `JSON.parse`, so a CLI reading files from Windows should strip it before parsing.
+- Decision: accept strict JSON plus exactly the five relaxations named. `\'` is accepted in both quote styles, because a single-quoted string needs it and one escape table is simpler. Everything else in JSON5 is refused. DEVIATION: a number that overflows to infinity is a parse error, although `JSON.parse` accepts it. A single byte order mark at offset 0 is skipped and does not count towards the column, because it is an encoding artifact rather than syntax and Windows tools add it; any other U+FEFF is refused.
 - Alternatives: accept all of JSON5 except the named refusals, which contradicts "exactly"; let `1e999` reach the canonical form, where `JSON.stringify` writes `null`.
 - Rationale: the acceptance criterion says "exactly", and an overflow would otherwise silently change a value.
 - Spec sections: §5.1.
@@ -207,7 +207,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Context: §5.3 items 5 and 6 leave open how colons in labels behave, which key an object row uses for `"Time:ms"`, and what `tone` or `note` keys in an object row mean, given that §6.6 defines row options only for array rows.
 - Decision: split at the first colon whose remainder matches `[a-z][a-z0-9]*(:\S+)?`, otherwise the whole string is the label, so `"10:05"` and `"Note: see docs"` stay labels and an unknown format name still splits for task 03 to warn about. Keys of the first object row, when `columns` is missing, go through the same parser. A cell looks up the column's written spelling, then its `key`, own properties only. A missing cell is `null`. `tone` and `note` in an object row are ordinary data keys: only array rows have row options.
 - Alternatives: split at the last colon, which breaks `"Cov:pct:0"`; treat `tone` and `note` as row options, which invents a feature and collides with real columns of those names.
-- Rationale: keeps natural labels intact, stays inside §5.3, and loses no data silently.
+- Rationale: keeps natural labels intact and stays inside §5.3. Conversion can still lose data: `columns: ['Name']` with rows `{name: 'a'}` gives `[[null]]`, and keys that appear only in later rows are not columns. Each such key is in `dropped`. Task 03 should report `dropped` as `warn`, since this is row data rather than an ignored option. Known limitation: integer-like keys come first in JS objects, so derived columns from `{Service: 'a', 2024: 1}` start with `2024`; explicit `columns` avoid it, and the skill should say so.
 - Spec sections: §5.3, §6.6.
 
 ## VD-027 — Coverage provider added early
@@ -217,3 +217,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: claim coverage from reading the tests.
 - Rationale: a dev dependency does not touch the runtime-dependency rule, and the number has to be real.
 - Spec sections: §16.
+
+## VD-028 — Object-row expansion is capped at 250,000 cells
+- Date: 2026-11-04 · Task: 02
+- Context: object rows expand to `columns × rows` cells, and task 03 checks the §13.4 limits only after normalization. A 54 KB table of 5,000 columns and 5,000 `{}` rows took 13 s and then threw `Map maximum size exceeded` out of a function documented as total. §15.1 treats documents as untrusted.
+- Decision: above `MAX_TABLE_CELLS` (250,000) `rows` stay unconverted, while `columns` still expand. The cap exceeds 30 × 5,000, so any table it stops already breaks a §13.4 limit and task 03 reports that. The renderer's over-limit truncation therefore has to tolerate object rows in such a table, or show an error card.
+- Alternatives: 1,000,000 cells, which still costs about 200 MB; dropping path entries for missing cells, which leaves the cell allocation; checking §13.4 limits in the normalizer, which moves task 03's job here.
+- Rationale: smallest change that keeps `normalize` total, with no effect on any table inside the limits.
+- Spec sections: §13.4, §15.1, §16.

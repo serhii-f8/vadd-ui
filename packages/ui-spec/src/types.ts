@@ -5,6 +5,10 @@
 // Fields with a stated default (VD-024) are required here. Other optional fields stay
 // optional: their default is "none", which the canonical form spells as an absent key.
 
+/** §2. */
+export const MEDIA_TYPE = 'application/vui+json'
+export const FILE_EXTENSION = '.vui.json'
+
 export const STATUSES = ['ok', 'fail', 'warn', 'info', 'run', 'wait', 'skip', 'none'] as const
 export type Status = (typeof STATUSES)[number]
 
@@ -224,8 +228,8 @@ export interface CompareNode extends NodeBase {
 
 export interface RefLine {
   y: number
-  label?: string
-  tone?: Tone
+  label: string
+  tone: Tone
 }
 
 export interface ChartBase extends NodeBase {
@@ -248,7 +252,7 @@ export interface CategoryChart extends ChartBase {
 
 export interface LineChart extends ChartBase {
   kind: 'line' | 'area'
-  x: (string | number)[]
+  x: string[] | number[]
   series: Series
 }
 

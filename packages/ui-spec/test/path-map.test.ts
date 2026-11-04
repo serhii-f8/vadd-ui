@@ -147,6 +147,7 @@ describe('normalize paths', () => {
       '/body/0/columns/0/label',
       '/body/0/rows/1/Time',
     ],
+    ['empty table columns', [{ type: 'table', rows: [] }], '/body/0/columns', '/0'],
     ['density default', { body: [] }, '/density', ''],
     ['vui default', ['x'], '/vui', ''],
     ['component default', { body: [{ type: 'log', text: 'x' }] }, '/body/0/maxLines', '/body/0'],
@@ -189,6 +190,7 @@ describe('normalize paths', () => {
     [{ type: 'table', columns: ['a', 'Time:ms', { key: 'c' }, 5], rows: [{ a: 1, c: 2 }, [1]] }],
     [{ type: 'table', rows: [[1], { 'x/y': 1, 'Time:ms': 2 }, { Time: 3, 'x/y': 4 }] }],
     { type: 'table', rows: [{ a: { nested: [1] } }] },
+    [{ type: 'table', rows: [] }],
     [{ type: 'hologram', children: 'x' }, { type: 5 }, null],
   ]
 
