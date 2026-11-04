@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T20:49:12Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T21:30:50Z · Mode: manual
 
 ## Summary
-Done 4 / 22 · In progress: none · Blocked: none · Next: 05 — ui-text: markdown and text renderer
+Done 5 / 22 · In progress: none · Blocked: none · Next: 06 — ui-render core
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -32,7 +32,7 @@ Recorded 2026-11-04 during bootstrap.
 | 02 | ui-spec: parser, envelope, normalizer | §2, §5, §5.1, §5.2, §5.3 | 01 | done | removed | ctx_2abe81f7d30f | [design](docs/superpowers/specs/2026-11-04-spec-parser-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-parser.md) | 8abe48f | 2026-11-04 |
 | 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | done | removed | ctx_16d884678f96 | [design](docs/superpowers/specs/2026-11-04-spec-validator-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-validator.md) | 4149910 | 2026-11-04 |
 | 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | done | removed | ctx_81dd35dc6907 | [design](docs/superpowers/specs/2026-11-04-spec-formats-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-formats.md) | bcc143c | 2026-11-04 |
-| 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | todo | | | | | | |
+| 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | done | removed | ctx_7a145f940999 | [design](docs/superpowers/specs/2026-11-04-ui-text-design.md) | [plan](docs/superpowers/plans/2026-11-04-ui-text.md) | 8cf1641 | 2026-11-04 |
 | 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | todo | | | | | | |
 | 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | todo | | | | | | |
 | 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | todo | | | | | | |
@@ -93,3 +93,13 @@ none
 - Review: fresh reviewer found 2 critical (a 10-char string hung `parseInline` until heap OOM; a 37.5 KB format string threw from `validateText`) and 3 important (quadratic path regex, unchecked `stats` delta, negative zero). All fixed. Declined items are in VD-049.
 - Follow-ups: tasks 06 to 10: pass `generatedAt` as `FormatContext.now`, use the `Formatted` fields, and add a JSON Pointer to each `issues` entry. Task 12 (the worker's note named task 13): `bad-value` and `bad-format-arg` are `warn`, so no exit-code change. Task 21: check `pl-PL` money in Firefox 115; if `useGrouping: 'always'` is unsupported there it prints `1234,50 zł` and differs from the CLI (VD-043, from memory, untested).
 - Note: execution was inline with `executing-plans`, not subagent-driven, because the dispatch preamble says no subagents unless asked.
+
+### 05 — ui-text: markdown and text renderer
+- Built: `renderMarkdown` and `renderPlain` for all 24 components and the `md` block subset, with one cleaning pass and one escaper so document text stays inert. Both are pure, silent and total.
+- Decisions: VD-050 to VD-057. VD-050 is a DEVIATION from §5.2, applying to `ui-text` only: a chart directly followed by a `table` sibling prints after it, because §19.3 puts the chart first and §19.5 prints it last. VD-052: text output hides nothing, except `checks.output` (last 20 lines, §6.5) and the §7 truncation of `code` and `path`. VD-053: how markdown stays inert. VD-057: declined findings, including bidi controls passing through.
+- Evidence (coordinator rerun on `main` at 8cf1641): `pnpm gate` exit 0. Vitest 35 files, 2,457 tests, including the §19.5 byte comparison against the spec file. Playwright 1 test. Banned-API check clean on 31 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Coverage: lines 100% (1667/1667), statements 99.68%, branches 98.92%. Spec hash unchanged.
+- Coordinator probes on the merged build: 40 hostile strings put in the fields of a 13-node document, 80 renders. No control character reached either format. Through `marked` and `markdown-it`, no live tag, image or unsafe scheme; the only two hits were my own pattern matching a safely encoded `%22onclick=` inside an `http` href. Five of the 13 nodes used wrong field names, printed `Could not render` and tested nothing, so `kv`, `diff`, `flow`, `timeline` and the `code` body are covered only by worker evidence. A 410 KB document rendered in 12 ms.
+- Worker evidence, not rerun: 642 snapshots over 321 valid cases; all valid, notice and invalid corpus documents render with no throw and no logging; 37 hand mutants killed; 40,000 fuzzed plus 400 fixed documents through `marked`, `markdown-it` and `cmark-gfm` with no live tag, image or unsafe scheme. That fuzz is not part of the gate.
+- Review: fresh reviewer found 1 Critical (control characters removed after escaping produced live HTML) and 6 Important issues, all fixed red to green. The fixes had no second review.
+- Corrections to worker notes: VD-056's DOM `tree` is task 10, not task 11; VD-057's flag belongs to the CLI, task 12, not task 13.
+- Follow-ups: task 07 follows VD-054 for `md`; task 08 follows VD-055 for sort and alignment; task 10 follows VD-056 for `tree.paths`. The DOM keeps §5.2 order, since VD-050 applies to text only. These helpers live in `ui-text`, which `ui-render` cannot import (§3).
