@@ -1,6 +1,6 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T17:40:00Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T17:36:39Z · Mode: manual
 
 ## Summary
 Done 0 / 22 · In progress: none · Blocked: none · Next: 01 — Monorepo scaffolding
@@ -21,7 +21,9 @@ Recorded 2026-11-04 during bootstrap.
 | Playwright | Chromium headless shell 156.0.8078.4 launched and rendered a page in WSL; no sudo needed. Tested from the scratchpad with playwright 1.64.1 |
 | Orca sources | `stablyai/orca` reachable on GitHub; `resources/native-chat-visuals` and `app.asar` present in the installed app (VD-009) |
 | Tools absent | `jq` is not installed; use Node for JSON |
-| Existing workers | none |
+| Worker smoke test | Passed on 2026-11-04 by the terminal-first route (VD-014): WSL path, spec hash intact, LF files, pnpm 11.9.0, `CLAUDE.md` auto-loaded, all 10 skills present, Agent tool present, no permission prompts, bypass mode |
+| `worker-start --agent` | Fails at `agent_readiness: timeout`, twice; cause unconfirmed (VD-014) |
+| Existing workers | none; smoke worktree removed |
 
 ## Tasks
 | ID | Title | Spec § | Depends on | Status | Worktree | Dispatch | Design spec | Plan | Merged commit | Completed |

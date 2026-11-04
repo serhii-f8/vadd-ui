@@ -105,3 +105,19 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: change the user's global git config.
 - Rationale: repo-local, and it works for every worktree.
 - Spec sections: none.
+
+## VD-014 — Workers start terminal-first
+- Date: 2026-11-04 · Task: bootstrap
+- Context: `orchestration worker-start --worktree new-top-level --agent claude`, the command the bootstrap prescribes, failed twice with `agent_readiness: timeout`, including with a 180 s budget. Both terminals showed the launch line echoed with no shell prompt in front of it, then an empty prompt, so `claude` never ran. The same line sent to an already-ready shell started Claude in about 12 s. The cause is unconfirmed. `~/.bashrc` runs `sudo service docker start` on every shell start, which is a candidate, but it is NOPASSWD, so it is not a password prompt. The file is outside this repo and stays unchanged.
+- Decision: create the worktree, create a terminal, wait for the shell prompt, launch Claude with Orca's own flags, wait for `tui-idle`, then attach with `worker-start --terminal`. The exact commands are in `CLAUDE.md`. `--spec-file` takes a `wslpath -w` path, because the CLI runs on Windows and the bridge rejects stdin.
+- Alternatives: inline `--spec`, which depends on PowerShell quoting of a long multi-line brief; fallback mode for every task, which loses the fresh context per task.
+- Rationale: a documented Orca path, proven end to end by a smoke worker.
+- Spec sections: none.
+
+## VD-015 — Permissions in `.claude/settings.json` are a backstop
+- Date: 2026-11-04 · Task: bootstrap
+- Context: the bootstrap asks for `defaultMode: acceptEdits`. Orca launches Claude with `--dangerously-skip-permissions` from the user's own setting, so a worker runs in bypass mode and the allow list has no effect. Rules cannot express "anything outside the repo", and a shell redirect is not an `Edit`.
+- Decision: keep the settings as requested. Deny rules cover pushing, publishing, destructive `rm`, the spec, the VADD repo and sensitive paths by name. Keep the bypass launch, since it is the user's setting and matches unattended work.
+- Alternatives: launch workers without bypass, which would stop on prompts.
+- Rationale: the `git push` deny and the absence of a remote both guard the main risk. The spec's hash is checked at integration.
+- Spec sections: none.

@@ -13,6 +13,8 @@ Files: plan and coverage in `docs/vadd-ui/TASKS.md`, status in `PROGRESS.md`, wo
 - `pnpm` works only inside this repo, through the `packageManager` pin (VD-005). Outside it, the corepack shim crashes.
 - Plugin authoring and skill-sharing commands refuse to run from forwarded WSL shells; vadd-ui needs neither.
 - This repo stands alone and has no remote (VD-003, VD-010). The real VADD monorepo is `/var/www/html/vadd`: read it for conventions, never change it.
+- Worktrees land in `~/orca/workspaces/vadd-ui/<name>`, on the WSL filesystem. Orca returns ids and paths as Windows UNC paths; translate them with `wslpath` before use in WSL.
+- Orca starts Claude with `--dangerously-skip-permissions` (the user's Orca setting), so workers run in bypass mode, not the `acceptEdits` mode in `.claude/settings.json`.
 - Keep the repo on the WSL filesystem, never under `/mnt/c`.
 
 ## Roles and autonomy
@@ -37,11 +39,16 @@ Read `CLAUDE.md`, `PROGRESS.md`, `docs/vadd-ui/DECISIONS.md`. Check `ORCA orches
 ## Coordinator Loop
 
 1. **Orient.** Run the ritual. Pick the lowest-ID `todo` task whose dependencies are `done`. Mark it `in_progress`, log `selected`.
-2. **Dispatch.** Write `WORKER_BRIEF.md` plus a task section to a scratch file. The task section holds: ID, title, the task text from `TASKS.md`, dependencies already merged, the branch name `vadd-ui/<ID>-<slug>`, and relevant VD ids. Then run:
+2. **Dispatch.** Write `WORKER_BRIEF.md` plus a task section to a scratch file. The task section holds: ID, title, the task text from `TASKS.md`, dependencies already merged, the branch name `vadd-ui/<ID>-<slug>`, and relevant VD ids. Then start the worker terminal-first (VD-014; `worker-start --agent` fails here):
    ```text
-   ORCA orchestration worker-start --worktree new-top-level --base-branch main --name vui-<ID>-<slug> --agent claude --task-title "<ID> <title>" --spec-file <file> --json
+   ORCA worktree create --name vui-<ID>-<slug> --no-parent --setup skip --json     # result.worktree.id = <wt>
+   ORCA terminal create --worktree id:<wt> --title vui-<ID> --json                 # result.terminal.handle = <h>
+   ORCA terminal read --terminal <h> --screen --json                               # repeat until the shell prompt shows
+   ORCA terminal send --terminal <h> --text "claude --plugin-dir '$ORCA_CLAUDE_AGENT_VIEW_PLUGIN_DIR' --dangerously-skip-permissions --model opus --effort medium" --enter --json
+   ORCA terminal wait --terminal <h> --for tui-idle --timeout-ms 60000 --json
+   ORCA orchestration worker-start --task-title "<ID> <title>" --spec-file "$(wslpath -w <file>)" --terminal <h> --worktree id:<wt> --json
    ```
-   Record the worktree id and dispatch id in `PROGRESS.md`. Label the workspace: `ORCA worktree set --worktree <id> --display-name "vui <ID> <title>" --comment "dispatched" --json`. If `worker-start` fails, do not rerun it: read `failedStage` and load `references/recovery-and-cleanup.md`. Then end your turn; Orca wakes you. Never poll.
+   `--spec-file` needs a Windows path, because the CLI runs on the Windows side; stdin does not work through the bridge. Record the worktree id and dispatch id in `PROGRESS.md`. Label the workspace: `ORCA worktree set --worktree id:<wt> --display-name "vui <ID> <title>" --comment "dispatched" --json`. If `worker-start` fails, do not rerun it: read `failedStage` and load `references/recovery-and-cleanup.md`. Three failed starts in one `--retry-of` chain trip Orca's breaker. Then end your turn; Orca wakes you. Never poll.
 3. **Questions.** On a `question`, answer with `ORCA orchestration reply --id <message_id> --body "<answer>"`, derived from the spec, `DECISIONS.md` and the code, and log it as a decision. Forward only "physically impossible" items to the user. End your turn.
 4. **On `worker_done`.** Read the report. If evidence is missing or contradictory, use `ORCA orchestration send --to dispatch:<id> --subject "gap" --body "<what is missing>"` and end your turn. On an `escalation`, steer with `send`, or retry per the recovery reference, at most twice; then use fallback mode. Silence alone proves nothing.
 5. **Integrate.** On `main`: `git merge --no-ff vadd-ui/<ID>-<slug>`. The branch is local, so no fetch is needed. Rerun the full gate: `pnpm install`, `pnpm gate`, plus the task's budget checks. If red, send the failure to the worker, or fix trivial conflicts yourself and log them. Never leave `main` red.
