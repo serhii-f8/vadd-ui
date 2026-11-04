@@ -9,13 +9,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "node scripts/generate-schema.mjs && tsc -b",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "lint": "biome check . && node scripts/check-forbidden-apis.mjs",
     "format": "biome check --write .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check": "node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs",
+    "check": "node scripts/generate-schema.mjs --check && node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs",
     "gate": "pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm check"
   },
   "devDependencies": {
@@ -23,6 +23,7 @@
     "@playwright/test": "^1.64.1",
     "@types/node": "^20.19.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "ajv": "^8.20.0",
     "esbuild": "^0.28.2",
     "jsdom": "^30.0.1",
     "typescript": "^7.0.2",

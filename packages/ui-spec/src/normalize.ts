@@ -191,7 +191,7 @@ function expandEnvelope(input: JsonValue, ctx: WalkContext): JsonObject {
  */
 export function normalize(input: JsonValue, options: NormalizeOptions = {}): NormalizeResult {
   const paths = new PathMapBuilder()
-  const ctx: WalkContext = { paths, dropped: [] }
+  const ctx: WalkContext = { paths, dropped: [], cells: 0 }
   const envelope = expandEnvelope(input, ctx)
   const defaults = { ...ENVELOPE_DEFAULTS }
   if (options.generatedAt !== undefined) defaults.generatedAt = options.generatedAt

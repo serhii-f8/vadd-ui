@@ -225,3 +225,107 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: 1,000,000 cells, which still costs about 200 MB; dropping path entries for missing cells, which leaves the cell allocation; checking §13.4 limits in the normalizer, which moves task 03's job here.
 - Rationale: smallest change that keeps `normalize` total, with no effect on any table inside the limits.
 - Spec sections: §13.4, §15.1, §16.
+
+## VD-029 — Schema generator reads `types.ts` itself
+- Date: 2026-11-04 · Task: 03
+- Context: §13.1 generates the schema from the types. TypeScript 7.0.2 exports only `typescript/unstable/*`, with no stable compiler API. `ts-json-schema-generator` depends on `typescript@^5.9` and emits draft-07 (`definitions`, array-form `items`), which draft 2020-12 replaces with `$defs` and `prefixItems`.
+- Decision: `scripts/lib/schema-gen.mjs` is a recursive-descent reader of the TypeScript subset `types.ts` uses: `const` arrays, `type`, `interface … extends`, unions, tuples with labels, `T[]`, `Record<string, T>`, `(typeof X)[number]`. Unsupported syntax throws with a line number, so the build fails rather than losing a type. Doc tags `@integer`, `@minimum`, `@maximum` on a type alias carry what TypeScript cannot say. `pnpm build` writes `packages/ui-spec/dist/vui.schema.json`, exported as `@vadd/ui-spec/schema.json`; `pnpm check` fails when it differs from a fresh generation.
+- Alternatives: a second, old compiler under an npm alias plus a conversion pass from draft-07; `typescript/unstable/ast`, which may change in any release.
+- Rationale: no new dependency tree, exact 2020-12 output, and `types.ts` already stays plain for this purpose.
+- Spec sections: §13.1, §16.
+
+## VD-030 — What "schema and walker agree" means
+- Date: 2026-11-04 · Task: 03
+- Context: §13.1 and §16 require agreement, but JSON Schema cannot say row arity, total node count or depth, and it has no notion of severity: an unknown enum is a `warn` here and a schema failure there.
+- Decision: the schema describes the canonical types, closed on enums and open on fields. On every document within `MAX_NESTING`, the schema rejects exactly when the walker reports a code in `SCHEMA_CODES` (`unknown-type`, `missing-field`, `bad-type`, `bad-enum`, `bad-range`, `bad-version`), whatever the severity. Other codes are cross-field or size rules the schema does not attempt. Past `MAX_NESTING` a subtree is raw and the walker stops, so that case is excluded; text input cannot reach it.
+- Alternatives: "no errors ⇔ schema valid", which would force the schema to accept any enum string and lose its value; a one-way implication, which a schema of `{}` satisfies.
+- Rationale: a biconditional catches drift in both directions.
+- Spec sections: §13.1, §16.
+
+## VD-031 — Severity for optional fields, ranges and `kind`
+- Date: 2026-11-04 · Task: 03
+- Context: §13.3 makes a wrong type an `error` for a required field and says nothing of optional ones. It also says nothing of ranges such as `span` 1–12. The §11.3 example shows a bad `status`, a required field, as `warn`.
+- Decision: a wrong type in an optional field or a field with a default is `warn`, since the field can be ignored; below a required field it is `error`. Nested values inherit from the nearest object field. A range or integer miss is `warn` (`bad-range`). A bad enum is `warn` everywhere, as in §11.3, except `chart.kind`, which has no safe default and selects the data shape, so it is `error`. `vui` other than 1 is an `error` (`bad-version`), because §17.1 supports only `vui` ≤ the renderer's major.
+- Alternatives: `error` for every wrong type, which goes beyond §13.3 and blocks a document for a cosmetic field.
+- Rationale: "safe default" is the §13.3 test for `warn`, and each of these has one.
+- Spec sections: §5.4, §6, §13.3, §17.1.
+
+## VD-032 — How the §13.4 limits count
+- Date: 2026-11-04 · Task: 03
+- Context: §13.4 gives numbers without units.
+- Decision: input size is UTF-8 bytes of the text, 256 KiB = 262,144, checked before parsing. Depth counts a body node as 1 and adds 1 per nested node, or per `plan`/`tree` item level, reported once per branch at the first level past 12. Nodes are §5.4 nodes, including `md` from a bare string, not items. A `spark`'s `values` and a scatter's `points` count as one series. String length is UTF-16 units; 20,000 applies to `text` of `md`, `code`, `log`, and 2,000 to every other string the walker knows, read literally, so `checks.output` and `diff.hunks` values get 2,000. Object keys, `meta`, unknown fields and fields of unknown components are not counted. Size checks are in `validateText` only: `validate` takes a host value that `JSON.stringify` could overflow on. Parse `too-deep` reports `limit-depth` (VD-023). `limit-canonical-size` implements VD-012.
+- Alternatives: count items as nodes, which would make a 500-item list illegal.
+- Rationale: literal where §13.4 is literal, and otherwise the reading that leaves ordinary documents legal.
+- Spec sections: §13.4, §11.4, §15.3.
+
+## VD-033 — Unknown component: `error` here, placeholder in the renderer
+- Date: 2026-11-04 · Task: 03
+- Context: §13.3 makes an unknown `type` an `error`; §17.1 says an older renderer shows unknown components as placeholders, so "a document always renders".
+- Decision: both hold, at different stages. `validate` reports `unknown-type` as `error`, which blocks the CLI, and still returns `document` with the node untouched and not walked. The renderer's error card is the §17.1 placeholder.
+- Alternatives: a lenient mode on `validate`; the renderer does not need one, since it ignores `ok`.
+- Rationale: smallest reading that satisfies both sections.
+- Spec sections: §13.3, §17.1.
+
+## VD-034 — Cross-field rules the spec implies
+- Date: 2026-11-04 · Task: 03
+- Context: §6 defines index fields and parallel lists without stating what happens when they disagree, and "items or path list" for `tree`.
+- Decision: `warn`, because a default exists: an index past its list (`sort`, `group`, `pick`, `active`: `bad-index`); `totals`, `compare.values`, or a series whose length differs from its reference (`length-mismatch`); a flow edge to an undeclared node (`bad-ref`). `error`: a `tree` with neither `items` nor `paths` (`tree-source`), since nothing can render, and an object inside a row anywhere but last (`bad-cell`). A last element that is an object is always row options, so `[1, {tone: 'ok'}]` under two columns has one cell and fails `row-arity`. The same rule applies after shorthand 5, so an object as the last cell of an object row is reported as `row-arity` plus `unknown-field`, not as a bad cell.
+- Alternatives: leave these to the renderer, which would hide an agent's mistake.
+- Rationale: agents get told; lenient rendering is unaffected.
+- Spec sections: §6, §6.6, §13.3.
+
+## VD-035 — Corpus is a TypeScript module with a hand-written oracle; Ajv as a dev dependency
+- Date: 2026-11-04 · Task: 03
+- Context: §16 shares the corpus between validator, schema and renderers, and it needs 300 or more documents with expected results. Snapshots from the code under test would prove nothing.
+- Decision: `packages/ui-spec/test/corpus/` holds compact tables that state each expected code, severity, path and default; `cases.ts` expands them to `validCases` and `invalidCases`. Later tasks import it. §19 examples stay as relaxed text, and a test compares them with the spec file. Ajv 8 (`ajv/dist/2020`) is a root dev dependency and checks the schema.
+- Alternatives: 300 JSON file pairs, which are slower to review and can go stale; generated snapshots.
+- Rationale: expected results come from the spec, not the implementation. Ajv never reaches a published package.
+- Spec sections: §16.
+
+## VD-036 — Diagnostic paths and messages
+- Date: 2026-11-04 · Task: 03
+- Context: §13.2 says paths point into the input, but a missing field has no value to point at, and parse errors have no pointer. VD-025's invariant is that every pointer exists in the input.
+- Decision: `missing-field` points at the object that lacks the field. Parse errors use path `""` with line and column in the message, as `Diagnostic` has no such fields. Limits on the whole document use `""`. Quoted user values are clipped, and `makeDiagnostic` caps messages at 120. The `hint` holds "did you mean", and the CLI appends it as in §11.3.
+- Alternatives: a pointer to the absent key, which would break the VD-025 invariant.
+- Rationale: an agent can always resolve the path it receives.
+- Spec sections: §11.3, §13.2.
+
+## VD-037 — Suggestion ties go to the nearest length
+- Date: 2026-11-04 · Task: 03
+- Context: §11.3 shows `"tabel"` suggesting `"table"`, but `tabs`, listed earlier, is also at distance 2.
+- Decision: the smallest distance wins; on a tie the candidate nearest in length wins, then list order.
+- Alternatives: Damerau distance, which departs from the "Levenshtein" §11.3 names.
+- Rationale: reproduces the spec's example with the spec's metric.
+- Spec sections: §11.3.
+
+## VD-038 — The cell cap is per document
+- Date: 2026-11-04 · Task: 03
+- Context: VD-028 capped expansion per table and said this kept `normalize` total. Review disproved it: 72 tables of 500 × 500 cells in 254 KB each stay under the cap, and together they threw `Map maximum size exceeded`.
+- Decision: supersedes the per-table cap of VD-028. `MAX_TABLE_CELLS` is a running budget across the document, counting only cells from object rows. A table that would pass it keeps its object rows, and the validator reports `bad-type` on them. Its cells alone exceed `limit-canonical-size` in `validateText`.
+- Alternatives: one path entry per row rather than per cell, which leaves the cell arrays in place; a lower cap per table, which only moves the threshold.
+- Rationale: no deliverable document can reach the budget, since 250,000 cells need at least 1.25 MB of canonical JSON.
+- Spec sections: §13.4, §15.1, §16.
+
+## VD-039 — Diagnostic cap, and keys count as strings
+- Date: 2026-11-04 · Task: 03
+- Context: review showed a 256 KB document killing Node with out-of-memory: a 130,000-char series key and 42,000 bad points gave 42,000 paths of 130 KB each. VD-032 had left object keys uncounted, which is what allowed it. `try/catch` cannot stop this.
+- Decision: amends VD-032. Keys of §6 maps (`series`, `hunks`, `tones`, `kv` objects) count towards `limit-string`, and the walker skips the value of an over-limit key. `validate` keeps 1,000 diagnostics plus the first of each limit code, so the exit code stays right, then one `too-many-diagnostics` with the count, at the worst severity it left out, so `ok` stays right. A repeat of the last code at the same path is dropped.
+- Alternatives: only the key limit, which leaves a document of 200,000 small mistakes costing memory for nothing the CLI prints.
+- Rationale: the CLI prints 20, so 1,000 loses nothing a reader would use.
+- Spec sections: §11.3, §13.4, §15.1, §16.
+
+## VD-040 — A tree needs a usable source; flow labels are required
+- Date: 2026-11-04 · Task: 03
+- Context: `{type: 'tree', items: ['src/a.ts']}`, a natural mix-up of `items` and `paths`, passed VD-034's check because the key existed, although nothing can render. Separately, task 02 typed `FlowNodeObject.label` as optional, while §6.5 writes `{id, label, status?}`, and the walker copied that.
+- Decision: amends VD-034. `tree-source` fires unless `items` or `paths` is a list that is empty or holds at least one entry of its kind. `FlowNodeObject.label` is required, as written; a node with no label is the plain string form.
+- Alternatives: keep `label` optional and log a DEVIATION, which the decision order rules out where the spec is clear.
+- Rationale: the error means "nothing can render", so it has to follow that, not key presence.
+- Spec sections: §6.5.
+
+## VD-041 — Review findings declined, and a note for task 13
+- Date: 2026-11-04 · Task: 03
+- Context: the task review raised minor items that this task does not take.
+- Decision: no column hint on `dropped-cell`, since `dropped` carries pointers only and the hint needs the table; a later task can extend it. §13.3's "ignored option" stays empty beyond unknown fields: nothing in §6 defines an option that a valid document can ignore, and rules such as `fold` without `title` would be invented. For task 13: `Diagnostic.path` must stay the exact pointer (§13.2), so a key with a line break or control character reaches `path` raw, and the CLI must escape `path` when printing. `message` and `hint` are already safe.
+- Alternatives: escape `path` here, which stops it resolving in the input.
+- Rationale: smallest honest scope; the renderer and CLI tasks own the rest.
+- Spec sections: §11.3, §13.2, §13.3.

@@ -469,6 +469,16 @@ describe('table expansion cap', () => {
 
   it('covers every table inside the §13.4 limits', () => {
     expect(MAX_TABLE_CELLS).toBeGreaterThanOrEqual(30 * 5000)
+  })
+
+  it('counts cells across the document, and only from object rows (VD-038)', () => {
+    const columns = Array.from({ length: 500 }, (_, index) => `c${index}`)
+    const objects = { type: 'table', columns, rows: Array.from({ length: 500 }, () => ({})) }
+    const arrays = { type: 'table', columns: ['a'], rows: Array.from({ length: 9 }, () => [1]) }
+    const { body } = normalize([arrays, objects, objects]).document
+    const rows = (index: number) => (body[index] as unknown as { rows: unknown[] }).rows[0]
+    expect(rows(1)).toHaveLength(500)
+    expect(rows(2)).toEqual({})
     const table = node({ type: 'table', columns: names(30), rows: emptyRows(5000) })
     expect((table.rows as JsonValue[][])[4999]).toHaveLength(30)
   })

@@ -52,7 +52,49 @@ export type InlineText = string
 /** A format spec, `name` or `name:arg` (§7). Task 04 interprets it. */
 export type Format = string
 
+/** The names of §7. Task 04 implements them. */
+export const FORMAT_NAMES = [
+  'text',
+  'num',
+  'int',
+  'compact',
+  'pct',
+  'pct100',
+  'delta',
+  'ms',
+  'dur',
+  'bytes',
+  'money',
+  'date',
+  'rel',
+  'status',
+  'code',
+  'path',
+  'link',
+  'sha',
+] as const
+
 export type Scalar = string | number | boolean | null
+
+// Doc tags on these aliases become JSON Schema keywords (VD-029).
+
+/** @integer @minimum 1 */
+export type PositiveInt = number
+
+/** @integer @minimum 0 */
+export type NonNegativeInt = number
+
+/** §5.4. @integer @minimum 1 @maximum 12 */
+export type Span = number
+
+/** §6.1. @integer @minimum 1 @maximum 6 */
+export type GridCols = number
+
+/** §6.3. @integer @minimum 1 @maximum 3 */
+export type KvCols = number
+
+/** §5.2, §17.1. @integer @minimum 1 @maximum 1 */
+export type FormatVersion = number
 
 /** Common node fields (§5.4). */
 export interface NodeBase {
@@ -60,7 +102,7 @@ export interface NodeBase {
   title?: InlineText
   note?: InlineText
   tone?: Tone
-  span?: number
+  span?: Span
   fold?: 'open' | 'closed'
 }
 
@@ -76,7 +118,7 @@ export interface GridNode extends NodeBase {
   type: 'grid'
   children: VuiNode[]
   /** Absent means auto by child count, which the renderer resolves (VD-024). */
-  cols?: number
+  cols?: GridCols
 }
 
 export interface SectionNode extends NodeBase {
@@ -98,7 +140,7 @@ export interface Tab {
 export interface TabsNode extends NodeBase {
   type: 'tabs'
   tabs: Tab[]
-  active?: number
+  active?: NonNegativeInt
 }
 
 export interface DividerNode extends NodeBase {
@@ -124,8 +166,8 @@ export interface CodeNode extends NodeBase {
   text: string
   lang?: string
   lines?: true
-  mark?: number[]
-  maxLines: number
+  mark?: PositiveInt[]
+  maxLines: PositiveInt
 }
 
 // Data (§6.3, §6.6)
@@ -154,10 +196,10 @@ export interface TableNode extends NodeBase {
   type: 'table'
   columns: Column[]
   rows: Row[]
-  sort?: [number, 'asc' | 'desc']
-  pageSize: number
+  sort?: [NonNegativeInt, 'asc' | 'desc']
+  pageSize: PositiveInt
   totals?: Scalar[]
-  group?: number
+  group?: NonNegativeInt
   sticky: boolean
 }
 
@@ -166,7 +208,7 @@ export type KvPair = [string, Scalar] | [string, Scalar, Format]
 export interface KvNode extends NodeBase {
   type: 'kv'
   pairs: KvPair[] | Record<string, Scalar>
-  cols?: number
+  cols?: KvCols
 }
 
 export interface StatItem {
@@ -221,7 +263,7 @@ export interface CompareNode extends NodeBase {
   type: 'compare'
   options: string[]
   criteria: CompareCriterion[]
-  pick?: number
+  pick?: NonNegativeInt
 }
 
 // Charts (§6.4)
@@ -298,8 +340,8 @@ export interface PlanNode extends NodeBase {
 }
 
 export type DiffFile =
-  | [path: string, added: number, removed: number]
-  | [path: string, added: number, removed: number, change: 'A' | 'M' | 'D' | 'R']
+  | [path: string, added: NonNegativeInt, removed: NonNegativeInt]
+  | [path: string, added: NonNegativeInt, removed: NonNegativeInt, change: 'A' | 'M' | 'D' | 'R']
 
 export interface DiffNode extends NodeBase {
   type: 'diff'
@@ -346,18 +388,18 @@ export interface DecisionNode extends NodeBase {
   question: string
   context?: InlineText
   options: DecisionOption[]
-  pick?: number
+  pick?: NonNegativeInt
 }
 
 export interface LogNode extends NodeBase {
   type: 'log'
   text: string
-  maxLines: number
+  maxLines: PositiveInt
 }
 
 export interface FlowNodeObject {
   id: string
-  label?: string
+  label: string
   status?: Status
 }
 
@@ -398,7 +440,7 @@ export type VuiNode =
 
 /** The envelope in canonical form (§5.2). */
 export interface VuiDocument {
-  vui: number
+  vui: FormatVersion
   title?: string
   subtitle?: InlineText
   density: Density
