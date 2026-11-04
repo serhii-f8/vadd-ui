@@ -1,4 +1,13 @@
 import { type DiagnosticCode, quote, type Severity } from './diagnostics.js'
+import { isLocale } from './format.js'
+import {
+  checkFormat,
+  checkValue,
+  type FormatSpec,
+  isKnownFormat,
+  parseFormat,
+  parseTime,
+} from './format-spec.js'
 import { hasOwn, isJsonObject, type JsonObject, type JsonValue } from './json.js'
 import { LIMITS } from './limits.js'
 import { MAX_NESTING } from './parser.js'
@@ -235,7 +244,11 @@ class Walker {
     this.length(value, LIMITS.string, pointer)
     const colon = value.indexOf(':')
     const name = colon === -1 ? value : value.slice(0, colon)
-    if (FORMATS.has(name)) return
+    if (FORMATS.has(name)) {
+      const issue = checkFormat(parseFormat(value))
+      if (issue !== undefined) this.report('warn', pointer, issue.code, issue.message, issue.hint)
+      return
+    }
     const hint = didYouMean(name, FORMAT_NAMES)
     this.report('warn', pointer, 'unknown-format', `unknown format ${quote(name)}`, hint)
   }
@@ -437,6 +450,36 @@ function checkRow(report: Report, row: JsonValue[], width: number, pointer: stri
     report('error', pointer, 'row-arity', `expected ${width} cells, got ${cells}`)
 }
 
+/** The format a value is checked against, if the document declares a usable one. */
+function specOf(format: JsonValue | undefined): FormatSpec | undefined {
+  if (typeof format !== 'string') return undefined
+  const spec = parseFormat(format)
+  return isKnownFormat(spec.name) ? spec : undefined
+}
+
+function checkCell(
+  report: Report,
+  spec: FormatSpec | undefined,
+  value: JsonValue | undefined,
+  pointer: string,
+) {
+  // Objects and arrays are reported by the shape rules, or are row options.
+  if (spec === undefined || (typeof value === 'object' && value !== null)) return
+  const issue = checkValue(spec, value)
+  if (issue !== undefined) report('warn', pointer, issue.code, issue.message, issue.hint)
+}
+
+function checkCells(
+  report: Report,
+  specs: (FormatSpec | undefined)[],
+  cells: JsonValue[],
+  pointer: string,
+) {
+  specs.forEach((spec, index) => {
+    checkCell(report, spec, cells[index], joinPointer(pointer, index))
+  })
+}
+
 function checkTable(report: Report, table: JsonObject, pointer: string) {
   const columns = asArray(table.columns)
   const rows = asArray(table.rows)
@@ -449,9 +492,12 @@ function checkTable(report: Report, table: JsonObject, pointer: string) {
     report('error', joinPointer(pointer, 'rows'), 'limit-table-rows', message)
   }
   if (!columns) return
+  const specs = columns.map((column) => (isJsonObject(column) ? specOf(column.format) : undefined))
   rows?.forEach((row, index) => {
     if (Array.isArray(row)) {
-      checkRow(report, row, columns.length, joinPointer(joinPointer(pointer, 'rows'), index))
+      const rowPointer = joinPointer(joinPointer(pointer, 'rows'), index)
+      checkRow(report, row, columns.length, rowPointer)
+      checkCells(report, specs, row, rowPointer)
     }
   })
   const [sortColumn] = asArray(table.sort) ?? []
@@ -460,7 +506,9 @@ function checkTable(report: Report, table: JsonObject, pointer: string) {
   checkIndex(report, table.group, columns.length, joinPointer(pointer, 'group'))
   const totals = asArray(table.totals)
   if (totals) {
-    checkLength(report, totals.length, columns.length, joinPointer(pointer, 'totals'))
+    const totalsPointer = joinPointer(pointer, 'totals')
+    checkLength(report, totals.length, columns.length, totalsPointer)
+    checkCells(report, specs, totals, totalsPointer)
   }
 }
 
@@ -516,6 +564,17 @@ function checkCount(field: string, list: string): CrossField {
 }
 
 const CROSS_FIELD: Record<string, CrossField> = {
+  VuiDocument(report, document, pointer) {
+    const { generatedAt, locale } = document
+    if (typeof generatedAt === 'string' && parseTime(generatedAt) === undefined) {
+      const message = `generatedAt ${quote(generatedAt)} is not ISO 8601`
+      report('warn', joinPointer(pointer, 'generatedAt'), 'bad-value', message)
+    }
+    if (typeof locale === 'string' && !isLocale(locale)) {
+      const message = `locale ${quote(locale)} is not valid BCP 47`
+      report('warn', joinPointer(pointer, 'locale'), 'bad-format-arg', message)
+    }
+  },
   TableNode: checkTable,
   TabsNode: checkCount('active', 'tabs'),
   DecisionNode: checkCount('pick', 'options'),
@@ -527,7 +586,12 @@ const CROSS_FIELD: Record<string, CrossField> = {
       const values = isJsonObject(criterion) ? asArray(criterion.values) : undefined
       if (values) {
         const criterionPointer = joinPointer(joinPointer(pointer, 'criteria'), index)
-        checkLength(report, values.length, size, joinPointer(criterionPointer, 'values'))
+        const valuesPointer = joinPointer(criterionPointer, 'values')
+        checkLength(report, values.length, size, valuesPointer)
+        const spec = specOf((criterion as JsonObject).format)
+        values.forEach((value, valueIndex) => {
+          checkCell(report, spec, value, joinPointer(valuesPointer, valueIndex))
+        })
       }
     })
   },
@@ -542,7 +606,16 @@ const CROSS_FIELD: Record<string, CrossField> = {
     if (points) checkPoints(report, points.length, joinPointer(pointer, 'points'))
   },
   FlowNode: checkFlow,
+  KvNode(report, kv, pointer) {
+    asArray(kv.pairs)?.forEach((pair, index) => {
+      const [, value, format] = asArray(pair) ?? []
+      const pairPointer = joinPointer(joinPointer(pointer, 'pairs'), index)
+      checkCell(report, specOf(format), value, joinPointer(pairPointer, 1))
+    })
+  },
   StatItem(report, item, pointer) {
+    checkCell(report, specOf(item.format), item.value, joinPointer(pointer, 'value'))
+    checkCell(report, specOf(item.deltaFormat), item.delta, joinPointer(pointer, 'delta'))
     const spark = asArray(item.spark)
     if (spark) checkPoints(report, spark.length, joinPointer(pointer, 'spark'))
   },

@@ -8,6 +8,21 @@ export {
   type SchemaCode,
   type Severity,
 } from './diagnostics.js'
+export { type FormatContext, type Formatted, formatValue } from './format.js'
+export {
+  checkFormat,
+  checkValue,
+  type FormatIssue,
+  type FormatSpec,
+  parseFormat,
+} from './format-spec.js'
+export {
+  type InlineToken,
+  inlineToPlain,
+  parseInline,
+  STATUS_TONES,
+  safeHref,
+} from './inline.js'
 export { hasOwn, isJsonObject, type JsonObject, type JsonValue } from './json.js'
 export { LIMITS } from './limits.js'
 export {

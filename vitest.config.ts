@@ -16,6 +16,13 @@ export default defineConfig({
     // Explicit root: without it, project `include` globs resolve against
     // `process.cwd()`, so a filtered run from a package directory matches nothing.
     root: rootDir,
+    // `pnpm test:coverage`, part of `pnpm gate`. Each package adds its §16 target here.
+    coverage: {
+      provider: 'v8',
+      include: ['packages/ui-spec/src/**/*.ts'],
+      reporter: ['text-summary'],
+      thresholds: { 'packages/ui-spec/src/**/*.ts': { lines: 95 } },
+    },
     projects: [
       {
         resolve: { alias },

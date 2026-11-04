@@ -241,6 +241,111 @@ describe('cross-field rules', () => {
   })
 })
 
+describe('value checks', () => {
+  const warn = { code: 'bad-value', severity: 'warn' }
+
+  it('warns on a cell of the wrong type, at the cell', () => {
+    const table = {
+      type: 'table',
+      columns: ['Name', 'Time:ms'],
+      rows: [
+        ['a', 'slow'],
+        ['b', 2],
+      ],
+    }
+    expect(node(table)).toMatchObject([{ ...warn, path: '/body/0/rows/0/1' }])
+    expect(validate({ body: [table] }).ok).toBe(true)
+  })
+
+  it('points into object rows as written', () => {
+    const table = { type: 'table', columns: ['Time:ms'], rows: [{ 'Time:ms': 'slow' }] }
+    expect(node(table)).toMatchObject([{ ...warn, path: '/body/0/rows/0/Time:ms' }])
+  })
+
+  it('accepts null cells, unformatted columns and row options', () => {
+    const table = {
+      type: 'table',
+      columns: ['Name', 'Time:ms'],
+      rows: [
+        ['a', null],
+        [1, 2, { tone: 'ok' }],
+      ],
+    }
+    expect(node(table)).toEqual([])
+  })
+
+  it('checks totals', () => {
+    const table = { type: 'table', columns: ['Time:ms'], rows: [], totals: ['x'] }
+    expect(node(table)).toMatchObject([{ ...warn, path: '/body/0/totals/0' }])
+  })
+
+  it('checks kv tuples, stats and compare', () => {
+    expect(node({ type: 'kv', pairs: [['k', 'x', 'num']] })).toMatchObject([
+      { ...warn, path: '/body/0/pairs/0/1' },
+    ])
+    expect(node({ type: 'kv', pairs: [['k', 'x']] })).toEqual([])
+    const stats = { type: 'stats', items: [{ label: 'l', value: 'x', format: 'pct' }] }
+    expect(node(stats)).toMatchObject([{ ...warn, path: '/body/0/items/0/value' }])
+    expect(node({ type: 'stats', items: [{ label: 'l', value: 'x' }] })).toEqual([])
+    const compare = {
+      type: 'compare',
+      options: ['a', 'b'],
+      criteria: [{ label: 'l', values: [1, 'x'], format: 'num' }],
+    }
+    expect(node(compare)).toMatchObject([{ ...warn, path: '/body/0/criteria/0/values/1' }])
+  })
+
+  it('checks a stats delta against its deltaFormat', () => {
+    const stats = {
+      type: 'stats',
+      items: [{ label: 'l', value: 1, delta: 2, deltaFormat: 'status' }],
+    }
+    expect(node(stats)).toMatchObject([{ ...warn, path: '/body/0/items/0/delta' }])
+    const fine = {
+      type: 'stats',
+      items: [{ label: 'l', value: 1, delta: 2, deltaFormat: 'delta:pct' }],
+    }
+    expect(node(fine)).toEqual([])
+  })
+
+  it('survives a long format string', () => {
+    const format = 'delta:'.repeat(6_250)
+    const text = JSON.stringify({ body: [{ type: 'kv', pairs: [['k', 1, format]] }] })
+    expect(() => validateText(text)).not.toThrow()
+  })
+
+  it('warns on a bad format argument wherever a format is declared', () => {
+    const bad = { code: 'bad-format-arg', severity: 'warn' }
+    expect(node({ type: 'table', columns: ['A:pct:abc'], rows: [] })).toMatchObject([
+      { ...bad, path: '/body/0/columns/0' },
+    ])
+    expect(node({ type: 'kv', pairs: [['k', 1, 'money']] })).toMatchObject([
+      { ...bad, path: '/body/0/pairs/0/2' },
+    ])
+    const stats = { type: 'stats', items: [{ label: 'l', value: 1, deltaFormat: 'delta:status' }] }
+    expect(node(stats)).toMatchObject([{ ...bad, path: '/body/0/items/0/deltaFormat' }])
+  })
+
+  it('accepts the delta syntax of VD-042 through a column suffix', () => {
+    const table = { type: 'table', columns: ['p95:delta:ms:better:low'], rows: [[1]] }
+    expect(node(table)).toEqual([])
+    expect(validate({ body: [table] }).document?.body[0]).toMatchObject({
+      columns: [{ label: 'p95', format: 'delta:ms:better:low' }],
+    })
+  })
+
+  it('warns on an unusable generatedAt and locale', () => {
+    expect(validate({ generatedAt: 'soon', body: [] }).diagnostics).toMatchObject([
+      { ...warn, path: '/generatedAt' },
+    ])
+    expect(validate({ generatedAt: '2026-11-04T10:15:00Z', body: [] }).diagnostics).toEqual([])
+    expect(validate({ locale: 'not a locale!', body: [] }).diagnostics).toMatchObject([
+      { code: 'bad-format-arg', severity: 'warn', path: '/locale' },
+    ])
+    expect(validate({ locale: 'uk-UA', body: [] }).diagnostics).toEqual([])
+  })
+})
+
 describe('suggestions', () => {
   it('suggests a type', () => {
     expect(validate({ type: 'tabel' }).diagnostics[0]).toMatchObject({
