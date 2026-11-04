@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T18:09:04Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T18:51:52Z · Mode: manual
 
 ## Summary
-Done 1 / 22 · In progress: none · Blocked: none · Next: 02 — ui-spec: parser, envelope, normalizer
+Done 2 / 22 · In progress: none · Blocked: none · Next: 03 — ui-spec: validator, diagnostics, limits, schema, conformance
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -29,7 +29,7 @@ Recorded 2026-11-04 during bootstrap.
 | ID | Title | Spec § | Depends on | Status | Worktree | Dispatch | Design spec | Plan | Merged commit | Completed |
 |----|-------|--------|------------|--------|----------|----------|-------------|------|---------------|-----------|
 | 01 | Monorepo scaffolding | §3, §15.1, §16 | none | done | removed | ctx_5c58f32c1b79 | [design](docs/superpowers/specs/2026-11-04-monorepo-scaffold-design.md) | [plan](docs/superpowers/plans/2026-11-04-monorepo-scaffold.md) | 5205219 | 2026-11-04 |
-| 02 | ui-spec: parser, envelope, normalizer | §2, §5, §5.1, §5.2, §5.3 | 01 | todo | | | | | | |
+| 02 | ui-spec: parser, envelope, normalizer | §2, §5, §5.1, §5.2, §5.3 | 01 | done | removed | ctx_2abe81f7d30f | [design](docs/superpowers/specs/2026-11-04-spec-parser-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-parser.md) | 8abe48f | 2026-11-04 |
 | 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | todo | | | | | | |
 | 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | todo | | | | | | |
 | 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | todo | | | | | | |
@@ -62,3 +62,12 @@ none
 - Review: fresh reviewer found no Critical issues; Important ones fixed.
 - Incident: one permission prompt on a shell script with `rm`, in bypass mode. Not approved; the worker reran without it. The brief now forbids `rm` in scripts. The coordinator's guidance mail arrived after the worker had finished.
 - Follow-ups: task 11 must declare `vui.min.js` in `@vadd/ui` exports (VD-020). `ci.yml` is unrun (VD-010), and `pnpm/action-setup@v4` with the pin is unverified. Six reviewer minors deferred: `--root` with no value falls back to the real repo; peerDependencies equality unchecked; odd message for string-valued `dependencies`; `lib` narrowing unasserted; reported line can point at a comment; `ci.yml` lacks a `permissions` block.
+
+### 02 — ui-spec: parser, envelope, normalizer
+- Built: canonical types (all 24 components, Status, Tone), relaxed-JSON parser, normalizer with envelope defaults and all six shorthands, canonical-to-input path map, §2 media type constants.
+- Decisions: VD-022 to VD-028. VD-022 is a DEVIATION: a number that overflows, such as `1e999`, is a parse error.
+- Evidence (coordinator rerun on `main` at 8abe48f): `pnpm gate` exit 0. Vitest 21 files, 425 tests. Playwright 1 test. Banned-API check clean on 13 files. Runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. `ui-spec` coverage: lines 100% (362/362), statements 99.52%. Spec hash unchanged.
+- Worker evidence, not rerun: compile probes for `document`, `console`, `process`, `node:fs`, `fetch` each failed under the package tsconfig; 20,000-case parser fuzz; four path-map mutants killed; parse of 250 KiB 2.44 ms and normalize 5.42 ms, measured before the review fixes.
+- Review: fresh reviewer found one Important issue, unbounded table expansion (a 54 KB document threw after 13 s). Fixed red to green (VD-028). Minors fixed.
+- Follow-ups: task 03: `normalize` returns `{document, paths.toInput(), dropped}`; report `dropped` as warn (VD-026); map parse code too-deep to exit 3 (VD-023); the walker needs a depth guard, because subtrees past depth 128 come back raw; tables over the cap keep object rows, and §13.4 limits report them (VD-028). Task 04: wire the coverage gate (VD-027). Task 06: `render(object)` must sanitize host objects before `normalize`, which does not handle cycles or non-JSON values; over-limit truncation must tolerate unconverted object rows. Task 17: tell agents to give explicit columns with year-like keys (VD-026). `generatedAt` stays absent unless the CLI passes `options.generatedAt` (VD-024).
+- Note: Superpowers `sdd-workspace` scripts have CRLF shebangs and do not run in WSL; the worker kept the ledger by hand.
