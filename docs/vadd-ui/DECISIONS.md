@@ -97,3 +97,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: raise the POST limit, which changes a §15.3 control.
 - Rationale: the simplest reading; the case is rare, because object rows shrink under normalization.
 - Spec sections: §13.4, §15.3, §11.4.
+
+## VD-013 — Line endings pinned to LF
+- Date: 2026-11-04 · Task: bootstrap
+- Context: the user's global `core.autocrlf=true` checked a test worktree out with CRLF. It changed the spec's bytes in that worktree and would make Biome reject the tree.
+- Decision: add `.gitattributes` with `* text=auto eol=lf`, the same fix VADD uses.
+- Alternatives: change the user's global git config.
+- Rationale: repo-local, and it works for every worktree.
+- Spec sections: none.

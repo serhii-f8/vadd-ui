@@ -1,0 +1,3 @@
+# The user's global core.autocrlf=true would otherwise check worktrees out with
+# CRLF, which Biome rejects and which changes the spec file's bytes. Same fix as VADD.
+* text=auto eol=lf
