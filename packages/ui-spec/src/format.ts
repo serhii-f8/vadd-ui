@@ -320,6 +320,11 @@ function supportedLocale(locale: string): string | undefined {
   }
 }
 
+/** False for a string that is not BCP 47, which `formatValue` replaces with `en-US`. */
+export function isLocale(locale: string): boolean {
+  return supportedLocale(locale) !== undefined
+}
+
 /** A usable locale, never the machine's, which would differ between renderers (§7). */
 function resolveLocale(locale: string | undefined, issues: FormatIssue[]): string {
   if (locale === undefined) return DEFAULT_LOCALE
