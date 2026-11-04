@@ -169,3 +169,59 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: keep Playwright outside the gate until task 06, which leaves it unproven.
 - Rationale: every gate is real from the first task, and the spec's bytes stay untouched.
 - Spec sections: §16.
+
+## VD-022 — Parser grammar is strict JSON plus only what §5.1 lists — DEVIATION
+- Date: 2026-11-04 · Task: 02
+- Context: §5.1 calls the input a JSON5 subset and names what is added and what is refused, but JSON5 also allows `+1`, `.5`, `5.`, `\x41`, `\v`, raw tabs in strings, a BOM and extra whitespace. Separately, §5.1 says strict JSON is always valid, while `1e999` is valid JSON that becomes `Infinity`, which §5.1 refuses and strict canonical JSON cannot hold.
+- Decision: accept strict JSON plus exactly the five relaxations named. `\'` is accepted in both quote styles, because a single-quoted string needs it and one escape table is simpler. Everything else in JSON5 is refused. DEVIATION: a number that overflows to infinity is a parse error, although `JSON.parse` accepts it. A single byte order mark at offset 0 is skipped and does not count towards the column, because it is an encoding artifact rather than syntax and Windows tools add it; any other U+FEFF is refused.
+- Alternatives: accept all of JSON5 except the named refusals, which contradicts "exactly"; let `1e999` reach the canonical form, where `JSON.stringify` writes `null`.
+- Rationale: the acceptance criterion says "exactly", and an overflow would otherwise silently change a value.
+- Spec sections: §5.1.
+
+## VD-023 — Parser nesting cap of 128
+- Date: 2026-11-04 · Task: 02
+- Context: a recursive parser given 256 KiB of `[` overflows the stack, and §16 fuzzing requires no crash. §13.4 caps depth at 12, but that is a validator `error` with a JSON Pointer, in task 03.
+- Decision: `parse` fails with `code: 'too-deep'` past 128 levels, with line and column. The normalizer stops expanding at the same depth. Task 03 can map `too-deep` to the §13.4 limit (exit 3) rather than to exit 2.
+- Alternatives: an iterative parser, which is more code for inputs that are invalid anyway; a cap of 12, which would give depth errors no pointer.
+- Rationale: smallest total parser; the validator still reports every normal depth error.
+- Spec sections: §5.1, §13.4, §16.
+
+## VD-024 — What "every default explicit" covers
+- Date: 2026-11-04 · Task: 02
+- Context: §2 says the canonical form has every default explicit. Not every default is a value: `generatedAt` is stamped by the CLI, `grid.cols` is "auto by child count", numeric `align` depends on cell data, and §7 calls `text` the default format while §5.3 says a string column is exactly `{key, label}`.
+- Decision: the normalizer writes the §5.2 defaults (`vui`, `density`, `locale`) and each §6 field with a stated concrete default: `callout.tone`, `code.maxLines`, `log.maxLines`, `progress.max`, `table.pageSize`, `table.sticky`. A default applies only to an absent key. Optional fields with default "none" stay absent, never `null`. `generatedAt` comes from `options.generatedAt` and is otherwise absent, because the package has no clock. `format` stays implicit.
+- Alternatives: resolve `grid.cols` and `align` here, which moves layout into the normalizer and breaks idempotence if data changes; write `format: 'text'` everywhere, which contradicts §5.3 item 6.
+- Rationale: follows the spec's literal wording where it gives a value, and keeps the package pure.
+- Spec sections: §2, §5.2, §5.3, §6, §7.
+
+## VD-025 — Path map records rewrites and resolves by longest prefix
+- Date: 2026-11-04 · Task: 02
+- Context: §13.2 requires pointers into the input as written, but task 03 validates the canonical form.
+- Decision: `normalize` returns `paths.toInput(canonicalPointer)`. Only rewrites are stored, as absolute input pointers, and the longest recorded prefix is resolved with the remainder appended. Values with no input of their own, such as defaults, map to their parent. `dropped` lists input pointers of object-row keys that match no column, so task 03 can report them as `info`. Invariant, tested: every canonical pointer maps to a pointer that exists in the input.
+- Alternatives: a full map of every pointer, which costs memory proportional to the document; source spans from the parser, which `render(object)` input could not provide.
+- Rationale: small, works for object input, and task 03 only has to call one function.
+- Spec sections: §13.2.
+
+## VD-026 — Column suffix and object-row rules
+- Date: 2026-11-04 · Task: 02
+- Context: §5.3 items 5 and 6 leave open how colons in labels behave, which key an object row uses for `"Time:ms"`, and what `tone` or `note` keys in an object row mean, given that §6.6 defines row options only for array rows.
+- Decision: split at the first colon whose remainder matches `[a-z][a-z0-9]*(:\S+)?`, otherwise the whole string is the label, so `"10:05"` and `"Note: see docs"` stay labels and an unknown format name still splits for task 03 to warn about. Keys of the first object row, when `columns` is missing, go through the same parser. A cell looks up the column's written spelling, then its `key`, own properties only. A missing cell is `null`. `tone` and `note` in an object row are ordinary data keys: only array rows have row options.
+- Alternatives: split at the last colon, which breaks `"Cov:pct:0"`; treat `tone` and `note` as row options, which invents a feature and collides with real columns of those names.
+- Rationale: keeps natural labels intact and stays inside §5.3. Conversion can still lose data: `columns: ['Name']` with rows `{name: 'a'}` gives `[[null]]`, and keys that appear only in later rows are not columns. Each such key is in `dropped`. Task 03 should report `dropped` as `warn`, since this is row data rather than an ignored option. Known limitation: integer-like keys come first in JS objects, so derived columns from `{Service: 'a', 2024: 1}` start with `2024`; explicit `columns` avoid it, and the skill should say so.
+- Spec sections: §5.3, §6.6.
+
+## VD-027 — Coverage provider added early
+- Date: 2026-11-04 · Task: 02
+- Context: this task needs a measured 95% line coverage, but the coverage gate belongs to task 04 and no provider is installed.
+- Decision: add `@vitest/coverage-v8` as a root dev dependency on the same `^4.1.10` range as Vitest, and run it ad hoc. Task 04 wires it into `pnpm gate`.
+- Alternatives: claim coverage from reading the tests.
+- Rationale: a dev dependency does not touch the runtime-dependency rule, and the number has to be real.
+- Spec sections: §16.
+
+## VD-028 — Object-row expansion is capped at 250,000 cells
+- Date: 2026-11-04 · Task: 02
+- Context: object rows expand to `columns × rows` cells, and task 03 checks the §13.4 limits only after normalization. A 54 KB table of 5,000 columns and 5,000 `{}` rows took 13 s and then threw `Map maximum size exceeded` out of a function documented as total. §15.1 treats documents as untrusted.
+- Decision: above `MAX_TABLE_CELLS` (250,000) `rows` stay unconverted, while `columns` still expand. The cap exceeds 30 × 5,000, so any table it stops already breaks a §13.4 limit and task 03 reports that. The renderer's over-limit truncation therefore has to tolerate object rows in such a table, or show an error card.
+- Alternatives: 1,000,000 cells, which still costs about 200 MB; dropping path entries for missing cells, which leaves the cell allocation; checking §13.4 limits in the normalizer, which moves task 03's job here.
+- Rationale: smallest change that keeps `normalize` total, with no effect on any table inside the limits.
+- Spec sections: §13.4, §15.1, §16.
