@@ -1,0 +1,7 @@
+packages:
+  - "packages/*"
+  - "skills/*"
+
+# pnpm 11 renamed onlyBuiltDependencies to allowBuilds.
+allowBuilds:
+  esbuild: true

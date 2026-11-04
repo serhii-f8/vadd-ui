@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.browser.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../ui-render"
+    }
+  ]
+}
