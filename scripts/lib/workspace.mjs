@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 /**
  * The §3 package table, the one place the checks read it from.
  *
@@ -72,3 +75,20 @@ export const PACKAGES = [
     zeroDep: false,
   },
 ]
+
+/**
+ * Parses a JSON file, or records why it could not and returns null.
+ *
+ * @param {string} root
+ * @param {string} file
+ * @param {string[]} findings
+ * @returns {Record<string, any> | null}
+ */
+export function readJson(root, file, findings) {
+  try {
+    return JSON.parse(readFileSync(join(root, file), 'utf8'))
+  } catch {
+    findings.push(`${file}: unreadable`)
+    return null
+  }
+}
