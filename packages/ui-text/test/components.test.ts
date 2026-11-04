@@ -161,6 +161,7 @@ describe('text', () => {
   it('code and log print no blank line for a final newline', () => {
     both({ type: 'code', text: 'a\n' }, '```\na\n```', '    a')
     both({ type: 'log', text: 'a\n' }, '```log\na\n```', '    a')
+    both({ type: 'code', text: 'a\n', lines: true }, '```\n1  a\n```', '    1  a')
   })
 
   it('code keeps every line past maxLines', () => {
