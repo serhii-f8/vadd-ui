@@ -1,10 +1,9 @@
-import type { DiagnosticCode, Severity } from './diagnostics.js'
-import { quote } from './diagnostics.js'
+import { type DiagnosticCode, quote, type Severity } from './diagnostics.js'
 import { hasOwn, isJsonObject, type JsonObject, type JsonValue } from './json.js'
 import { LIMITS } from './limits.js'
 import { MAX_NESTING } from './parser.js'
 import { joinPointer } from './pointer.js'
-import { CHART_SHAPES, NODE_SHAPES, type Rule, SHAPES } from './rules.js'
+import { CHART_SHAPES, NODE_SHAPES, type Rule, SHAPES, type Shape } from './rules.js'
 import { suggest } from './suggest.js'
 import { COMPONENT_TYPES, FORMAT_NAMES } from './types.js'
 
@@ -364,7 +363,7 @@ class Walker {
   }
 
   private shape(name: string, value: JsonObject, pointer: string, depth: number): void {
-    const { fields } = SHAPES[name] as { fields: (typeof SHAPES)[string]['fields'] }
+    const { fields } = SHAPES[name] as Shape
     for (const [field, { rule, presence }] of Object.entries(fields)) {
       if (hasOwn(value, field)) {
         const required = presence === 'required'

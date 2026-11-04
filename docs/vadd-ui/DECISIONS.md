@@ -269,7 +269,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-034 — Cross-field rules the spec implies
 - Date: 2026-11-04 · Task: 03
 - Context: §6 defines index fields and parallel lists without stating what happens when they disagree, and "items or path list" for `tree`.
-- Decision: `warn`, because a default exists: an index past its list (`sort`, `group`, `pick`, `active`: `bad-index`); `totals`, `compare.values`, or a series whose length differs from its reference (`length-mismatch`); a flow edge to an undeclared node (`bad-ref`). `error`: a `tree` with neither `items` nor `paths` (`tree-source`), since nothing can render, and an object inside a row anywhere but last (`bad-cell`). A last element that is an object is always row options, so `[1, {tone: 'ok'}]` under two columns has one cell and fails `row-arity`.
+- Decision: `warn`, because a default exists: an index past its list (`sort`, `group`, `pick`, `active`: `bad-index`); `totals`, `compare.values`, or a series whose length differs from its reference (`length-mismatch`); a flow edge to an undeclared node (`bad-ref`). `error`: a `tree` with neither `items` nor `paths` (`tree-source`), since nothing can render, and an object inside a row anywhere but last (`bad-cell`). A last element that is an object is always row options, so `[1, {tone: 'ok'}]` under two columns has one cell and fails `row-arity`. The same rule applies after shorthand 5, so an object as the last cell of an object row is reported as `row-arity` plus `unknown-field`, not as a bad cell.
 - Alternatives: leave these to the renderer, which would hide an agent's mistake.
 - Rationale: agents get told; lenient rendering is unaffected.
 - Spec sections: §6, §6.6, §13.3.
@@ -289,3 +289,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: a pointer to the absent key, which would break the VD-025 invariant.
 - Rationale: an agent can always resolve the path it receives.
 - Spec sections: §11.3, §13.2.
+
+## VD-037 — Suggestion ties go to the nearest length
+- Date: 2026-11-04 · Task: 03
+- Context: §11.3 shows `"tabel"` suggesting `"table"`, but `tabs`, listed earlier, is also at distance 2.
+- Decision: the smallest distance wins; on a tie the candidate nearest in length wins, then list order.
+- Alternatives: Damerau distance, which departs from the "Levenshtein" §11.3 names.
+- Rationale: reproduces the spec's example with the spec's metric.
+- Spec sections: §11.3.
