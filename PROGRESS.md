@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T17:36:39Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T18:09:04Z · Mode: manual
 
 ## Summary
-Done 0 / 22 · In progress: none · Blocked: none · Next: 01 — Monorepo scaffolding
+Done 1 / 22 · In progress: none · Blocked: none · Next: 02 — ui-spec: parser, envelope, normalizer
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -28,7 +28,7 @@ Recorded 2026-11-04 during bootstrap.
 ## Tasks
 | ID | Title | Spec § | Depends on | Status | Worktree | Dispatch | Design spec | Plan | Merged commit | Completed |
 |----|-------|--------|------------|--------|----------|----------|-------------|------|---------------|-----------|
-| 01 | Monorepo scaffolding | §3, §15.1, §16 | none | todo | | | | | | |
+| 01 | Monorepo scaffolding | §3, §15.1, §16 | none | done | removed | ctx_5c58f32c1b79 | [design](docs/superpowers/specs/2026-11-04-monorepo-scaffold-design.md) | [plan](docs/superpowers/plans/2026-11-04-monorepo-scaffold.md) | 5205219 | 2026-11-04 |
 | 02 | ui-spec: parser, envelope, normalizer | §2, §5, §5.1, §5.2, §5.3 | 01 | todo | | | | | | |
 | 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | todo | | | | | | |
 | 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | todo | | | | | | |
@@ -55,4 +55,10 @@ Recorded 2026-11-04 during bootstrap.
 none
 
 ## Completed task reports
-none yet
+### 01 — Monorepo scaffolding
+- Built: pnpm workspace with 7 packages plus `skills/vadd-ui`, per the §3 dependency graph; shared TypeScript configs; Vitest, Playwright, Biome, esbuild; `pnpm gate`; banned-API, runtime-dependency, version, target and bundle-size checks; `.github/workflows/ci.yml`.
+- Decisions: VD-016 to VD-021.
+- Evidence (coordinator rerun on `main` at 5205219): `pnpm gate` exit 0. Vitest 14 files, 79 tests. Playwright 1 test. Banned-API check clean on 6 files. Runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Spec hash unchanged.
+- Review: fresh reviewer found no Critical issues; Important ones fixed.
+- Incident: one permission prompt on a shell script with `rm`, in bypass mode. Not approved; the worker reran without it. The brief now forbids `rm` in scripts. The coordinator's guidance mail arrived after the worker had finished.
+- Follow-ups: task 11 must declare `vui.min.js` in `@vadd/ui` exports (VD-020). `ci.yml` is unrun (VD-010), and `pnpm/action-setup@v4` with the pin is unverified. Six reviewer minors deferred: `--root` with no value falls back to the real repo; peerDependencies equality unchecked; odd message for string-valued `dependencies`; `lib` narrowing unasserted; reported line can point at a comment; `ci.yml` lacks a `permissions` block.

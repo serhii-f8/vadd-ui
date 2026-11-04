@@ -44,3 +44,5 @@ Decide; never ask the user. Prefer, in order: what the spec says; the simplest o
 ## Stopping
 
 If something is physically impossible without the user (a missing credential, a GUI-only action, a paid service), or a permission prompt blocks you, say exactly what is needed in an `ask` to the coordinator, naming the exact permission rule where one applies, and end your turn. Report failures faithfully: never mark an unmet criterion as met.
+
+Keep `rm` out of shell scripts and heredocs. A safety check stops such commands even in bypass mode, and nobody is there to approve them. Leave temporary files in your scratchpad instead.
