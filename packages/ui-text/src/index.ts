@@ -10,6 +10,7 @@ export const packageName = '@vadd/ui-text' as const
 const DEFAULT_LOCALE = 'en-US'
 const TITLE_LEVEL = 3
 const NODE_LEVEL = 4
+const FAILED = 'Could not render this document\n'
 
 function documentBlocks(document: VuiDocument): Block[] {
   const blocks: Block[] = []
@@ -26,21 +27,22 @@ function documentBlocks(document: VuiDocument): Block[] {
   return blocks
 }
 
-/** One rule for every field and both formats. */
-function finish(output: string): string {
-  const cleaned = clean(output).trimEnd()
-  return cleaned === ''
-    ? ''
-    : `${cleaned}
-`
+/** One cleaning rule for every field and both formats, and one guard around both. */
+function render(document: VuiDocument, serialize: (blocks: Block[]) => string): string {
+  try {
+    const cleaned = clean(serialize(documentBlocks(document))).trimEnd()
+    return cleaned === '' ? '' : `${cleaned}\n`
+  } catch {
+    return FAILED
+  }
 }
 
 /** GitHub-flavored markdown (§4.5). Total, pure, and silent. */
 export function renderMarkdown(document: VuiDocument): string {
-  return finish(blocksToMarkdown(documentBlocks(document)))
+  return render(document, blocksToMarkdown)
 }
 
 /** Plain text (§4.5). Total, pure, and silent. */
 export function renderPlain(document: VuiDocument): string {
-  return finish(blocksToPlain(documentBlocks(document)))
+  return render(document, blocksToPlain)
 }

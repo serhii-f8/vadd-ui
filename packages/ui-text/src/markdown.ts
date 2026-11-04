@@ -18,7 +18,7 @@ function escapeText(value: string): string {
 }
 
 function longestRun(value: string, pattern: RegExp): number {
-  return Math.max(0, ...(value.match(pattern) ?? []).map((run) => run.length))
+  return (value.match(pattern) ?? []).reduce((longest, run) => Math.max(longest, run.length), 0)
 }
 
 function codeSpan(raw: string): string {
@@ -103,7 +103,9 @@ function entry(item: Entry, marker: string): string {
 function serialize(block: Block): string {
   switch (block.kind) {
     case 'heading':
-      return `${'#'.repeat(block.level)} ${inline(block.text).trim().replace(/#+$/, '\\$&')}`
+      return `${'#'.repeat(block.level)} ${inline(block.text)
+        .trim()
+        .replace(/(?<!#)#+$/, '\\$&')}`
     case 'para': {
       const line = inline(block.text).trim()
       if (line === '') return ''

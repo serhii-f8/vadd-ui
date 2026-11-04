@@ -36,7 +36,7 @@ function pad(value: string, size: number, align: Align): string {
 function table(block: Extract<Block, { kind: 'table' }>): string {
   const rows = [block.header, ...block.rows].map((row) => row.map(inline))
   const sizes = block.aligns.map((_, column) =>
-    Math.max(...rows.map((row) => width(row[column] ?? ''))),
+    rows.reduce((size, row) => Math.max(size, width(row[column] ?? '')), 0),
   )
   const line = (cells: string[]) =>
     cells

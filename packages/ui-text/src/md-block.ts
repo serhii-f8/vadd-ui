@@ -76,7 +76,7 @@ class Reader {
   }
 
   private heading([, marks, title]: RegExpExecArray): void {
-    const text = parseInline((title as string).trim().replace(/\s+#+$/, ''))
+    const text = parseInline((title as string).trim().replace(/\s#+$/, '').trimEnd())
     this.blocks.push({ kind: 'heading', level: (marks as string).length, text })
     this.index++
   }
