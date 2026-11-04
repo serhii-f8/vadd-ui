@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read", "Glob", "Grep", "Edit", "Write", "Skill", "Agent", "WebFetch", "WebSearch",
+      "Bash(pnpm *)", "Bash(npx *)", "Bash(node *)", "Bash(corepack *)", "Bash(tsx *)",
+      "Bash(vitest *)", "Bash(biome *)", "Bash(tsc *)", "Bash(esbuild *)", "Bash(playwright *)",
+      "Bash(git *)", "Bash(gh pr view *)",
+      "Bash(orca *)", "Bash(orca-ide *)", "Bash(vui *)",
+      "Bash(python3 -m http.server *)", "Bash(curl *localhost*)", "Bash(curl *127.0.0.1*)",
+      "Bash(ls *)", "Bash(cat *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)", "Bash(grep *)",
+      "Bash(rg *)", "Bash(find *)", "Bash(sort *)", "Bash(uniq *)", "Bash(cut *)", "Bash(tr *)",
+      "Bash(sed *)", "Bash(awk *)", "Bash(jq *)", "Bash(diff *)", "Bash(stat *)", "Bash(file *)",
+      "Bash(which *)", "Bash(pwd)", "Bash(echo *)", "Bash(printf *)", "Bash(test *)", "Bash(true)",
+      "Bash(date *)", "Bash(uname *)", "Bash(env)", "Bash(sha256sum *)", "Bash(gzip *)",
+      "Bash(mkdir *)", "Bash(touch *)", "Bash(cp *)", "Bash(mv *)", "Bash(kill *)", "Bash(lsof *)",
+      "Bash(ss *)", "Bash(sleep *)", "Bash(xargs *)", "Bash(tee *)"
+    ],
+    "deny": [
+      "Bash(git push)", "Bash(git push *)", "Bash(git * push)", "Bash(git * push *)",
+      "Bash(npm publish)", "Bash(npm publish *)", "Bash(pnpm publish)", "Bash(pnpm publish *)",
+      "Bash(pnpm * publish)", "Bash(pnpm * publish *)",
+      "Bash(rm -rf /)", "Bash(rm -rf /*)", "Bash(rm -rf ~)", "Bash(rm -rf ~/*)",
+      "Edit(/docs/specs/vadd-ui-technical-spec.md)",
+      "Edit(docs/specs/vadd-ui-technical-spec.md)",
+      "Edit(//var/www/html/vadd/**)",
+      "Edit(//etc/**)", "Edit(//usr/**)", "Edit(//mnt/**)",
+      "Edit(~/.ssh/**)", "Edit(~/.bashrc)", "Edit(~/.profile)", "Edit(~/.npmrc)", "Edit(~/.gitconfig)"
+    ]
+  }
+}

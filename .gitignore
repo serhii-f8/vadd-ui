@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-types/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Playwright
+test-results/
+playwright-report/
+
+# Local tool state
+.serena/
+.superpowers/
+.worktrees/
+.claude/settings.local.json
