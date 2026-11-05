@@ -703,3 +703,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: reopen the worker now, which reruns a full cycle for input no real chart holds.
 - Rationale: reversible, recorded with its repro, and the owner task already exists. This is a known defect, not a declined one.
 - Spec sections: §6.4, §16.
+
+## VD-089 — Size allotment for tasks 10 and 11
+- Date: 2026-11-05 · Task: 10
+- Context: §9.5 caps `vui.min.js` at 38 KiB gzip. After task 09 the `ui-render` entry is 34.57 KiB gzip, so 3.43 KiB remain for seven dev components and the boot script, and `check-bundle-size` stays idle until task 11.
+- Decision: task 11 keeps 0.6 KiB gzip for §9.2's boot steps. Task 10 must end with the `ui-render` entry at or under 37.4 KiB gzip, measured by esbuild with `bundle`, `minify`, `format: esm`, `target: es2020`, then gzip level 9. Removing code to get there is in scope, provided behavior and baselines hold: `ui-spec`, shared helpers and CSS first. A feature named by the spec is not cut to fit. If the limit cannot be met that way, the worker asks the coordinator.
+- Alternatives: leave the split to the worker, which is how task 09 overran its own target; property mangling now, which belongs to task 11's build and is held in reserve there.
+- Rationale: §9.5 is a hard gate, and the overrun would otherwise surface only at task 11.
+- Spec sections: §9.2, §9.5.
