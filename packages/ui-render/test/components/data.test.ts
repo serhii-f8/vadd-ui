@@ -89,7 +89,8 @@ describe('stats', () => {
     const box = tiles({ tone: 'err' })
     const tile = box.querySelector('.vui-stat') as HTMLElement
     expect(tile.classList.contains('vui-tone-err')).toBe(true)
-    expect(tile.querySelector('.vui-sr-only')?.textContent).toBe('error')
+    expect(tile.querySelector('dt .vui-sr-only')?.textContent).toBe('error')
+    expect(tile.querySelector(':scope > span')).toBeNull()
   })
 
   it('draws no mark for a tone with no meaning', () => {
@@ -108,6 +109,13 @@ describe('stats', () => {
     const label = box.querySelector('.vui-spark')?.getAttribute('aria-label')
     expect(box.querySelector('.vui-spark')?.getAttribute('role')).toBe('img')
     expect(label).toBe('Trend, 3 points, from 1,200 to 20')
+  })
+
+  it('counts one point in the singular', () => {
+    const label = tiles({ spark: [5] })
+      .querySelector('.vui-spark')
+      ?.getAttribute('aria-label')
+    expect(label).toBe('Trend, 1 point, from 5 to 5')
   })
 
   it('sets a flat spark at mid height', () => {

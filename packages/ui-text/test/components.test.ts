@@ -378,6 +378,18 @@ describe('table', () => {
     )
   })
 
+  it('lets a tone beat a status format in a badge cell, as the DOM does', () => {
+    const columns = [
+      { key: 'b', label: 'B', format: 'status', cell: 'badge', tones: { warn: 'err' } },
+    ]
+    expect(md({ type: 'table', columns, rows: [['warn']] })).toContain('| warn ✗ |')
+  })
+
+  it('leaves out a row note that is not text', () => {
+    const output = md({ type: 'table', columns: ['A'], rows: [['x', { note: 5 }]] })
+    expect(output).toContain('| x |')
+  })
+
   it('marks a status word in a badge cell', () => {
     const columns = [{ key: 'b', label: 'B', cell: 'badge' }]
     const output = md({ type: 'table', columns, rows: [['ok']] })

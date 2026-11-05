@@ -79,7 +79,8 @@ function spark(values: JsonValue[], context: NodeContext): HTMLElement | null {
     }),
   )
   const number = (value: number) => context.format(value, 'num', context.pointer).text
-  const label = `Trend, ${number(points.length)} points, from ${number(first)} to ${number(last)}`
+  const count = `${number(points.length)} point${points.length === 1 ? '' : 's'}`
+  const label = `Trend, ${count}, from ${number(first)} to ${number(last)}`
   return el('span', { class: 'vui-spark', role: 'img', 'aria-label': label }, columns)
 }
 
@@ -90,8 +91,10 @@ function statTile(item: JsonObject, at: string, context: NodeContext): HTMLEleme
   const tone = toneOf(field(item, 'tone'))
   const line = spark(nodeList(item, 'spark'), context)
   const parts: Child[] = [
-    tone === undefined ? null : toneMark(tone),
-    el('dt', { class: 'vui-stat-label' }, text(item, 'label')),
+    el('dt', { class: 'vui-stat-label' }, [
+      tone === undefined ? null : toneMark(tone),
+      text(item, 'label'),
+    ]),
     el(
       'dd',
       { class: 'vui-stat-value' },

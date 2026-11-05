@@ -8,6 +8,7 @@ import {
   STATUSES,
   type Status,
   type TableNode,
+  TONES,
   type Tone,
 } from './types.js'
 
@@ -61,7 +62,7 @@ export function sortRows(
 ): ParsedRow[] {
   if (!Array.isArray(sort)) return rows
   const [index, direction] = sort
-  const column = columns[index]
+  const column = Number.isInteger(index) ? columns[index] : undefined
   if (column === undefined) return rows
   const order = direction === 'desc' ? -1 : 1
   const { compare } = collator(locale)
@@ -106,7 +107,8 @@ export function badgeOf(column: Column, formatted: Formatted): Badge {
   const { text, status } = formatted
   const { tones } = column
   if (isJsonObject(tones as JsonValue) && hasOwn(tones as object, text)) {
-    return { tone: (tones as Record<string, Tone>)[text] as Tone }
+    const tone = (tones as Record<string, Tone>)[text] as Tone
+    if (TONES.includes(tone)) return { tone }
   }
   if (status !== undefined) return { status }
   return (STATUSES as readonly string[]).includes(text) ? { status: text as Status } : {}

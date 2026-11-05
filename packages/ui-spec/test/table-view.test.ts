@@ -81,6 +81,12 @@ describe('sortRows (VD-055)', () => {
     expect(firsts(sortRows(rows([2], [1]), columns, 'x' as never, 'en-US'))).toEqual([2, 1])
   })
 
+  it('leaves rows alone for an index that is not a whole number', () => {
+    expect(firsts(sortRows(rows([2], [1]), columns, ['0', 'desc'] as never, 'en-US'))).toEqual([
+      2, 1,
+    ])
+  })
+
   it('survives an invalid locale', () => {
     expect(firsts(sortRows(rows(['b'], ['a']), columns, [0, 'asc'], 'x!'))).toEqual(['a', 'b'])
   })
@@ -123,6 +129,10 @@ describe('badgeOf', () => {
 
   it('takes a tone from the map', () => {
     expect(badge('high', { tones: { high: 'err' } })).toEqual({ tone: 'err' })
+  })
+
+  it('takes no tone the map names wrongly', () => {
+    expect(badge('high', { tones: { high: 'purple' as never } })).toEqual({})
   })
 
   it('takes a status from the format', () => {

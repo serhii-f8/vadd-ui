@@ -34,6 +34,65 @@ test.describe('wide tables', () => {
     expect(sizes.page).toBeLessThanOrEqual(0)
   })
 
+  test('hold in their own box what a hidden word would push out', async ({ page }) => {
+    const table = {
+      type: 'table',
+      columns: Array.from({ length: 7 }, (_, index) => ({
+        key: `c${index}`,
+        label: `Col ${index}`,
+        wrap: false,
+      })).concat({
+        key: 'risk',
+        label: 'Risk',
+        cell: 'badge',
+        tones: { high: 'err' },
+      } as never),
+      rows: Array.from({ length: 25 }, (_, _row) => [
+        ...Array.from({ length: 7 }, () => 'some cell text in a row'),
+        'high',
+        { tone: 'err' },
+      ]),
+      pageSize: 25,
+    }
+    const { frame } = await open(page, [table], 360)
+    const overflow = await frame.evaluate(() => [
+      document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      document.documentElement.scrollHeight -
+        (document.querySelector('.vui-root') as HTMLElement).getBoundingClientRect().height,
+    ])
+    expect(overflow[0]).toBeLessThanOrEqual(0)
+    expect(overflow[1]).toBeLessThanOrEqual(40)
+  })
+
+  for (const column of [{ cell: 'code' }, { format: 'path' }, {}]) {
+    test(`leave room beside a long pinned ${JSON.stringify(column)} column`, async ({ page }) => {
+      const long = `packages/ui-render/src/components/${'nested/'.repeat(4)}file.ts`
+      const table = {
+        type: 'table',
+        columns: [
+          { key: 'a', label: 'A long pinned heading over a long pinned column', ...column },
+          'B',
+          'C',
+          'D',
+          'E',
+        ],
+        rows: [[long, 'bbbbbbbb', 'cccccccc', 'dddddddd', 'eeeeeeee']],
+      }
+      const { frame } = await open(page, [table], 320)
+      const sizes = await frame.evaluate(() => {
+        const box = document.querySelector('.vui-table-box') as HTMLElement
+        box.scrollLeft = 10_000
+        const pinned = (document.querySelector('tbody th') as HTMLElement).getBoundingClientRect()
+        const cells = document.querySelectorAll('tbody td')
+        const last = (cells[cells.length - 1] as HTMLElement).getBoundingClientRect()
+        return { pinned: pinned.width, beside: last.right - Math.max(last.left, pinned.right) }
+      })
+      expect(sizes.pinned).toBeLessThanOrEqual(160)
+      expect(sizes.pinned).toBeGreaterThanOrEqual(70)
+      expect(sizes.beside).toBeGreaterThanOrEqual(50)
+    })
+  }
+
   test('keep the first column in place over 4 columns', async ({ page }) => {
     const { frame } = await open(page, [wide(3)], 360)
     const moved = await frame.evaluate(() => {

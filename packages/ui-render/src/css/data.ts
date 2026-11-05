@@ -15,7 +15,7 @@ export const dataCss = `
 ${fillScale}
 .vui-track{display:flex;gap:1px;height:.5em;overflow:hidden;border-radius:999px;background:var(--vui-muted)}
 .vui-fill{display:block;width:var(--vui-fill);background:var(--vui-tone-line,var(--vui-primary))}
-.vui-table-box{min-width:0;overflow-x:auto;border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}
+.vui-table-box{position:relative;min-width:0;overflow-x:auto;container-type:inline-size;border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}
 .vui-table-sticky{max-height:600px;overflow-y:auto}
 .vui-table{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;overflow-wrap:normal}
 .vui-caption{padding:var(--vui-space-2);font-size:1.05em;font-weight:600;line-height:1.35;text-align:start}
@@ -27,10 +27,11 @@ ${fillScale}
 .vui-table-pinned tr>:first-child{position:sticky;inset-inline-start:0;z-index:1;border-inline-end:1px solid var(--vui-border)}
 .vui-table-pinned thead th:first-child{z-index:2}
 .vui-table-pinned .vui-group>:first-child{position:static;border-inline-end:0}
+@container (max-width:479.98px){.vui-table-pinned tr:not(.vui-group)>:first-child{max-width:45cqi;overflow-wrap:break-word;white-space:normal}.vui-table-pinned tr:not(.vui-group)>:first-child .vui-code{white-space:normal}}
 .vui-table .vui-group th{font-weight:600}
 .vui-group-label{position:sticky;inset-inline-start:var(--vui-space-2);display:inline-block}
 .vui-table tfoot th,.vui-table tfoot td{border-top:2px solid var(--vui-border);font-weight:600}
-.vui-table .vui-align-right{text-align:right;white-space:nowrap}
+.vui-table .vui-align-right{text-align:right}
 .vui-table .vui-align-center{text-align:center}
 .vui-width-narrow{width:1%;white-space:nowrap}
 .vui-width-wide{min-width:24ch}
@@ -63,7 +64,7 @@ ${kvColumns}
 .vui-stat{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--vui-space-2) var(--vui-space-3);border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}
 .vui-stat.vui-toned{padding-inline-start:var(--vui-space-3);border-inline-start:3px solid var(--vui-tone-line)}
 .vui-stat.vui-marked{padding-inline-start:calc(1.2em + var(--vui-space-2))}
-.vui-stat>.vui-node-mark{inset-block-start:var(--vui-space-2);inset-inline-start:var(--vui-space-1)}
+.vui-stat .vui-node-mark{inset-block-start:var(--vui-space-2);inset-inline-start:var(--vui-space-1)}
 .vui-stat dd{margin:0}
 .vui-stat-label{color:var(--vui-muted-fg);font-size:.86em}
 .vui-stat-value{font-size:1.5em;font-variant-numeric:tabular-nums;font-weight:600;line-height:1.2}

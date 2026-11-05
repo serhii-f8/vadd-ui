@@ -4,10 +4,12 @@ import {
   type Column,
   type Formatted,
   groupKey,
+  inlineToPlain,
   isJsonObject,
   type JsonValue,
   type ParsedRow,
   parseFormat,
+  parseInline,
   parseRow,
   sortRows,
   type TableNode,
@@ -27,6 +29,7 @@ const COPIED_MS = 1500
 const SORT = 'sort'
 const SHOWN = 'shown'
 const SELECT_TEXT = 'Select text to copy'
+const ROW_FAILED = 'Could not render this row'
 
 type Sort = NonNullable<TableNode['sort']>
 
@@ -52,16 +55,19 @@ function barScale(column: Column, index: number, rows: ParsedRow[]): number {
 }
 
 function codeCell(formatted: Formatted, context: NodeContext): HTMLElement {
-  const label = `Copy ${formatted.text}`
+  const full = formatted.title ?? formatted.text
+  const label = `Copy ${full}`
   const shown = el('code', { class: 'vui-code' }, formatted.text)
   let timer: ReturnType<typeof setTimeout> | undefined
   const reset = () => {
     button.classList.remove('vui-copied')
+    button.title = formatted.title ?? ''
     button.setAttribute('aria-label', label)
   }
   const click = async () => {
     clearTimeout(timer)
-    if (await copyText(formatted.title ?? formatted.text, () => select(shown, shown))) {
+    reset()
+    if (await copyText(full, () => select(shown, shown))) {
       button.classList.add('vui-copied')
       button.setAttribute('aria-label', 'Copied')
       timer = setTimeout(reset, COPIED_MS)
@@ -76,6 +82,7 @@ function codeCell(formatted: Formatted, context: NodeContext): HTMLElement {
     {
       class: 'vui-cell-copy',
       type: 'button',
+      title: formatted.title,
       'aria-label': label,
       on: { click: () => void click() },
     },
@@ -154,6 +161,16 @@ function rowElement({ cells, options, index: source }: ParsedRow, view: View): H
   return el('tr', tone === undefined ? {} : { class: `vui-row-toned ${toneClass(tone)}` }, row)
 }
 
+/** A row that fails costs one row: a page painted after mount has no node guard around it. */
+function safeRow(row: ParsedRow, view: View): HTMLElement {
+  try {
+    return rowElement(row, view)
+  } catch {
+    const message = el('th', { scope: 'row', colspan: view.columns.length }, ROW_FAILED)
+    return el('tr', {}, message)
+  }
+}
+
 function groupRow(cell: JsonValue | undefined, source: number, index: number, view: View) {
   const at = `${view.context.pointer}/rows/${source}/${index}`
   const label = el('span', { class: 'vui-group-label' }, content(cell, index, at, view, false))
@@ -177,7 +194,7 @@ function bodies(rows: ParsedRow[], group: number | undefined, view: View) {
         lists[lists.length - 1]?.push(groupRow(value, row.index, group, view))
       }
     }
-    const element = rowElement(row, view)
+    const element = safeRow(row, view)
     rowElements.push(element)
     lists[lists.length - 1]?.push(element)
   })
@@ -195,9 +212,11 @@ function footer(totals: JsonValue[], view: View): HTMLElement {
 
 function classOf(column: Column, index: number, rows: ParsedRow[]): string {
   const { width, wrap } = column
+  const align = alignOf(column, index, rows)
+  const numbers = column.align === undefined && align === 'right'
   const sized = width === 'narrow' || width === 'wide' ? ` vui-width-${width}` : ''
-  const wrapped = wrap === true ? ' vui-wrap' : wrap === false ? ' vui-nowrap' : ''
-  return `vui-align-${alignOf(column, index, rows)}${sized}${wrapped}`
+  const wrapped = wrap === true ? ' vui-wrap' : wrap === false || numbers ? ' vui-nowrap' : ''
+  return `vui-align-${align}${sized}${wrapped}`
 }
 
 function columnsOf(list: JsonValue[]): Column[] {
@@ -214,8 +233,11 @@ function ariaSort(sort: Sort | undefined, index: number): string {
 function captionOf(node: Parameters<Component['render']>[0], context: NodeContext) {
   const title = text(node, 'title')
   if (title === '') return null
-  const attributes = { class: context.titleDrawn ? 'vui-sr-only' : 'vui-caption' }
-  return el('caption', attributes, context.inline(title))
+  // Under a fold it is hidden, and a link in it would still take focus.
+  if (context.titleDrawn) {
+    return el('caption', { class: 'vui-sr-only' }, inlineToPlain(parseInline(title)))
+  }
+  return el('caption', { class: 'vui-caption' }, context.inline(title))
 }
 
 export const table: Component = {
@@ -263,7 +285,7 @@ export const table: Component = {
     const headers = columns.map((column, index) => {
       const icon = el('span', { class: 'vui-sort-icon', 'aria-hidden': 'true' })
       const click = () => {
-        const flip = sort?.[0] === index && sort[1] === 'asc'
+        const flip = ariaSort(sort, index) === 'ascending'
         sort = [index, flip ? 'desc' : 'asc']
         context.state.set(SORT, sort)
         order = sortRows(parsed, columns, sort, context.locale)

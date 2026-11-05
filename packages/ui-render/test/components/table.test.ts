@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { table as table_ } from '../../src/components/table.js'
 import { show } from '../helpers.js'
 
 const all = (box: Element, selector: string) => [...box.querySelectorAll(selector)] as HTMLElement[]
@@ -43,6 +44,12 @@ describe('table structure', () => {
     const { box } = table({ ...DEMO, title: 'Runs', fold: 'open' })
     expect(box.querySelector('caption.vui-sr-only')?.textContent).toBe('Runs')
     expect(box.querySelector('.vui-fold-toggle')?.textContent).toContain('Runs')
+  })
+
+  it('keeps links out of a hidden caption', () => {
+    const { box } = table({ ...DEMO, title: '[Runs](https://example.test/)', fold: 'open' })
+    expect(box.querySelector('caption')?.textContent).toBe('Runs')
+    expect(box.querySelector('caption a')).toBeNull()
   })
 
   it('draws the note under the table', () => {
@@ -100,6 +107,24 @@ describe('table structure', () => {
     expect(b.className).toContain('vui-nowrap')
     expect(c.className).not.toContain('vui-width')
     expect(header(box, 0).className).toContain('vui-align-center')
+  })
+
+  it('keeps numbers on one line, but not right-aligned prose', () => {
+    const { box } = table({
+      columns: ['N:int', 'O:int', { key: 'p', label: 'P', align: 'right' }],
+      rows: [[1, 2, 'prose']],
+    })
+    const cells = all(box, 'tbody td')
+    expect(cells[0]?.className).toContain('vui-nowrap')
+    expect(cells[1]?.className).not.toContain('vui-nowrap')
+  })
+
+  it('lets wrap beat the rule for numbers', () => {
+    const { box } = table({
+      columns: [{ key: 'n', label: 'N', format: 'int', wrap: true }],
+      rows: [[1]],
+    })
+    expect(box.querySelector('tbody th')?.className).not.toContain('vui-nowrap')
   })
 
   it('right-aligns numbers as VD-055 says', () => {
@@ -170,6 +195,13 @@ describe('table sort', () => {
     clickHeader(box, 0)
     handle.update({ vui: 1, body: [{ type: 'table', ...DEMO }] } as never)
     expect(firstColumn(box)[0]).toBe('alpha')
+  })
+
+  it('leaves a bad direction one click from descending', () => {
+    const { box } = table({ ...DEMO, sort: [0, 'up'] })
+    expect(header(box, 0).getAttribute('aria-sort')).toBe('ascending')
+    clickHeader(box, 0)
+    expect(header(box, 0).getAttribute('aria-sort')).toBe('descending')
   })
 
   it('ignores a sort past the last column', () => {
@@ -531,6 +563,29 @@ describe('table cells', () => {
       expect(button(box).getAttribute('aria-label')).toBe('Copy abc')
     })
 
+    it('names and titles a cut value in full', () => {
+      const long = 'x'.repeat(100)
+      const box = cell(long, 'code')
+      expect(button(box).title).toBe(long)
+      expect(button(box).getAttribute('aria-label')).toBe(`Copy ${long}`)
+    })
+
+    it('clears a success when a later click fails, and a failure when a later one lands', async () => {
+      allow()
+      const box = cell('abc')
+      button(box).click()
+      await flush()
+      deny()
+      button(box).click()
+      await flush()
+      expect(button(box).className).not.toContain('vui-copied')
+      allow()
+      button(box).click()
+      await flush()
+      expect(button(box).title).toBe('')
+      expect(button(box).getAttribute('aria-label')).toBe('Copied')
+    })
+
     it('copies on click and says so', async () => {
       allow()
       const box = cell('abc')
@@ -598,6 +653,34 @@ describe('table tolerance', () => {
   it('reads an object row left by the cell cap as an empty row', () => {
     const { box } = table({ columns: ['A'], rows: [] })
     expect(box.querySelector('.vui-card-error')).toBeNull()
+  })
+
+  it('draws a bad tones value as a neutral pill, so no page can throw', () => {
+    const { box } = table({
+      columns: [{ key: 'a', label: 'A', cell: 'badge', tones: { high: 'purple' } }],
+      rows: [['high']],
+    })
+    expect(box.querySelector('tbody .vui-status.vui-tone-muted')).not.toBeNull()
+  })
+
+  it('costs one row, not the table, when a row fails', () => {
+    const context = {
+      pointer: '',
+      locale: 'en-US',
+      state: new Map(),
+      checkpoint: () => {},
+      onDestroy: () => {},
+      value(value: unknown) {
+        if (value === 'boom') throw new Error('fixture')
+        return [document.createTextNode(String(value))]
+      },
+    } as never
+    const node = {
+      columns: [{ key: 'a', label: 'A' }],
+      rows: [['ok'], ['boom'], ['fine']],
+    }
+    const [box] = [table_.render(node, context) as HTMLElement]
+    expect(firstColumn(box)).toEqual(['ok', 'Could not render this row', 'fine'])
   })
 
   it('renders a row past the cut with its options', () => {

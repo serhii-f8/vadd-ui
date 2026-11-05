@@ -22,13 +22,14 @@ function cell(value: JsonValue | undefined, column: Column, context: Context): I
   const empty = value === null || value === undefined
   const { tone, status } = empty ? {} : badgeOf(column, formatted)
   if (status !== undefined) return [{ type: 'status', status }]
+  if (tone !== undefined) return trailed([text(formatted.text)], toneMark(tone))
   const body = column.cell === 'code' && !empty ? [code(formatted.text)] : tokensOf(formatted)
-  return trailed(body, toneMark(tone))
+  return body
 }
 
 function withRowOptions(tokens: Inline, { tone, note }: RowOptions): Inline {
   const marked = trailed(tokens, toneMark(tone))
-  return note === undefined ? marked : [...marked, text(' — '), ...parseInline(note)]
+  return typeof note !== 'string' ? marked : [...marked, text(' — '), ...parseInline(note)]
 }
 
 export function tableBlocks(node: TableNode, context: Context): Block[] {
