@@ -49,6 +49,7 @@ export {
   type Inspection,
   inspect,
   type LocatedIssue,
+  MAX_ISSUES,
   type ValidationResult,
   validate,
   validateText,

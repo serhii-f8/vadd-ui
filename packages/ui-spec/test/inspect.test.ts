@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { inspect, validate } from '../src/index.js'
+import { inspect, LIMITS, MAX_ISSUES, validate } from '../src/index.js'
 
 describe('inspect', () => {
   const input = [{ type: 'table', columns: ['a'], rows: [[1, 2, 3]] }, 'text']
@@ -27,5 +27,17 @@ describe('inspect', () => {
     const { issues, diagnostics } = inspect({ type: 'table', columns: ['a'], rows })
     expect(issues.filter((issue) => issue.code === 'row-arity')).toHaveLength(1_500)
     expect(diagnostics.length).toBeLessThanOrEqual(1_001)
+  })
+
+  it('caps other issues, and never a limit, which truncation depends on', () => {
+    const points = Array.from({ length: MAX_ISSUES + 500 }, () => 'x')
+    const { issues } = inspect({
+      body: [
+        { type: 'chart', kind: 'line', series: { a: points } },
+        { type: 'md', text: 'x', title: 't'.repeat(LIMITS.string + 1) },
+      ],
+    })
+    expect(issues.length).toBeLessThanOrEqual(MAX_ISSUES + 2)
+    expect(issues.some(({ code }) => code === 'limit-string')).toBe(true)
   })
 })

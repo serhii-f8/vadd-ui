@@ -2,6 +2,7 @@ import {
   type Diagnostic,
   type DiagnosticCode,
   DiagnosticLog,
+  isLimitCode,
   makeDiagnostic,
   type Severity,
 } from './diagnostics.js'
@@ -21,6 +22,12 @@ export interface ValidationResult {
   document?: VuiDocument
 }
 
+/**
+ * Each issue holds a pointer whose length the document chooses, so the list needs a bound.
+ * Limits stay outside it: each needs a large value, and truncation must see every one.
+ */
+export const MAX_ISSUES = 20_000
+
 /** One reported problem, located in the canonical form a renderer walks. */
 export interface LocatedIssue {
   pointer: string
@@ -33,7 +40,7 @@ export interface LocatedIssue {
 export interface Inspection extends ValidationResult {
   document: VuiDocument
   paths: PathMap
-  /** Every issue, past the cap on `diagnostics`. */
+  /** Issues past the cap on `diagnostics`, up to `MAX_ISSUES`, plus every limit. */
   issues: LocatedIssue[]
 }
 
@@ -70,7 +77,9 @@ export function inspect(input: JsonValue, options?: NormalizeOptions): Inspectio
     message: string,
     hint?: string,
   ) => {
-    issues.push({ pointer, severity, code, message })
+    if (issues.length < MAX_ISSUES || isLimitCode(code)) {
+      issues.push({ pointer, severity, code, message })
+    }
     if (!log.wants(severity, code)) return
     log.add(makeDiagnostic(severity, paths.toInput(pointer), code, message, hint))
   }

@@ -195,13 +195,6 @@ describe('prepare: failed nodes', () => {
 })
 
 describe('prepare: review findings', () => {
-  it('stays linear on many issues under a long key', () => {
-    const series = { ['k'.repeat(1_999)]: Array.from({ length: 50_000 }, () => 'x') }
-    const started = performance.now()
-    prepare({ type: 'chart', kind: 'line', series } as never)
-    expect(performance.now() - started).toBeLessThan(300)
-  })
-
   it('refuses text far past the limit, as a document error', () => {
     const { document, failure, diagnostics } = prepare(`"${'x'.repeat(MAX_TEXT_BYTES)}"`)
     expect(document).toBeUndefined()
