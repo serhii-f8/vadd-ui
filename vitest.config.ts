@@ -19,11 +19,16 @@ export default defineConfig({
     // `pnpm test:coverage`, part of `pnpm gate`. Each package adds its §16 target here.
     coverage: {
       provider: 'v8',
-      include: ['packages/ui-spec/src/**/*.ts', 'packages/ui-text/src/**/*.ts'],
+      include: [
+        'packages/ui-spec/src/**/*.ts',
+        'packages/ui-text/src/**/*.ts',
+        'packages/ui-render/src/**/*.ts',
+      ],
       reporter: ['text-summary'],
       thresholds: {
         'packages/ui-spec/src/**/*.ts': { lines: 95 },
         'packages/ui-text/src/**/*.ts': { lines: 95 },
+        'packages/ui-render/src/**/*.ts': { lines: 95 },
       },
     },
     projects: [

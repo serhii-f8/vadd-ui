@@ -1,4 +1,5 @@
 export {
+  clip,
   type Diagnostic,
   type DiagnosticCode,
   isLimitCode,
@@ -8,7 +9,7 @@ export {
   type SchemaCode,
   type Severity,
 } from './diagnostics.js'
-export { type FormatContext, type Formatted, formatValue } from './format.js'
+export { type FormatContext, type Formatted, formatValue, isLocale } from './format.js'
 export {
   checkFormat,
   checkValue,
@@ -23,7 +24,7 @@ export {
   STATUS_TONES,
   safeHref,
 } from './inline.js'
-export { hasOwn, isJsonObject, type JsonObject, type JsonValue } from './json.js'
+export { hasOwn, isJsonObject, type JsonObject, type JsonValue, setOwn } from './json.js'
 export { LIMITS } from './limits.js'
 export {
   type NormalizeOptions,
@@ -44,6 +45,14 @@ export {
   TONES,
 } from './types.js'
 
-export { type ValidationResult, validate, validateText } from './validate.js'
+export {
+  type Inspection,
+  inspect,
+  type LocatedIssue,
+  MAX_ISSUES,
+  type ValidationResult,
+  validate,
+  validateText,
+} from './validate.js'
 
 export const packageName = '@vadd/ui-spec' as const

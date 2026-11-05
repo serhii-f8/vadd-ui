@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "node scripts/generate-schema.mjs && tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json && tsc -p e2e/tsconfig.json",
     "lint": "biome check . && node scripts/check-forbidden-apis.mjs",
     "format": "biome check --write .",
     "test": "vitest run",

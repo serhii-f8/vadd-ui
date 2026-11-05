@@ -42,6 +42,8 @@ export type DiagnosticCode =
   | 'dropped-cell'
   | 'unknown-field'
   | 'too-many-diagnostics'
+  | 'render-failed'
+  | 'render-budget'
 
 export interface Diagnostic {
   severity: Severity

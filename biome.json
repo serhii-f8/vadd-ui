@@ -17,6 +17,7 @@
       "!**/dist",
       "!**/node_modules",
       "!scripts/test/fixtures",
+      "!e2e/harness/orca",
       "!.claude"
     ]
   }

@@ -2,6 +2,7 @@ import {
   type Diagnostic,
   type DiagnosticCode,
   DiagnosticLog,
+  isLimitCode,
   makeDiagnostic,
   type Severity,
 } from './diagnostics.js'
@@ -9,6 +10,7 @@ import type { JsonObject, JsonValue } from './json.js'
 import { LIMITS } from './limits.js'
 import { type NormalizeOptions, normalize } from './normalize.js'
 import { parse } from './parser.js'
+import type { PathMap } from './path-map.js'
 import type { VuiDocument } from './types.js'
 import { walk } from './walker.js'
 
@@ -18,6 +20,28 @@ export interface ValidationResult {
   diagnostics: Diagnostic[]
   /** The canonical form, present unless the input could not be read. */
   document?: VuiDocument
+}
+
+/**
+ * Each issue holds a pointer whose length the document chooses, so the list needs a bound.
+ * Limits stay outside it: each needs a large value, and truncation must see every one.
+ */
+export const MAX_ISSUES = 20_000
+
+/** One reported problem, located in the canonical form a renderer walks. */
+export interface LocatedIssue {
+  pointer: string
+  severity: Severity
+  code: DiagnosticCode
+  message: string
+}
+
+/** A `ValidationResult` for a renderer, which must act on each problem where it sits. */
+export interface Inspection extends ValidationResult {
+  document: VuiDocument
+  paths: PathMap
+  /** Issues past the cap on `diagnostics`, up to `MAX_ISSUES`, plus every limit. */
+  issues: LocatedIssue[]
 }
 
 function hasNoError(diagnostics: Diagnostic[]): boolean {
@@ -41,13 +65,11 @@ function utf8Length(text: string): number {
   return bytes
 }
 
-/**
- * Normalizes and checks a parsed document. Total: anything it cannot read becomes a
- * diagnostic. Size limits need the text, so they live in `validateText` (VD-032).
- */
-export function validate(input: JsonValue, options?: NormalizeOptions): ValidationResult {
+/** `validate`, keeping what lets a caller find each problem in the canonical form. */
+export function inspect(input: JsonValue, options?: NormalizeOptions): Inspection {
   const { document, paths, dropped } = normalize(input, options)
   const log = new DiagnosticLog()
+  const issues: LocatedIssue[] = []
   const report = (
     severity: Severity,
     pointer: string,
@@ -55,6 +77,9 @@ export function validate(input: JsonValue, options?: NormalizeOptions): Validati
     message: string,
     hint?: string,
   ) => {
+    if (issues.length < MAX_ISSUES || isLimitCode(code)) {
+      issues.push({ pointer, severity, code, message })
+    }
     if (!log.wants(severity, code)) return
     log.add(makeDiagnostic(severity, paths.toInput(pointer), code, message, hint))
   }
@@ -66,7 +91,16 @@ export function validate(input: JsonValue, options?: NormalizeOptions): Validati
     }
   }
   const diagnostics = log.finish()
-  return { ok: hasNoError(diagnostics), diagnostics, document }
+  return { ok: hasNoError(diagnostics), diagnostics, document, paths, issues }
+}
+
+/**
+ * Normalizes and checks a parsed document. Total: anything it cannot read becomes a
+ * diagnostic. Size limits need the text, so they live in `validateText` (VD-032).
+ */
+export function validate(input: JsonValue, options?: NormalizeOptions): ValidationResult {
+  const { ok, diagnostics, document } = inspect(input, options)
+  return { ok, diagnostics, document }
 }
 
 /** The CLI's entry point: the whole of §13 from text to verdict. */
