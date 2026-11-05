@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // §9.5: `vui.min.js` including CSS is ≤ 120 KiB minified and ≤ 38 KiB gzip.
 //
+// §10.1 inlines the bundle in a `<script>`, so it must hold nothing that ends the element or
+// sends the HTML parser into its escaped states. A size check is the one that reads the file.
+//
 // Before task 11 there is no bundle and that is fine. Once `@vadd/ui` declares the
 // bundle in `exports`, a missing file fails, so a dropped build step cannot pass.
 
@@ -32,6 +35,8 @@ if (manifest && existsSync(path)) {
     findings.push(`${BUNDLE}: ${kib(bundle.length)} minified, budget ${kib(MAX_MIN)}`)
   }
   if (gzip > MAX_GZIP) findings.push(`${BUNDLE}: ${kib(gzip)} gzip, budget ${kib(MAX_GZIP)}`)
+  const text = bundle.toString('latin1')
+  if (/<\/script|<!--/i.test(text)) findings.push(`${BUNDLE}: cannot be inlined in HTML`)
 } else if (JSON.stringify(manifest?.exports ?? {}).includes('vui.min.js')) {
   findings.push(`${BUNDLE}: declared in exports but missing`)
 }

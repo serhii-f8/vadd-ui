@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -59,6 +59,20 @@ describe('check-forbidden-apis', () => {
     expect(code).toBe(1)
     expect(out).toContain('[unparsable]')
     expect(out).not.toContain('    at ')
+  })
+
+  it('fails on a banned construct in a built bundle named on the command line', () => {
+    const bundle = join(mkdtempSync(join(tmpdir(), 'vui-grep-')), 'vui.min.js')
+    writeFileSync(bundle, '(()=>{var a=1;eval("a")})();')
+    const { code, out } = run(script, bundle)
+    expect(code).toBe(1)
+    expect(out).toContain('[eval]')
+  })
+
+  it('fails when a bundle named on the command line is missing', () => {
+    const { code, out } = run(script, join(tmpdir(), 'vui-no-such-bundle.js'))
+    expect(code).toBe(1)
+    expect(out).toContain('missing')
   })
 
   it('scans every browser-reaching package by default and finds them clean', () => {

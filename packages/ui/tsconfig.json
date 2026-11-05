@@ -2,9 +2,12 @@
   "extends": "../../tsconfig.browser.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "emitDeclarationOnly": true
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
     {
       "path": "../ui-spec"

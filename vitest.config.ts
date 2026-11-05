@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
@@ -10,6 +11,12 @@ const alias = Object.fromEntries(
     fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url)),
   ]),
 )
+
+// What the bundle build defines, from the same manifest.
+const { version } = JSON.parse(
+  readFileSync(new URL('./packages/ui/package.json', import.meta.url), 'utf8'),
+)
+const define = { __VUI_VERSION__: JSON.stringify(version) }
 
 export default defineConfig({
   test: {
@@ -34,6 +41,7 @@ export default defineConfig({
     projects: [
       {
         resolve: { alias },
+        define,
         test: {
           name: 'node',
           include: [
@@ -46,6 +54,7 @@ export default defineConfig({
       },
       {
         resolve: { alias },
+        define,
         test: {
           name: 'jsdom',
           include: ['packages/{ui-render,ui,ui-react}/test/**/*.test.{ts,tsx}'],

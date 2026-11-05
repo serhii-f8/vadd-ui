@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { run } from './helpers.js'
+import { repoRoot, run } from './helpers.js'
 
 const script = 'check-bundle-size.mjs'
 const KIB = 1024
@@ -20,10 +20,25 @@ function tree(options: { bundle?: Buffer; exports?: unknown; manifest?: string }
 const check = (root: string) => run(script, '--root', root)
 
 describe('check-bundle-size', () => {
-  it('reports no bundle yet on the real workspace', () => {
-    const { code, out } = run(script)
+  it('reports no bundle yet before a manifest declares one', () => {
+    const { code, out } = check(tree())
     expect(out).toContain('no bundle yet')
     expect(code).toBe(0)
+  })
+
+  it('has the real manifest declare the bundle, so a dropped build step fails', () => {
+    const manifest = JSON.parse(readFileSync(`${repoRoot}packages/ui/package.json`, 'utf8'))
+    expect(manifest.exports['./vui.min.js']).toBe('./dist/vui.min.js')
+  })
+
+  it.each([
+    ['a closing script tag', 'a="</script>"'],
+    ['the same tag in capitals', 'a="</SCRIPT "'],
+    ['a comment opener', 'a="<!--"'],
+  ])('fails on %s, which would break the bundle inlined in HTML', (_, text) => {
+    const { code, out } = check(tree({ bundle: Buffer.from(text) }))
+    expect(code).toBe(1)
+    expect(out).toContain('inline')
   })
 
   it('passes a bundle of exactly 120 KiB that gzips under 38 KiB', () => {
