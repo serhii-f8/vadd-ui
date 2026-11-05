@@ -18,8 +18,8 @@ export interface NodeContext {
   value(value: JsonValue | undefined, format: string | undefined, pointer: string): Node[]
   /** §5.5 inline text, as nodes. */
   inline(text: string): Node[]
-  /** The heading for inline text, at this node's level. */
-  heading(text: string): HTMLElement
+  /** The heading for inline text, at `level`, or at this node's own by default. */
+  heading(text: string, level?: number): HTMLElement
   /** One child node, isolated like any other. */
   child(node: JsonValue, pointer: string): HTMLElement
   /** The nodes of a list at `pointer`. */

@@ -116,7 +116,7 @@ function createContext(
     format,
     value: (value, name, at) => renderValue(format(value, name, at), linkHandler),
     inline,
-    heading: (text) => el(headingTag(level), { class: 'vui-node-title' }, inline(text)),
+    heading: (text, at = level) => el(headingTag(at), { class: 'vui-node-title' }, inline(text)),
     child: (node, at) => buildNode(build, node, at, inner),
     children: (nodes, at) => nodes.map((node, index) => context.child(node, `${at}/${index}`)),
     fold(name, label, body, open) {
