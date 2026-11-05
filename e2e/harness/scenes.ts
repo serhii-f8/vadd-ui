@@ -224,4 +224,188 @@ export const SCENES: Scene[] = [
       { type: 'code', lines: true, mark: [2], text: LONG_TOKEN },
     ],
   },
+  {
+    name: 'table',
+    input: {
+      title: 'Catalog query latency',
+      generatedAt: '2026-11-05T12:00:00Z',
+      body: [
+        {
+          type: 'table',
+          title: 'Queries, *slowest first*',
+          columns: ['Query', 'Calls:int', 'p95:ms', 'Hit rate:pct'],
+          rows: [
+            ['listProducts', 18420, 84, 0.93],
+            ['getVariant', 9310, 61, 0.88],
+            ['searchSku', 2204, 212, 0.41, { tone: 'warn', note: 'Missing an index.' }],
+          ],
+          sort: [2, 'desc'],
+          totals: ['All', 29934, null, null],
+        },
+        {
+          type: 'table',
+          title: 'All four cell types',
+          columns: [
+            'Test',
+            'Status:status',
+            { key: 'risk', label: 'Risk', cell: 'badge', tones: { high: 'err', low: 'ok' } },
+            { key: 'cov', label: 'Coverage', format: 'pct:0', cell: 'bar' },
+            { key: 'sha', label: 'Commit', cell: 'code' },
+          ],
+          rows: [
+            ['login', 'ok', 'low', 0.92, '4f2c1a9'],
+            ['refresh', 'fail', 'high', 0.71, 'b81e00d'],
+            ['logout', 'run', 'none', null, null],
+          ],
+        },
+        {
+          type: 'table',
+          columns: ['Area', 'Test', 'Time:ms'],
+          group: 0,
+          pageSize: 4,
+          rows: [
+            ['api', 'list', 120],
+            ['api', 'create', 340],
+            ['ui', 'render', 20],
+            ['ui', 'sort', 18],
+            ['ui', 'page', 22],
+          ],
+          note: 'Grouped, with a page of four rows.',
+        },
+      ],
+    },
+  },
+  {
+    name: 'table-wide',
+    input: [
+      {
+        type: 'table',
+        title: 'A wide table scrolls in its own box',
+        columns: [
+          'Package',
+          'Lines:int',
+          'Branches:pct:0',
+          'Size:bytes',
+          'Build:ms',
+          'Owner',
+          { key: 'path', label: 'Path', format: 'path' },
+          'Updated:date',
+        ],
+        rows: Array.from({ length: 18 }, (_, index) => [
+          `@vadd/package-${index}`,
+          1200 + index * 73,
+          0.5 + index / 40,
+          20480 * (index + 1),
+          80 + index * 7,
+          'platform team',
+          `packages/ui-render/src/components/file-${index}.ts`,
+          '2026-11-05',
+        ]),
+        pageSize: 16,
+      },
+    ],
+  },
+  {
+    name: 'kv',
+    input: [
+      {
+        type: 'kv',
+        title: 'Two columns',
+        cols: 2,
+        pairs: [
+          ['Branch', 'vadd/obj-14', 'code'],
+          ['Size', 1500000, 'bytes'],
+          ['Status', 'ok', 'status'],
+          ['Merged', '2026-11-04', 'date'],
+          ['Reviewer', 'none'],
+          ['Note', null],
+        ],
+      },
+      { type: 'kv', title: 'An object, in one column', pairs: { Region: 'eu-west', Replicas: 3 } },
+      {
+        type: 'kv',
+        title: 'Three columns',
+        cols: 3,
+        pairs: { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6 },
+      },
+    ],
+  },
+  {
+    name: 'stats',
+    input: [
+      {
+        type: 'stats',
+        title: 'This week',
+        items: [
+          {
+            label: 'Requests',
+            value: 1284000,
+            format: 'compact',
+            delta: 0.042,
+            deltaFormat: 'delta:pct',
+          },
+          {
+            label: 'p95',
+            value: 84,
+            format: 'ms',
+            delta: -12,
+            deltaFormat: 'delta:ms:better:low',
+            spark: [120, 110, 98, 104, 92, 88, 84],
+          },
+          { label: 'Errors', value: 41, tone: 'err', delta: 9, deltaFormat: 'delta:better:low' },
+          { label: 'Hit rate', value: 0.93, format: 'pct', tone: 'ok', spark: [1, 1, 1] },
+          { label: 'Backlog', value: 7, tone: 'muted' },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'list',
+    input: [
+      {
+        type: 'list',
+        title: 'Bulleted',
+        items: ['Plain text with `code`', '**Bold** and a [link](https://example.test/)'],
+      },
+      {
+        type: 'list',
+        title: 'With status',
+        items: [
+          { text: 'Build', status: 'ok' },
+          { text: 'Tests', status: 'fail', note: '3 failed in `ui-render`.' },
+          { text: 'Deploy', status: 'wait' },
+          'A plain item among them',
+        ],
+      },
+      {
+        type: 'list',
+        title: 'Numbered',
+        ordered: true,
+        items: [
+          'First',
+          { text: 'Second', status: 'run' },
+          { text: 'Third', note: 'With a note.' },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'progress',
+    input: [
+      { type: 'progress', value: 42, label: 'Migration' },
+      { type: 'progress', value: 3, max: 4, tone: 'ok', label: 'Tasks' },
+      { type: 'progress', value: 80 },
+      {
+        type: 'progress',
+        value: 86,
+        label: 'Test suite',
+        segments: [
+          { value: 70, tone: 'ok', label: 'Passed' },
+          { value: 6, tone: 'warn', label: 'Flaky' },
+          { value: 10, tone: 'err', label: 'Failed' },
+          { value: 14, tone: 'muted', label: 'Skipped' },
+        ],
+      },
+    ],
+  },
 ]

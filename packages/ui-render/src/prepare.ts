@@ -93,7 +93,12 @@ function cutColumns(root: JsonObject, pointer: string): void {
   cutList(table.totals, LIMITS.tableColumns)
   if (!Array.isArray(table.rows)) return
   // Object rows that stayed unconverted (VD-038) have no columns to cut.
-  for (const row of table.rows) cutList(row, LIMITS.tableColumns)
+  for (const row of table.rows) {
+    if (!Array.isArray(row) || row.length <= LIMITS.tableColumns) continue
+    const last = row[row.length - 1]
+    row.length = LIMITS.tableColumns
+    if (isJsonObject(last)) row.push(last)
+  }
 }
 
 function cutSeries(root: JsonObject, pointer: string): void {

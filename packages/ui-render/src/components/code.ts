@@ -1,4 +1,5 @@
 import type { Component, NodeContext } from '../context.js'
+import { copyText, select } from '../copy.js'
 import { el } from '../el.js'
 import { nodeList, text, whole } from './fields.js'
 
@@ -41,45 +42,6 @@ function pre(lines: string[], first: number, options: CodeOptions, context: Node
   return el('pre', { class: 'vui-code-pre' }, el('code', { class: 'vui-code-body' }, content))
 }
 
-async function writeClipboard(value: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(value)
-    return true
-  } catch {
-    return false
-  }
-}
-
-/** Selects from the start of `first` to the end of `last`. */
-function select(first: HTMLElement, last: HTMLElement): void {
-  try {
-    const selection = document.getSelection()
-    const range = document.createRange()
-    range.setStartBefore(first)
-    range.setEndAfter(last)
-    selection?.removeAllRanges()
-    selection?.addRange(range)
-  } catch {
-    // The button still tells the reader what to do.
-  }
-}
-
-/** Writes `value` itself: the selection would flatten blank lines in rows and at the fold. */
-function execCopy(value: string): boolean {
-  const write = (event: ClipboardEvent) => {
-    event.clipboardData?.setData('text/plain', value)
-    event.preventDefault()
-  }
-  document.addEventListener('copy', write)
-  try {
-    return document.execCommand('copy')
-  } catch {
-    return false
-  } finally {
-    document.removeEventListener('copy', write)
-  }
-}
-
 /** The §9.3 chain: clipboard, then selection with `execCommand`, then asking the reader. */
 function copyButton(
   value: string,
@@ -96,12 +58,7 @@ function copyButton(
     timer = setTimeout(() => say('Copy'), COPIED_MS)
   }
   const copy = async () => {
-    if (await writeClipboard(value)) {
-      copied()
-      return
-    }
-    select(...reveal())
-    if (execCopy(value)) copied()
+    if (await copyText(value, () => select(...reveal()))) copied()
     else say('Select text to copy')
   }
   const button = el(

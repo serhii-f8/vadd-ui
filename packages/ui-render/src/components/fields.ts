@@ -2,7 +2,7 @@ import { hasOwn, type JsonObject, type JsonValue } from '@vadd/ui-spec'
 
 // A field can arrive in any shape: a drop removes it, and past VD-066's cap nothing checks it.
 
-const field = (node: JsonObject, name: string): JsonValue | undefined =>
+export const field = (node: JsonObject, name: string): JsonValue | undefined =>
   hasOwn(node, name) ? node[name] : undefined
 
 export function nodeList(node: JsonObject, name: string): JsonValue[] {
@@ -18,4 +18,9 @@ export function text(node: JsonObject, name: string): string {
 export function whole(node: JsonObject, name: string): number | undefined {
   const value = field(node, name)
   return Number.isInteger(value) ? (value as number) : undefined
+}
+
+export function finite(node: JsonObject, name: string): number | undefined {
+  const value = field(node, name)
+  return Number.isFinite(value) ? (value as number) : undefined
 }

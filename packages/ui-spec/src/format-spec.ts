@@ -34,6 +34,10 @@ export function isKnownFormat(name: string): boolean {
   return KNOWN.has(name)
 }
 
+export function isNumericFormat(name: string): boolean {
+  return NUMERIC.has(name)
+}
+
 function splitFormat(format: string): FormatSpec {
   const colon = format.indexOf(':')
   if (colon === -1) return { name: format }
