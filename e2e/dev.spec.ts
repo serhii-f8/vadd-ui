@@ -68,6 +68,12 @@ test.describe('folds', () => {
   })
 })
 
+test('a status stays its own size when nothing follows it', async ({ page }) => {
+  const { frame } = await open(page, [{ type: 'checks', items: [{ name: 'a', status: 'skip' }] }])
+  const box = await frame.locator('.vui-status').boundingBox()
+  expect(box?.width).toBeLessThan(100)
+})
+
 test('a log at the string cap stays cheap', async ({ page }) => {
   const text = 'INFO x\nplain\n'.repeat(1_500)
   const { frame } = await open(page, [{ type: 'log', text }])

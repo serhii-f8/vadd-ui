@@ -115,7 +115,7 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-rows li{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0}
 .vui-rows .vui-rows{padding-inline-start:var(--vui-space-4)}
 .vui-row{display:flex;align-items:baseline;gap:0 var(--vui-space-2);min-width:0}
-.vui-row>span:last-child:not(.vui-row-end){flex:1;min-width:0}
+.vui-row>span:last-child:not(.vui-row-end,.vui-status){flex:1;min-width:0}
 .vui-row>.vui-status,.vui-row-end{flex:none}
 .vui-check-head{flex-wrap:wrap}
 .vui-row-end{margin-inline-start:auto;color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
