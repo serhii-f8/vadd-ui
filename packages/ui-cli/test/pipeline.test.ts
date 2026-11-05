@@ -1,0 +1,104 @@
+import { version } from '@vadd/ui'
+import { type Diagnostic, LIMITS } from '@vadd/ui-spec'
+import { describe, expect, it } from 'vitest'
+import { exitCodeOf, GENERATOR, prepare } from '../src/pipeline.js'
+import { NOW } from './helpers.js'
+
+const diag = (severity: Diagnostic['severity'], code: Diagnostic['code']): Diagnostic => ({
+  severity,
+  path: '',
+  code,
+  message: 'x',
+})
+
+describe('exitCodeOf', () => {
+  it.each<[string, Diagnostic[], boolean, number]>([
+    ['nothing', [], false, 0],
+    ['a warning', [diag('warn', 'bad-enum')], false, 0],
+    ['bad-value', [diag('warn', 'bad-value')], false, 0],
+    ['bad-format-arg', [diag('warn', 'bad-format-arg')], false, 0],
+    ['info', [diag('info', 'unknown-field')], false, 0],
+    ['info, strictly', [diag('info', 'unknown-field')], true, 0],
+    ['a warning, strictly', [diag('warn', 'bad-enum')], true, 1],
+    ['an error', [diag('error', 'bad-type')], false, 1],
+    ['a parse error', [diag('error', 'parse-error')], false, 2],
+    ['a limit', [diag('error', 'limit-nodes')], false, 3],
+    ['a limit past an error', [diag('error', 'bad-type'), diag('error', 'limit-depth')], false, 3],
+    [
+      'a parse error past an error',
+      [diag('error', 'bad-type'), diag('error', 'parse-error')],
+      false,
+      2,
+    ],
+    [
+      'a limit past a parse error',
+      [diag('error', 'parse-error'), diag('error', 'limit-nodes')],
+      false,
+      3,
+    ],
+  ])('%s', (_, diagnostics, strict, exit) => {
+    expect(exitCodeOf(diagnostics, strict)).toBe(exit)
+  })
+})
+
+describe('prepare', () => {
+  it('stamps meta and generatedAt', () => {
+    const { document } = prepare('{"body":[]}', NOW)
+    expect(document?.generatedAt).toBe('2026-11-05T10:00:00.000Z')
+    expect(document?.meta).toEqual({ generator: GENERATOR, version })
+  })
+
+  it('keeps a generatedAt the document set', () => {
+    const { document } = prepare('{"generatedAt":"2020-01-01T00:00:00Z","body":[]}', NOW)
+    expect(document?.generatedAt).toBe('2020-01-01T00:00:00Z')
+  })
+
+  it('keeps other meta keys, and overrules what the document claims', () => {
+    const text = '{"meta":{"event":"e1","generator":"fake","version":"9"},"body":[]}'
+    expect(prepare(text, NOW).document?.meta).toEqual({
+      event: 'e1',
+      generator: GENERATOR,
+      version,
+    })
+  })
+
+  it('stamps a document with warnings', () => {
+    const { document, diagnostics } = prepare(
+      '{"body":[{"type":"list","items":[{"text":"a","status":"passed"}]}]}',
+      NOW,
+    )
+    expect(diagnostics.length).toBeGreaterThan(0)
+    expect(document?.meta).toBeDefined()
+  })
+
+  it('gives no document on an error', () => {
+    expect(prepare('{"body":[{"type":"tabel"}]}', NOW).document).toBeUndefined()
+  })
+
+  it('gives no document on a parse error', () => {
+    const { document, diagnostics } = prepare('{', NOW)
+    expect(document).toBeUndefined()
+    expect(diagnostics[0]?.code).toBe('parse-error')
+  })
+
+  it('measures the stamped document, to the byte', () => {
+    const make = (pad: number) =>
+      JSON.stringify({
+        generatedAt: '2026-11-05T10:00:00Z',
+        body: [],
+        meta: { pad: 'y'.repeat(pad) },
+      })
+    const stampedBytes = Buffer.byteLength(JSON.stringify(prepare(make(0), NOW).document))
+    const room = LIMITS.inputBytes - stampedBytes
+
+    const fits = prepare(make(room), NOW)
+    expect(fits.diagnostics).toEqual([])
+    expect(Buffer.byteLength(JSON.stringify(fits.document))).toBe(LIMITS.inputBytes)
+
+    const over = prepare(make(room + 1), NOW)
+    expect(Buffer.byteLength(make(room + 1))).toBeLessThan(LIMITS.inputBytes)
+    expect(over.document).toBeUndefined()
+    expect(over.diagnostics.map(({ code }) => code)).toEqual(['limit-canonical-size'])
+    expect(exitCodeOf(over.diagnostics)).toBe(3)
+  })
+})

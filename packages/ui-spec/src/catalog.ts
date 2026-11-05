@@ -336,6 +336,4 @@ export function findComponent(name: string): CatalogEntry | undefined {
   return CATALOG.find((entry) => entry.name === name)
 }
 
-export function nearestComponent(name: string): string | undefined {
-  return suggest(name, COMPONENT_TYPES)
-}
+export { suggest }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CATALOG, COMMON_FIELDS, findComponent, nearestComponent } from '../src/catalog.js'
+import { CATALOG, COMMON_FIELDS, findComponent, suggest } from '../src/catalog.js'
 import { COMPONENT_TYPES, type JsonValue, validate } from '../src/index.js'
 import { CHART_SHAPES, NODE_SHAPES, SHAPES } from '../src/rules.js'
 
@@ -108,7 +108,7 @@ describe('catalog', () => {
   })
 
   it('suggests the nearest name', () => {
-    expect(nearestComponent('tabel')).toBe('table')
-    expect(nearestComponent('zzzzzzzz')).toBeUndefined()
+    expect(suggest('tabel', COMPONENT_TYPES)).toBe('table')
+    expect(suggest('zzzzzzzz', COMPONENT_TYPES)).toBeUndefined()
   })
 })
