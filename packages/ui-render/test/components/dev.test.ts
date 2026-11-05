@@ -167,3 +167,75 @@ describe('timeline', () => {
     expect(all(box, '.vui-status')).toHaveLength(1)
   })
 })
+
+describe('diff', () => {
+  const files = [
+    ['src/a.ts', 64, 12, 'M'],
+    ['src/b.ts', 88, 0, 'A'],
+    ['c.sql', 0, 3, 'D'],
+    ['d.ts', 1, 1, 'R'],
+    ['e.ts', 2, 2],
+  ]
+
+  it('shows each file with its counts', () => {
+    const { box } = show([{ type: 'diff', files }])
+    expect(texts(box, 'code')).toEqual(['src/a.ts', 'src/b.ts', 'c.sql', 'd.ts', 'e.ts'])
+    expect(box.querySelector('li')?.textContent).toContain('+64')
+    expect(box.querySelector('li')?.textContent).toContain('−12')
+  })
+
+  it('marks a change with a letter and a word', () => {
+    const { box } = show([{ type: 'diff', files }])
+    expect(texts(box, '.vui-diff-mark')).toEqual(['Mmodified', 'Aadded', 'Ddeleted', 'Rrenamed'])
+    expect(box.querySelector('.vui-diff-mark.vui-tone-ok')?.textContent).toContain('A')
+    expect(box.querySelector('.vui-diff-mark.vui-tone-err')?.textContent).toContain('D')
+  })
+
+  it('has no toggle without a hunk', () => {
+    const { box } = show([{ type: 'diff', files }])
+    expect(box.querySelector('button')).toBeNull()
+  })
+
+  const hunk = '@@ -1,2 +1,2 @@\n context\n-old\n-older\n+new'
+
+  it('folds a hunk under its file, closed and not built', () => {
+    const { box } = show([{ type: 'diff', files, hunks: { 'src/a.ts': hunk } }])
+    const toggle = box.querySelector('button')
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false')
+    expect(toggle?.textContent).toContain('src/a.ts')
+    expect(box.querySelector('pre')).toBeNull()
+  })
+
+  it('opens to the hunk, its text whole, with a tint per run of lines', () => {
+    const { box } = show([{ type: 'diff', files, hunks: { 'src/a.ts': hunk } }])
+    box.querySelector('button')?.click()
+    expect(box.querySelector('pre')?.textContent).toBe(`${hunk}\n`)
+    expect(texts(box, 'pre .vui-tone-err')).toEqual(['-old\n-older\n'])
+    expect(texts(box, 'pre .vui-tone-ok')).toEqual(['+new\n'])
+    expect(texts(box, 'pre .vui-tone-info')).toEqual(['@@ -1,2 +1,2 @@\n'])
+  })
+
+  it('does not take a file header for a change', () => {
+    const { box } = show([{ type: 'diff', files: [], hunks: { x: '--- a/x\n+++ b/x\n+y' } }])
+    box.querySelector('button')?.click()
+    expect(texts(box, 'pre [class*="vui-tone-"]')).toEqual(['+y\n'])
+  })
+
+  it('keeps a hunk that no file names', () => {
+    const { box } = show([{ type: 'diff', files: [], hunks: { 'z.ts': '+y' } }])
+    expect(box.querySelector('button')?.textContent).toContain('z.ts')
+  })
+
+  it('remembers an open hunk across an update', () => {
+    const body = [{ id: 'd', type: 'diff', files, hunks: { 'src/a.ts': hunk } }]
+    const { box, handle } = show(body)
+    box.querySelector('button')?.click()
+    handle.update({ vui: 1, body } as never)
+    expect(box.querySelector('pre')?.textContent).toBe(`${hunk}\n`)
+  })
+
+  it('reads no hunk from a prototype', () => {
+    const { box } = show([{ type: 'diff', files: [['constructor', 1, 1]], hunks: {} }])
+    expect(box.querySelector('button')).toBeNull()
+  })
+})

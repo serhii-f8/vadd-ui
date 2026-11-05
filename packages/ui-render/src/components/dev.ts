@@ -1,14 +1,20 @@
 import {
   cleanText,
+  type DiffEntry,
+  type DiffFile,
+  diffEntries,
+  isJsonObject,
   itemsFromPaths,
   type JsonObject,
   type JsonValue,
   type PlanItem,
   planCounts,
+  type Tone,
   tailLines,
 } from '@vadd/ui-spec'
 import type { Component, NodeContext } from '../context.js'
 import { type Child, el } from '../el.js'
+import { toneClass } from '../inline.js'
 import { badgeOf } from './data.js'
 import { field, lineCount, nodeList, objects, text } from './fields.js'
 
@@ -19,7 +25,7 @@ function note(item: JsonObject, context: NodeContext): HTMLElement | null {
   return value === '' ? null : el('p', { class: 'vui-note' }, context.inline(value))
 }
 
-const pre = (content: Child) => el('pre', { class: 'vui-code-pre vui-codeblock' }, content)
+const pre = (content: Child | Child[]) => el('pre', { class: 'vui-code-pre vui-codeblock' }, content)
 
 function checkOutput(item: JsonObject, index: number, context: NodeContext): HTMLElement[] {
   const output = cleanText(text(item, 'output'))
@@ -102,6 +108,85 @@ export const tree: Component = {
       (item) => [text(item, 'name')],
       'vui-rows vui-tree',
     )
+  },
+}
+
+const CHANGES: { [change: string]: [Tone, string] } = {
+  A: ['ok', 'added'],
+  M: ['info', 'modified'],
+  D: ['err', 'deleted'],
+  R: ['warn', 'renamed'],
+}
+
+/** The tone of a unified-diff line. `---` and `+++` name files, and change nothing. */
+function lineTone(line: string): Tone | undefined {
+  if (line.startsWith('@@')) return 'info'
+  if (line.startsWith('---') || line.startsWith('+++')) return undefined
+  return line[0] === '+' ? 'ok' : line[0] === '-' ? 'err' : undefined
+}
+
+/** One node per run of a tone, so a long plain stretch stays one text node. */
+function runs(lines: string[], toneOf: (line: string) => Tone | undefined): Child[] {
+  const nodes: Child[] = []
+  let run: string[] = []
+  let tone: Tone | undefined
+  const flush = () => {
+    if (run.length === 0) return
+    const content = run.join('')
+    nodes.push(tone === undefined ? content : el('span', { class: toneClass(tone) }, content))
+    run = []
+  }
+  for (const line of lines) {
+    const next = toneOf(line)
+    if (next !== tone) flush()
+    tone = next
+    run.push(`${line}\n`)
+  }
+  flush()
+  return nodes
+}
+
+function fileRow({ path, added, removed, change }: DiffEntry): HTMLElement {
+  const mark = change === undefined ? undefined : CHANGES[change]
+  return el('span', { class: 'vui-row' }, [
+    mark === undefined
+      ? null
+      : el('span', { class: `vui-status vui-diff-mark ${toneClass(mark[0])}` }, [
+          change,
+          el('span', { class: 'vui-sr-only' }, mark[1]),
+        ]),
+    el('code', { class: 'vui-code' }, path),
+    added === undefined
+      ? null
+      : el('span', { class: 'vui-row-end' }, [
+          el('span', { class: toneClass('ok') }, `+${added}`),
+          ' ',
+          el('span', { class: toneClass('err') }, `−${removed}`),
+        ]),
+  ])
+}
+
+export const diff: Component = {
+  render(node, context) {
+    const files = nodeList(node, 'files').filter(Array.isArray) as unknown as DiffFile[]
+    const hunks = field(node, 'hunks')
+    const entries = diffEntries(files, isJsonObject(hunks) ? (hunks as never) : undefined)
+    const items = entries.map((entry, index) => {
+      const { hunk } = entry
+      return el(
+        'li',
+        {},
+        typeof hunk === 'string'
+          ? context.fold(
+              `hunk${index}`,
+              fileRow(entry),
+              () => pre(runs(hunk.split('\n'), lineTone)),
+              false,
+            )
+          : fileRow(entry),
+      )
+    })
+    return el('ul', { class: 'vui-rows' }, items)
   },
 }
 

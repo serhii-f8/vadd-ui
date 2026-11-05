@@ -116,6 +116,10 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-rows .vui-rows{padding-inline-start:var(--vui-space-4)}
 .vui-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--vui-space-2);min-width:0}
 .vui-row-end{margin-inline-start:auto;color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
+.vui-row-end .vui-tone-ok,.vui-row-end .vui-tone-err{font-weight:600}
+.vui-row>.vui-code{min-width:0}
+.vui-diff-mark{flex:none;font-family:var(--vui-mono),monospace}
+.vui-rows .vui-fold-toggle>:last-child{flex:1;min-width:0}
 .vui-tree{font-family:var(--vui-mono),monospace;font-size:.86em}
 .vui-tree .vui-rows{border-inline-start:1px solid var(--vui-border);margin-inline-start:.4em}
 .vui-timeline{gap:var(--vui-space-2);padding-inline-start:var(--vui-space-3);border-inline-start:2px solid var(--vui-border)}
