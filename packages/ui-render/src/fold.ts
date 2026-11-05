@@ -1,4 +1,5 @@
 import { type Child, el, fill } from './el.js'
+import { opensWith } from './reveal.js'
 
 export type FoldBody = Child | Child[] | (() => Child | Child[])
 
@@ -41,6 +42,7 @@ export function foldable({ label, body, open, onToggle, heading }: FoldOptions):
     },
     [el('span', { class: 'vui-fold-icon', 'aria-hidden': 'true' }, '▸'), el('span', {}, label)],
   )
+  opensWith(region, () => toggle.click())
   const head = heading === undefined ? toggle : el(heading, { class: 'vui-node-title' }, toggle)
   return [head, region]
 }

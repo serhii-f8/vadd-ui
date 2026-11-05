@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
@@ -11,6 +12,13 @@ const alias = Object.fromEntries(
   ]),
 )
 
+// What the bundle build defines, from the same manifest. At the transform, since Vitest
+// turns a plain `define` into a global that these workers do not see.
+const { version } = JSON.parse(
+  readFileSync(new URL('./packages/ui/package.json', import.meta.url), 'utf8'),
+)
+const define = { __VUI_VERSION__: JSON.stringify(version) }
+
 export default defineConfig({
   test: {
     // Explicit root: without it, project `include` globs resolve against
@@ -23,17 +31,20 @@ export default defineConfig({
         'packages/ui-spec/src/**/*.ts',
         'packages/ui-text/src/**/*.ts',
         'packages/ui-render/src/**/*.ts',
+        'packages/ui/src/**/*.ts',
       ],
       reporter: ['text-summary'],
       thresholds: {
         'packages/ui-spec/src/**/*.ts': { lines: 95 },
         'packages/ui-text/src/**/*.ts': { lines: 95 },
         'packages/ui-render/src/**/*.ts': { lines: 95 },
+        'packages/ui/src/**/*.ts': { lines: 95 },
       },
     },
     projects: [
       {
         resolve: { alias },
+        oxc: { define },
         test: {
           name: 'node',
           include: [
@@ -46,6 +57,7 @@ export default defineConfig({
       },
       {
         resolve: { alias },
+        oxc: { define },
         test: {
           name: 'jsdom',
           include: ['packages/{ui-render,ui,ui-react}/test/**/*.test.{ts,tsx}'],

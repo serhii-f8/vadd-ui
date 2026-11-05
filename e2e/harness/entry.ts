@@ -3,8 +3,9 @@ import { stylesheet } from '../../packages/ui-render/src/css/index.js'
 import { createRenderer, type RenderHandle } from '../../packages/ui-render/src/renderer.js'
 import { FIXTURES } from './fixtures.js'
 
-// Runs inside the visual. It stands in for `vui.min.js` until task 11, and it boots the same
-// way: the stylesheet goes in by script, as §9.2 step 3 says.
+// Runs inside the visual. It stands in for `vui.min.js`, which cannot hold the fixture
+// components, and it boots the same way: the stylesheet goes in by script, as §9.2 step 3 says.
+// `bundle.spec.ts` runs the real bundle.
 
 interface HarnessWindow {
   __vuiViolations: string[]

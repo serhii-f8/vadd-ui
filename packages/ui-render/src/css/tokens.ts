@@ -64,8 +64,24 @@ const DARK = `color-scheme:dark;${declarations('dark')}`
 
 // VD-007 and VD-058. The repeated class outranks `:root.dark .vui-root`, and `:where` keeps
 // the OS rule below it. Orca's live toggle leaves `class=""` behind, which means light.
-const FOLLOW_OS = ':root:where(:not(.dark):not(.light):not([class=""])) .vui-root'
+const OS_ROOT = ':root:where(:not(.dark):not(.light):not([class=""]))'
+const FOLLOW_OS = `${OS_ROOT} .vui-root`
 const FORCED = '.vui-root.vui-root.vui-root[data-vui-theme='
+
+const paint = (scheme: 'light' | 'dark') =>
+  `{color-scheme:${scheme};background:var(--background,${TOKENS[0]?.[scheme]})}`
+
+/**
+ * The page behind a boot-script document: without it a dark OS gets light text on a white
+ * canvas (VD-073). The boot script adds it only to a page that paints nothing, and zero
+ * specificity lets a later host rule win. `stylesheet` leaves it out, because a host that
+ * mounts `render` owns its page.
+ */
+export const pageCss = [
+  `:where(:root)${paint('light')}`,
+  `:where(:root.dark)${paint('dark')}`,
+  `@media (prefers-color-scheme: dark){:where(${OS_ROOT})${paint('dark')}}`,
+].join('')
 
 export const tokenCss = [
   `.vui-root{${LIGHT}${toneText}}`,

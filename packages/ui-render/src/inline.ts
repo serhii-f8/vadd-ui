@@ -7,6 +7,7 @@ import {
   type Tone,
 } from '@vadd/ui-spec'
 import { el } from './el.js'
+import { reveal } from './reveal.js'
 
 export type LinkHandler = (url: string) => void
 
@@ -77,20 +78,20 @@ export function statusBadge(status: Status): HTMLElement {
 }
 
 function link(href: string, children: Node[], handler: LinkHandler | undefined): HTMLElement {
-  const native = handler === undefined || href.startsWith('#')
+  if (href.startsWith('#')) {
+    const click = (event: MouseEvent) => reveal(event.currentTarget as Element, href.slice(1))
+    return el('a', { href, class: 'vui-link', on: { click } }, children)
+  }
+  if (handler === undefined) return el('a', { href, class: 'vui-link' }, children)
   const click = (event: MouseEvent) => {
     event.preventDefault()
     try {
-      handler?.(href)
+      handler(href)
     } catch {
       // The host's handler is the host's failure, and nothing here can show it (§9.3).
     }
   }
-  return el(
-    'a',
-    native ? { href, class: 'vui-link' } : { href, class: 'vui-link', on: { click } },
-    children,
-  )
+  return el('a', { href, class: 'vui-link', on: { click } }, children)
 }
 
 function renderToken(token: InlineToken, handler: LinkHandler | undefined): Node {

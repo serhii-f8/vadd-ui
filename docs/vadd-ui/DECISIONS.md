@@ -767,3 +767,51 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: `ui-text` prints nothing for a `tree` with `items: []` and good `paths`, where the DOM falls back to `paths`. This is a real gap between renderers on a valid document, and task 12 takes it as the first change it makes to text output. A date-only `timeline.at` printing midnight in `ui-text` goes with it, since VD-092 already prefers the DOM's reading. A `checks.output` over 2,000 chars is not a defect: §13.4 makes it invalid, the browser truncates by keeping the head, and "last 20 lines" holds for every valid document. Task 17's skill must tell agents to send the tail of a long output, since failures usually sit there. Task 11 checks whether the `DEFAULT_LOG_LINES` and `DEFAULT_MAX_LINES` fallbacks can go, because each byte counts there.
 - Rationale: each item has an owner task, and none blocks the merge.
 - Spec sections: §6.5, §7, §9.3, §9.5, §13.4.
+
+## VD-097 — Shape of `@vadd/ui`: two bundles, one version source
+- Date: 2026-11-05 · Task: 11
+- Context: §3 names an IIFE and an ESM build; §9.2 wants a version; `tsc` output keeps bare workspace imports, which a browser cannot load, and a version literal would be a ninth place to bump.
+- Decision: `scripts/build-bundle.mjs` runs after `tsc -b` in `pnpm build`. It writes `dist/vui.min.js` from `src/vui.ts` and `dist/index.js`, one minified ES module, from `src/index.ts`; `tsc` emits declarations only for this package. `"."` and `"./vui.min.js"` are the exports. The ESM build does nothing on import and exports `boot`: §3's "auto-mounts" is the IIFE's job, because the Viewer imports this module and a page that wants it can call `boot()`. `version` is `__VUI_VERSION__`, defined from `packages/ui/package.json`, which `check-versions` ties to the root. Vitest takes it through `oxc.define`, because a plain `define` becomes a global the workers do not see.
+- Alternatives: a `version.ts` literal guarded by `check-versions`, which is one more edit per release; keeping `tsc`'s `index.js` and adding `vui.esm.js`, which ships two ESM files.
+- Rationale: one source, one ESM file, and an ESM that works with no bundler.
+- Spec sections: §3, §9.2, §10.3, §17.2.
+
+## VD-098 — Boot: a `<head>` document mounts in `<body>` — DEVIATION
+- Date: 2026-11-05 · Task: 11
+- Context: §9.2 step 2 says "a sibling". The §10.2 template has no `<body>` tag, so the parser places its document script in `<head>`, and a sibling there is never displayed: the spec's own template would show a blank page.
+- Decision: a document outside `<body>` mounts at the start of `<body>`, in document order, so it keeps source order with what follows it; any other stays a sibling. A `data-vui-mounted` attribute on the script makes `boot` safe to repeat, and because it lives in the DOM it also covers two copies of the bundle on a page. The stylesheet goes in before the first render and also with no document, since `window.VUI.render` needs it; both happen in one task, so no paint separates them. An existing `#vui-style` is left alone. `window.VUI` holds only `render` and `version`, as §9.2 lists, so `boot` is not on it. The one listener is a `once` `DOMContentLoaded`.
+- Not done: a viewport meta. Both templates omit one, so a phone lays out at 980 px; `vui show` (task 13) writes its own HTML and can add it, and the CDN template is the spec's to change.
+- Rationale: the template must render (§4.3), and everything else is §9.2 as written.
+- Spec sections: §4.3, §9.2, §10.1, §10.2.
+
+## VD-099 — A bare page gets its canvas from `pageCss`
+- Date: 2026-11-05 · Task: 11
+- Context: VD-073 left this open. `stylesheet` styles `.vui-root` only, so on a dark OS a page with no CSS has light text on a white canvas.
+- Decision: `pageCss` in `ui-render` sets `color-scheme` and `background: var(--background, <--vui-bg>)` on the root, with the same theme reading as the tokens: `.dark`, `.light`, `class=""` and the OS. Only the boot script adds it, and only when `html` and `body` both compute to no background and no image, because any root background stops a `body` background from reaching the canvas, whatever its specificity (VD-102). A page whose own stylesheet arrives after boot still wins, since every selector is in `:where`. `stylesheet` stays free of it, because Viewer and React hosts own their pages.
+- Alternatives: `color-scheme` alone, which leaves the UA's dark canvas instead of `--vui-bg`, nearly the same shade as `--vui-surface`.
+- Rationale: both schemes now read correctly on a page with no stylesheet, and no host is overridden.
+- Spec sections: §4.3, §8.1, §8.2, §10.2.
+
+## VD-100 — `#id` links open what hides their target
+- Date: 2026-11-05 · Task: 11
+- Context: VD-070 left a `#id` link into a hidden tab or a closed fold going nowhere, for this task to fix or route.
+- Decision: fixed in `ui-render`, so every host gets it. A fold and a tab panel register how they open (`opensWith`); a click on a `#…` link walks up from the target and opens each hidden ancestor through the component's own path, so state outlives `update`. The native jump then scrolls, and the URL updates. The listener is on the anchor. Node folds are eager; only row bodies are lazy, and those hold no ids. It cost about 0.5 KiB gzip.
+- Not done: opening a page at `#id` does not reveal its target, since that takes load-time code or a `hashchange` listener, and VD-070 is about links. Inside a shadow root (`ui-react`) the reveal runs but the browser does not jump; task 19 owns that host.
+- Rationale: the fix is small, sits with the components, and uses no global listener.
+- Spec sections: §4.2, §5.4, §9.3, §15.2.
+
+## VD-101 — Bundle gate and size result
+- Date: 2026-11-05 · Task: 11
+- Context: the acceptance item asks for the budget in `pnpm gate` and a grep of the bundle, and §10.1 inlines the bundle in a `<script>`.
+- Decision: `check-forbidden-apis` runs over `dist/vui.min.js` and `dist/index.js` in `pnpm check`, with its rules unchanged; a named file that is missing fails. `check-bundle-size` also fails on `</script` in any case or `<!--`, because either breaks the inlined element. Coverage for `packages/ui/src` is held at 95% lines, the renderer's level. The result is in the task report. No reclaim was needed, so neither property mangling nor a `ui-spec` cut happened, and VD-089's reserve stays unspent. `DEFAULT_LOG_LINES` and `DEFAULT_MAX_LINES` stay (VD-096): a bad `maxLines` is dropped by `prepare` after normalize (VD-066), so the fallbacks run on real documents.
+- Rationale: the checks read what ships, and the budget was met without a tradeoff.
+- Spec sections: §9.5, §10.1, §15.1, §16.
+
+## VD-102 — Task 11 review: fixed findings and declined ones
+- Date: 2026-11-05 · Task: 11
+- Context: a fresh review found no critical defects and two important ones, each reproduced. `pageCss` on the root stopped a host's `body` background from reaching the canvas. A `<head>` document landed after all later content, so with content between two documents the page came out reordered.
+- Decision: both fixed, as VD-098 and VD-099 now read, each with a regression test. Also fixed: `reveal` tries the fragment as written before decoding it, as the browser does, so an id of `a%20b` is found. Test fixes: a vacuous check of the parse message, a request check that matched on suffix, and the Orca shell test now also runs an `#id` link and a live theme switch.
+- Flake fixed: `charts.spec` "hovering shows the point" failed twice in about 35 runs here, once in a gate, on its opening `toBeHidden`. It failed in no arrangement consistently, and `bundle.spec` is not the cause: 0 of 10 failed with it. The chart sits at the frame's top-left and the pointer starts at (0, 0), so a pointer event there shows a tip, which is correct behavior. The failure's `data-vui-fill="0"` means `clientX` was exactly 0, on a hit box measured at (0, 0); a real move to (1, 1) shows the tip with fill 1. So the likely source is Chromium's synthetic move after layout, inferred from that state and not observed directly. The test now moves the pointer off the chart first. It predates this task.
+- Declined: a `#id` link to a closed `section` itself jumps to its title and leaves it shut. The title is visible and the reader is one click away, while opening what a target contains would also change tabs. A host stylesheet loaded after boot and only setting `body` still sees `pageCss` block it; a stylesheet in `<head>` before the bundle is applied by then. `VUI.render` during parsing has no stylesheet until `DOMContentLoaded`, which is §9.2's order and corrects itself. Orca's outer transcript does not scroll to an `#id` target, because a sandboxed frame cannot scroll its parent and §9.3 bars `postMessage`.
+- Rationale: the two defects hit ordinary pages. The rest are rare or cosmetic, and all are reversible.
+- Spec sections: §4.3, §9.2, §10.2.

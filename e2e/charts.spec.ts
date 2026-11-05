@@ -121,6 +121,8 @@ test('hovering shows the point, the tip stays in the box, and leaving hides it',
   const hit = frame.locator('.vui-chart-hit')
   const size = await hit.boundingBox()
   const tip = frame.locator('.vui-chart-tip')
+  // The pointer starts at (0, 0), on this chart, and Chromium may send it a move after layout.
+  await page.mouse.move(5, 800)
   await expect(tip).toBeHidden()
   for (const share of [0.02, 0.48, 0.52, 0.98]) {
     await hit.hover({ position: { x: (size?.width ?? 0) * share, y: 40 } })

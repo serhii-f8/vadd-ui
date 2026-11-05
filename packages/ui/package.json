@@ -3,11 +3,15 @@
   "version": "0.0.0",
   "type": "module",
   "license": "Apache-2.0",
+  "sideEffects": [
+    "./dist/vui.min.js"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./vui.min.js": "./dist/vui.min.js"
   },
   "files": [
     "dist"
