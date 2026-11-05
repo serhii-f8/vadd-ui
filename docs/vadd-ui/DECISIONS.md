@@ -678,3 +678,12 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: keep columns, which keeps two drawings of one thing.
 - Rationale: less code, and a peak now survives sampling.
 - Spec sections: §6.3, §6.4.
+
+## VD-086 — Task 09 review: slivers, ticks, folds and small values
+- Date: 2026-11-05 · Task: 09
+- Context: a fresh review reproduced one critical defect, four important and six minor. A slice under 0.5% had a negative dash, which Chromium paints as a solid ring. Twelve significant digits collapsed ticks on a range such as 1700000000001 to 1700000000004, and `high === low` put NaN in every mark. A fold with a short `x` placed `Other` at `x.length`. A fold's `<desc>` range used the folded sum. `num` printed `0.001` as `0`.
+- Decision: a slice keeps a dash of at least 0.2. Ticks round to the step's own decimals, and a list that is not strictly increasing and covering falls back to the domain's two ends, as a seeded 20,000-range sweep now checks. `Other` always takes slot 12, with index labels filling a short `x`, and the fold sums positives only, as a ring draws. `range` reads the document before the fold. With no `yFormat`, values use the ticks' decimals when those pass 2, and `num` otherwise; this refines VD-082. A shared tail prints once only if the rest of the low end has no letter, so `1m 05s–2m 05s` stays whole. Totals read the model's stack tops, so they hold past 1,000 points. An `hbar` refLine label in the start half anchors `start`. Tick text clips at 14 characters. `sparkPath` halves before subtracting, so a span past the double range stays finite.
+- Declined: none of the findings. Two mutants that survived, negatives stacking upward and per-series bar indices, led to stronger tests.
+- Rationale: a chart must not misstate data, even on rare input.
+- Spec sections: §6.4, §9.3, §9.4, §15.2.
+
