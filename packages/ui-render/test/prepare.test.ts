@@ -82,6 +82,17 @@ describe('prepare: §13.4 truncation', () => {
     expect(table?.totals).toHaveLength(LIMITS.tableColumns)
   })
 
+  it('keeps row options through a column cut', () => {
+    const count = LIMITS.tableColumns + 2
+    const columns = repeat(count, (index) => `c${index}`)
+    const cells = repeat(count, (index) => index)
+    const body = [{ type: 'table', columns, rows: [[...cells, { tone: 'warn' }]] }]
+    const { document } = prepare({ vui: 1, body } as never)
+    const [table] = document?.body as never as { rows: unknown[][] }[]
+    expect(table?.rows[0]).toHaveLength(LIMITS.tableColumns + 1)
+    expect(table?.rows[0]?.at(-1)).toEqual({ tone: 'warn' })
+  })
+
   it('passes unconverted object rows through a column cut, to an error card', () => {
     // VD-038: past the cell budget object rows stay objects.
     const columns = repeat(LIMITS.tableColumns + 500, (index) => `c${index}`)
