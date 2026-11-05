@@ -111,6 +111,15 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-legend{display:flex;flex-wrap:wrap;gap:var(--vui-space-1) var(--vui-space-3);margin:0;padding:0;font-size:.86em;list-style:none}
 .vui-legend li{display:inline-flex;align-items:baseline;gap:.3em}
 .vui-legend-swatch{width:.7em;height:.7em;border-radius:2px;background:var(--vui-tone-line)}
+.vui-rows{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0;margin:0;padding:0;list-style:none}
+.vui-rows li{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0}
+.vui-rows .vui-rows{padding-inline-start:var(--vui-space-4)}
+.vui-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--vui-space-2);min-width:0}
+.vui-row-end{margin-inline-start:auto;color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
+.vui-tree{font-family:var(--vui-mono),monospace;font-size:.86em}
+.vui-tree .vui-rows{border-inline-start:1px solid var(--vui-border);margin-inline-start:.4em}
+.vui-timeline{gap:var(--vui-space-2);padding-inline-start:var(--vui-space-3);border-inline-start:2px solid var(--vui-border)}
+.vui-time{color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
 `
   .trim()
   .replace(/\n/g, '')

@@ -1,7 +1,7 @@
 import type { Component, NodeContext } from '../context.js'
 import { copyText, select } from '../copy.js'
 import { el } from '../el.js'
-import { nodeList, text, whole } from './fields.js'
+import { lineCount, nodeList, text, whole } from './fields.js'
 
 const DEFAULT_MAX_LINES = 30
 const COPIED_MS = 1500
@@ -75,17 +75,13 @@ function copyButton(
   return button
 }
 
-function moreLabel(count: number): string {
-  return `${count} more line${count === 1 ? '' : 's'}`
-}
-
 /** The `code` block. `name` keeps the fold of one block apart from another's in `md`. */
 export function codeBlock(context: NodeContext, options: CodeOptions, name: string): HTMLElement {
   const lines = options.text.replace(/\n$/, '').split('\n')
   const head = pre(lines.slice(0, options.maxLines), 1, options, context)
   const rest = lines.slice(options.maxLines)
   const tail = rest.length === 0 ? null : pre(rest, options.maxLines + 1, options, context)
-  const fold = tail === null ? [] : context.fold(name, moreLabel(rest.length), tail, false)
+  const fold = tail === null ? [] : context.fold(name, lineCount(rest.length, 'more'), tail, false)
   const [toggle] = fold
   const reveal = (): [HTMLElement, HTMLElement] => {
     if (toggle?.getAttribute('aria-expanded') === 'false') toggle.click()

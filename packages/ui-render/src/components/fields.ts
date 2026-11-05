@@ -1,4 +1,4 @@
-import { hasOwn, type JsonObject, type JsonValue } from '@vadd/ui-spec'
+import { hasOwn, isJsonObject, type JsonObject, type JsonValue } from '@vadd/ui-spec'
 
 // A field can arrive in any shape: a drop removes it, and past VD-066's cap nothing checks it.
 
@@ -24,3 +24,9 @@ export function finite(node: JsonObject, name: string): number | undefined {
   const value = field(node, name)
   return Number.isFinite(value) ? (value as number) : undefined
 }
+
+export const objects = (list: JsonValue[]) =>
+  list.flatMap((item, index) => (isJsonObject(item) ? [{ item, index }] : []))
+
+export const lineCount = (count: number, word: string) =>
+  `${count} ${word} line${count === 1 ? '' : 's'}`

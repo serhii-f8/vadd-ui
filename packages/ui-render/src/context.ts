@@ -1,5 +1,6 @@
 import type { Formatted, JsonObject, JsonValue, Tone } from '@vadd/ui-spec'
 import type { Child } from './el.js'
+import type { FoldBody } from './fold.js'
 
 /** What a component gets besides its node. Tasks 07 to 10 build on this. */
 export interface NodeContext {
@@ -25,7 +26,7 @@ export interface NodeContext {
   /** The nodes of a list at `pointer`. */
   children(nodes: JsonValue[], pointer: string): HTMLElement[]
   /** A fold whose open state lives under `name` in `state`. `label` sits in a button: no links. */
-  fold(name: string, label: Child | Child[], body: Child | Child[], open: boolean): HTMLElement[]
+  fold(name: string, label: Child | Child[], body: FoldBody, open: boolean): HTMLElement[]
   /** The VD-008 checkpoint. Call it in loops over document data. */
   checkpoint(): void
   /** Runs on `update` and `destroy`. */
