@@ -4,18 +4,22 @@
 const SPACING = (a: number, b: number, c: number, d: number) =>
   `--vui-space-1:${a}px;--vui-space-2:${b}px;--vui-space-3:${c}px;--vui-space-4:${d}px;`
 
-const TONES = {
+const TONES: Record<string, string[]> = {
   ok: ['var(--vui-ok)', 'var(--vui-ok-text)'],
   warn: ['var(--vui-warn)', 'var(--vui-warn-text)'],
   err: ['var(--vui-err)', 'var(--vui-err-text)'],
   info: ['var(--vui-info)', 'var(--vui-info-text)'],
   muted: ['var(--vui-muted-fg)', 'var(--vui-muted-fg)'],
-  accent: ['var(--vui-accent)', 'var(--vui-accent-fg)'],
+  // `--vui-accent` is a background: as a line it would vanish on the surface.
+  accent: ['var(--vui-accent)', 'var(--vui-accent-fg)', 'var(--vui-primary)'],
   default: ['var(--vui-border)', 'var(--vui-surface-fg)'],
 }
 
 const toneCss = Object.entries(TONES)
-  .map(([name, [tone, text]]) => `.vui-tone-${name}{--vui-tone:${tone};--vui-tone-text:${text}}`)
+  .map(
+    ([name, [tone, text, line = tone]]) =>
+      `.vui-tone-${name}{--vui-tone:${tone};--vui-tone-text:${text};--vui-tone-line:${line}}`,
+  )
   .join('')
 
 export const baseCss = `

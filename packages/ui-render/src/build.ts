@@ -19,7 +19,7 @@ import { errorCard, placeholderCard } from './cards.js'
 import type { NodeContext, Registry } from './context.js'
 import { type Child, el } from './el.js'
 import { foldable } from './fold.js'
-import { type LinkHandler, renderInline, renderValue, toneClass } from './inline.js'
+import { type LinkHandler, renderInline, renderValue, toneClass, toneMark } from './inline.js'
 import type { Failure } from './prepare.js'
 import { BUDGET_MS, BudgetExceeded, type Watchdog } from './watchdog.js'
 
@@ -111,6 +111,7 @@ function createContext(
     pointer,
     locale: build.format.locale as string,
     state: memory,
+    level: inner,
     titleDrawn,
     format,
     value: (value, name, at) => renderValue(format(value, name, at), linkHandler),
@@ -144,17 +145,31 @@ function spanOf(node: JsonObject): number | undefined {
   return typeof span === 'number' ? span : undefined
 }
 
-function frame(node: JsonObject, id: string | undefined, content: Child[]): HTMLElement {
-  const tone = stringField(node, 'tone')
+function frameClass(tone: Tone | undefined, marked: boolean): string {
+  if (tone === undefined) return 'vui-node'
+  if (tone === 'default') return `vui-node ${toneClass(tone)}`
+  return `vui-node ${toneClass(tone)} vui-toned${marked ? ' vui-marked' : ''}`
+}
+
+/** VD-068: a bar for any tone but `default`, and a mark for one that means something. */
+function frame(
+  node: JsonObject,
+  id: string | undefined,
+  content: Child[],
+  fallbackTone?: Tone,
+): HTMLElement {
+  const field = stringField(node, 'tone')
+  const tone = isTone(field) ? field : fallbackTone
+  const mark = tone === undefined ? null : toneMark(tone)
   const span = spanOf(node)
   const type = stringField(node, 'type')
   const attributes = {
     id,
-    class: isTone(tone) ? `vui-node ${toneClass(tone)}` : 'vui-node',
+    class: frameClass(tone, mark !== null),
     'data-vui-span': span,
     'data-vui-type': type,
   }
-  return el('div', attributes, content)
+  return el('div', attributes, [mark, ...content])
 }
 
 function chrome(
@@ -229,7 +244,8 @@ function buildComponent(
   let element: HTMLElement
   try {
     const body = component.render(node, context)
-    element = frame(node, id, chrome(node, body, context, level, component.ownsTitle === true))
+    const content = chrome(node, body, context, level, component.ownsTitle === true)
+    element = frame(node, id, content, component.tone)
   } catch (error) {
     watchdog.leave()
     throw error
