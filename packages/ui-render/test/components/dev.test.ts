@@ -21,8 +21,9 @@ describe('checks', () => {
     expect(box.querySelector('.vui-row-end')?.textContent).toBe('9.10 s')
   })
 
-  it('has no fold without output', () => {
-    const { box } = show([{ type: 'checks', items: [{ name: 'a', status: 'ok' }] }])
+  it.each([undefined, '', '\n', ' \n '])('has no fold for output %j', (value) => {
+    const item = { name: 'a', status: 'ok', ...(value === undefined ? {} : { output: value }) }
+    const { box } = show([{ type: 'checks', items: [item] }])
     expect(box.querySelector('button')).toBeNull()
   })
 
@@ -79,6 +80,35 @@ describe('checks', () => {
   })
 })
 
+describe('fold state follows the item, not its place', () => {
+  const update = (handle: { update(document: never): void }, body: unknown[]) =>
+    handle.update({ vui: 1, body } as never)
+  const expanded = (box: Element) =>
+    all(box, 'button').map((item) => item.getAttribute('aria-expanded'))
+
+  it('in checks', () => {
+    const lint = { name: 'lint', status: 'ok', output: 'x' }
+    const e2e = { name: 'e2e', status: 'fail', output: 'y' }
+    const { box, handle } = show([{ id: 'c', type: 'checks', items: [lint, e2e] }])
+    click(box, 'Output')
+    update(handle, [{ id: 'c', type: 'checks', items: [e2e, lint] }])
+    expect(expanded(box)).toEqual(['false', 'true'])
+  })
+
+  it('in diff', () => {
+    const hunks = { 'a.ts': '+a', 'b.ts': '+b' }
+    const files = [
+      ['a.ts', 1, 0],
+      ['b.ts', 1, 0],
+    ]
+    const { box, handle } = show([{ id: 'd', type: 'diff', files, hunks }])
+    click(box, 'b.ts')
+    const more = { ...hunks, 'new.ts': '+n' }
+    update(handle, [{ id: 'd', type: 'diff', files: [['new.ts', 1, 0], ...files], hunks: more }])
+    expect(expanded(box)).toEqual(['false', 'false', 'true'])
+  })
+})
+
 describe('plan', () => {
   const items = [
     { text: '**Add** table', status: 'ok', note: 'done `x`' },
@@ -94,7 +124,13 @@ describe('plan', () => {
 
   it('counts done over total in the header, children included', () => {
     const { box } = show([{ type: 'plan', title: 'Plan', items }])
-    expect(box.querySelector('.vui-plan-head')?.textContent).toBe('2/4 done')
+    expect(box.querySelector('.vui-note')?.textContent).toBe('2/4 done')
+  })
+
+  it('survives children that are not items', () => {
+    const { box } = show([{ type: 'plan', items: [{ text: 'a', status: 'ok', children: [null] }] }])
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+    expect(box.querySelector('.vui-note')?.textContent).toBe('1/1 done')
   })
 
   it('nests children', () => {
@@ -130,6 +166,11 @@ describe('tree', () => {
     expect(all(box, '.vui-tree > li')).toHaveLength(2)
   })
 
+  it.each([[[]], [['x']], ['x']])('falls back to paths when items are %j', (items) => {
+    const { box } = show([{ type: 'tree', items, paths: ['a/b'] }])
+    expect(box.querySelector('ul ul li')?.textContent).toBe('b')
+  })
+
   it('ignores paths past the cap that are not text', () => {
     const { box } = show([{ type: 'tree', paths: [7, 'a'] }])
     expect(box.querySelector('.vui-card-error')).toBeNull()
@@ -158,6 +199,12 @@ describe('timeline', () => {
     expect(time).toContain('2026')
     expect(time).not.toContain('T10')
     expect(label).toBe('Next week')
+    expect(handle.diagnostics).toEqual([])
+  })
+
+  it.each(['2026-11 sprint', '2026-11-05'])('keeps %s as written, with no diagnostic', (at) => {
+    const { box, handle } = show([{ type: 'timeline', items: [{ at, text: 'x' }] }])
+    expect(box.querySelector('.vui-time')?.textContent).toBe(at)
     expect(handle.diagnostics).toEqual([])
   })
 
@@ -240,6 +287,26 @@ describe('diff', () => {
     expect(box.querySelector('pre')?.textContent).toBe('+y\n')
   })
 
+  it('treats --- and +++ inside a hunk as changes', () => {
+    const { box } = show([
+      { type: 'diff', files: [], hunks: { x: '@@ x\n--- old\n+++i\n context' } },
+    ])
+    box.querySelector('button')?.click()
+    expect(texts(box, 'pre .vui-tone-err')).toEqual(['--- old\n'])
+    expect(texts(box, 'pre .vui-tone-ok')).toEqual(['+++i\n'])
+  })
+
+  it('has no toggle for an empty hunk', () => {
+    const { box } = show([{ type: 'diff', files: [['a', 1, 1]], hunks: { a: ' \n' } }])
+    expect(box.querySelector('button')).toBeNull()
+  })
+
+  it('ignores a change that only a prototype knows', () => {
+    const { box } = show([{ type: 'diff', files: [['a', 1, 1, 'constructor']] }])
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+    expect(box.querySelector('.vui-diff-mark')).toBeNull()
+  })
+
   it('reads no hunk from a prototype', () => {
     const { box } = show([{ type: 'diff', files: [['constructor', 1, 1]], hunks: {} }])
     expect(box.querySelector('button')).toBeNull()
@@ -263,13 +330,18 @@ describe('log', () => {
     expect(box.querySelector('pre span')?.className).toBe(`vui-tone-${tone}`)
   })
 
-  it.each(['plain line', 'error in lower case', 'no ERROR at the start'])(
-    'leaves %s plain',
-    (line) => {
-      const { box } = show([{ type: 'log', text: line }])
-      expect(box.querySelector('pre span')).toBeNull()
-    },
-  )
+  it.each([
+    'plain line',
+    'error in lower case',
+    'no ERROR at the start',
+    'ERRORS: 0',
+    '0 ERRORS, 0 warnings',
+    'INFORMATION',
+    'DEBUGGER attached',
+  ])('leaves %s plain', (line) => {
+    const { box } = show([{ type: 'log', text: line }])
+    expect(box.querySelector('pre span')).toBeNull()
+  })
 
   it('finds a level behind a color, and copies clean text', async () => {
     const written: string[] = []
@@ -384,6 +456,13 @@ describe('decision', () => {
   it('has no way to answer (D8)', () => {
     const { box } = show([decision])
     expect(box.querySelector('button, input, select, textarea, form, [tabindex]')).toBeNull()
+  })
+
+  it('keeps a card whose pros are not text', () => {
+    const bad = [{ label: 'a', pros: [{ text: 'x' }, 'fine', 1] }]
+    const { box } = show([{ type: 'decision', question: 'q', options: bad }])
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+    expect(texts(box, 'dd li')).toEqual(['fine'])
   })
 
   it('sits in a box that a container query can measure', () => {

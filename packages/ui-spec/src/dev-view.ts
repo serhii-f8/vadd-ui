@@ -1,4 +1,4 @@
-import { hasOwn } from './json.js'
+import { hasOwn, isJsonObject, type JsonValue } from './json.js'
 import { LIMITS } from './limits.js'
 import type { DiffFile, PlanItem, TreeItem } from './types.js'
 
@@ -27,13 +27,17 @@ export function tailLines(text: string, count: number): { earlier: string[]; las
 
 /** Items with status `ok`, and all items, at every depth. */
 export function planCounts(items: PlanItem[]): [done: number, total: number] {
-  return items.reduce<[number, number]>(
-    ([done, total], item) => {
-      const [innerDone, innerTotal] = planCounts(item.children ?? [])
-      return [done + (item.status === 'ok' ? 1 : 0) + innerDone, total + 1 + innerTotal]
-    },
-    [0, 0],
-  )
+  let done = 0
+  let total = 0
+  for (const item of items) {
+    // Past VD-066's cap nothing checks an item, and a bad one is not drawn.
+    if (!isJsonObject(item as unknown as JsonValue)) continue
+    const children = item.children
+    const [innerDone, innerTotal] = planCounts(Array.isArray(children) ? children : [])
+    done += (item.status === 'ok' ? 1 : 0) + innerDone
+    total += 1 + innerTotal
+  }
+  return [done, total]
 }
 
 type PathTrie = Map<string, PathTrie>
@@ -72,17 +76,15 @@ export interface DiffEntry {
 }
 
 /** One entry per file, then one per hunk that no file names. */
-export function diffEntries(
-  files: DiffFile[],
-  hunks: Record<string, string> | undefined = {},
-): DiffEntry[] {
+export function diffEntries(files: DiffFile[], hunks?: Record<string, string> | null): DiffEntry[] {
+  const table = hunks ?? {}
   const paths = new Set(files.map(([path]) => path))
   const entries = files.map(([path, added, removed, change]) => {
     const entry: DiffEntry = { path, added, removed }
     if (change !== undefined) entry.change = change
-    if (hasOwn(hunks, path)) entry.hunk = hunks[path] as string
+    if (hasOwn(table, path)) entry.hunk = table[path] as string
     return entry
   })
-  const orphans = Object.entries(hunks).filter(([path]) => !paths.has(path))
+  const orphans = Object.entries(table).filter(([path]) => !paths.has(path))
   return [...entries, ...orphans.map(([path, hunk]) => ({ path, hunk }))]
 }

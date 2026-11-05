@@ -35,6 +35,19 @@ test.describe('decision', () => {
     expect(second).toBeGreaterThan(first)
   })
 
+  test('keeps a field name whole in a narrow card', async ({ page }) => {
+    const three = Array.from({ length: 3 }, (_, index) => ({
+      label: `Option ${index}`,
+      reversible: true,
+    }))
+    const input = [{ type: 'decision', question: 'Which?', options: three }]
+    const { frame } = await open(page, input, 600)
+    const heights = await frame.evaluate(() =>
+      [...document.querySelectorAll('dt, dd')].map((item) => item.getBoundingClientRect().height),
+    )
+    expect(new Set(heights).size).toBe(1)
+  })
+
   test('offers nothing to focus (D8)', async ({ page }) => {
     const { frame } = await open(page, [decision])
     const focusable = await frame.evaluate(
@@ -65,6 +78,29 @@ test.describe('folds', () => {
     await expect(frame.locator('pre')).toHaveCount(0)
     await frame.locator('button').click()
     await expect(frame.locator('pre')).toBeVisible()
+  })
+})
+
+test.describe('blank lines take a row', () => {
+  const rows = (frame: Frame) =>
+    frame.evaluate(() => {
+      const pre = document.querySelector('pre') as HTMLElement
+      const line = Number.parseFloat(getComputedStyle(pre).fontSize) * 1.5
+      const style = getComputedStyle(pre)
+      const padding = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom)
+      return Math.round((pre.clientHeight - padding) / line)
+    })
+
+  test('in a hunk', async ({ page }) => {
+    const hunk = '@@ x\n-old\n \n+new\n\n-gone'
+    const { frame } = await open(page, [{ type: 'diff', files: [['a', 1, 1]], hunks: { a: hunk } }])
+    await frame.locator('button').click()
+    expect(await rows(frame)).toBe(6)
+  })
+
+  test('in a log', async ({ page }) => {
+    const { frame } = await open(page, [{ type: 'log', text: 'ERROR a\n\nWARN b\n\n\nc' }])
+    expect(await rows(frame)).toBe(6)
   })
 })
 

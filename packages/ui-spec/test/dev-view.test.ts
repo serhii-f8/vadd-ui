@@ -52,6 +52,13 @@ describe('planCounts', () => {
   })
 })
 
+describe('planCounts with what the types do not promise', () => {
+  it('skips what is not an item', () => {
+    const items = [{ text: 'a', status: 'ok', children: [null, 'x'] }] as never
+    expect(planCounts(items)).toEqual([1, 1])
+  })
+})
+
 describe('itemsFromPaths', () => {
   it('merges shared folders, in order of first sight', () => {
     expect(itemsFromPaths(['src/a.ts', 'src/b.ts', 'README.md'])).toEqual([
@@ -106,6 +113,10 @@ describe('diffEntries', () => {
       { path: 'a.ts', added: 1, removed: 2 },
       { path: 'z.ts', hunk: '-y' },
     ])
+  })
+
+  it('takes null hunks as none', () => {
+    expect(diffEntries([['a', 1, 2]], null as never)).toEqual([{ path: 'a', added: 1, removed: 2 }])
   })
 
   it('reads no inherited hunk', () => {

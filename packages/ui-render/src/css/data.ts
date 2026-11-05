@@ -120,9 +120,10 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-check-head{flex-wrap:wrap}
 .vui-row-end{margin-inline-start:auto;color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
 .vui-row-end .vui-tone-ok,.vui-row-end .vui-tone-err{font-weight:600}
-.vui-diff:has(button)>li>.vui-row{padding-inline-start:calc(.8em + var(--vui-space-1))}
+.vui-diff:has(button)>li>.vui-row{padding-inline-start:calc(.6em + var(--vui-space-1))}
 .vui-diff-mark{font-family:var(--vui-mono),monospace}
 .vui-rows .vui-fold-toggle>:last-child{flex:1;min-width:0}
+.vui-code-pre.vui-codeblock{display:block}
 .vui-code-pre [class*="vui-tone-"]{display:block;background:color-mix(in srgb,var(--vui-tone) 12%,transparent)}
 .vui-code-pre .vui-tone-muted{background:none}
 .vui-decision-context{margin:0}
@@ -130,6 +131,8 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 @container (max-width:599.98px){.vui-options{grid-template-columns:minmax(0,1fr)}}
 .vui-option-pick{border-color:var(--vui-primary);box-shadow:inset 0 0 0 1px var(--vui-primary)}
 .vui-pick{align-self:flex-start}
+.vui-options .vui-kv-item{grid-template-columns:minmax(min-content,1fr) minmax(0,2fr)}
+.vui-options dt{overflow-wrap:normal}
 .vui-tree{font-family:var(--vui-mono),monospace;font-size:.86em}
 .vui-tree .vui-rows{border-inline-start:1px solid var(--vui-border);margin-inline-start:.4em}
 .vui-timeline{gap:var(--vui-space-2);padding-inline-start:var(--vui-space-3);border-inline-start:2px solid var(--vui-border)}

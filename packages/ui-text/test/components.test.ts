@@ -691,6 +691,11 @@ describe('dev workflow', () => {
     )
   })
 
+  it('diff takes null hunks as none', () => {
+    const body = [{ type: 'diff', files: [['a', 1, 2]], hunks: null }]
+    expect(renderMarkdown({ body } as never)).toBe('- `a` +1 −2\n')
+  })
+
   it('decision marks the pick and lists details', () => {
     both(
       {

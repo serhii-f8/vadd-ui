@@ -3,6 +3,7 @@ import {
   type DiffEntry,
   type DiffFile,
   diffEntries,
+  hasOwn,
   isJsonObject,
   itemsFromPaths,
   type JsonObject,
@@ -47,20 +48,21 @@ function note(item: JsonObject, context: NodeContext): HTMLElement | null {
 const pre = (content: Child | Child[]) =>
   el('pre', { class: 'vui-code-pre vui-codeblock' }, content)
 
-function checkOutput(item: JsonObject, index: number, context: NodeContext): HTMLElement[] {
-  const output = cleanText(text(item, 'output'))
+function checkOutput(item: JsonObject, context: NodeContext): HTMLElement[] {
+  const output = cleanText(text(item, 'output')).trimEnd()
   if (output === '') return []
+  const name = text(item, 'name')
   const { earlier, last } = tailLines(output, CHECK_OUTPUT_LINES)
   const before =
     earlier.length === 0
       ? []
       : context.fold(
-          `earlier${index}`,
+          `earlier ${name}`,
           lineCount(earlier.length, 'earlier'),
           pre(earlier.join('\n')),
           false,
         )
-  return context.fold(`output${index}`, 'Output', [...before, pre(last.join('\n'))], false)
+  return context.fold(`output ${name}`, 'Output', [...before, pre(last.join('\n'))], false)
 }
 
 export const checks: Component = {
@@ -81,7 +83,7 @@ export const checks: Component = {
               )
             : null,
         ]),
-        ...checkOutput(item, index, context),
+        ...checkOutput(item, context),
       ])
     })
     return el('ul', { class: 'vui-rows' }, rows)
@@ -111,7 +113,7 @@ export const plan: Component = {
     const items = nodeList(node, 'items')
     const [done, total] = planCounts(items as unknown as PlanItem[])
     return [
-      el('p', { class: 'vui-note vui-plan-head' }, `${done}/${total} done`),
+      el('p', { class: 'vui-note' }, `${done}/${total} done`),
       rows(items, context, (item) => context.inline(text(item, 'text')), 'vui-rows'),
     ]
   },
@@ -119,10 +121,10 @@ export const plan: Component = {
 
 export const tree: Component = {
   render(node, context) {
-    const items = field(node, 'items')
+    const items = nodeList(node, 'items')
     const paths = nodeList(node, 'paths').filter((path) => typeof path === 'string')
     return rows(
-      (Array.isArray(items) ? items : itemsFromPaths(paths)) as JsonValue[],
+      objects(items).length > 0 ? items : (itemsFromPaths(paths) as unknown as JsonValue[]),
       context,
       (item) => [text(item, 'name')],
       'vui-rows vui-tree',
@@ -137,11 +139,17 @@ const CHANGES: { [change: string]: [Tone, string] } = {
   R: ['warn', 'renamed'],
 }
 
-/** The tone of a unified-diff line. `---` and `+++` name files, and change nothing. */
-function lineTone(line: string): Tone | undefined {
-  if (line.startsWith('@@')) return 'info'
-  if (line.startsWith('---') || line.startsWith('+++')) return undefined
-  return line[0] === '+' ? 'ok' : line[0] === '-' ? 'err' : undefined
+/** Tones line by line. Before the first `@@`, `---` and `+++` name files and change nothing. */
+function hunkTones(): (line: string) => Tone | undefined {
+  let inHunk = false
+  return (line) => {
+    if (line.startsWith('@@')) {
+      inHunk = true
+      return 'info'
+    }
+    if (!inHunk && /^(---|\+\+\+)/.test(line)) return undefined
+    return line[0] === '+' ? 'ok' : line[0] === '-' ? 'err' : undefined
+  }
 }
 
 /** One node per run of a tone, so a long plain stretch stays one text node. */
@@ -166,7 +174,7 @@ function runs(lines: string[], toneOf: (line: string) => Tone | undefined): Chil
 }
 
 function fileRow({ path, added, removed, change }: DiffEntry): HTMLElement {
-  const mark = change === undefined ? undefined : CHANGES[change]
+  const mark = change !== undefined && hasOwn(CHANGES, change) ? CHANGES[change] : undefined
   return el('span', { class: 'vui-row' }, [
     mark === undefined
       ? null
@@ -190,20 +198,20 @@ export const diff: Component = {
     const files = nodeList(node, 'files').filter(Array.isArray) as unknown as DiffFile[]
     const hunks = field(node, 'hunks')
     const entries = diffEntries(files, isJsonObject(hunks) ? (hunks as never) : undefined)
-    const items = entries.map((entry, index) => {
+    const items = entries.map((entry) => {
       context.checkpoint()
-      const { hunk } = entry
+      const hunk = typeof entry.hunk === 'string' ? cleanText(entry.hunk).trimEnd() : ''
       return el(
         'li',
         {},
-        typeof hunk === 'string'
-          ? context.fold(
-              `hunk${index}`,
+        hunk === ''
+          ? fileRow(entry)
+          : context.fold(
+              `hunk ${entry.path}`,
               fileRow(entry),
-              () => pre(runs(cleanText(hunk).trimEnd().split('\n'), lineTone)),
+              () => pre(runs(hunk.split('\n'), hunkTones())),
               false,
-            )
-          : fileRow(entry),
+            ),
       )
     })
     return el('ul', { class: 'vui-rows vui-diff' }, items)
@@ -213,10 +221,11 @@ export const diff: Component = {
 const DEFAULT_LOG_LINES = 40
 // A level after anything but letters, or the `T` and `Z` of a timestamp. Each character can
 // match one way only, so a long line cannot backtrack.
-const LOG_LEVEL = /^(?:[^a-zA-Z]|[TZ](?=[\d\s]))*(ERROR|WARN|INFO|DEBUG)/
+const LOG_LEVEL = /^(?:[^a-zA-Z]|[TZ](?=[\d\s]))*(ERROR|WARN(?:ING)?|INFO|DEBUG)\b/
 const LEVEL_TONES: { [level: string]: Tone } = {
   ERROR: 'err',
   WARN: 'warn',
+  WARNING: 'warn',
   INFO: 'info',
   DEBUG: 'muted',
 }
@@ -237,7 +246,7 @@ export const log: Component = {
   },
 }
 
-const ISO_TIME = /^\d{4}-\d\d/
+const ISO_TIME = /^\d{4}-\d\d-\d\dT/
 
 export const timeline: Component = {
   render(node, context) {
@@ -262,12 +271,12 @@ export const timeline: Component = {
 
 function optionFields(option: JsonObject, context: NodeContext): HTMLElement {
   const strings = (name: string) => {
-    const items = nodeList(option, name)
+    const items = nodeList(option, name).filter((item) => typeof item === 'string')
     if (items.length === 0) return null
     return el(
       'ul',
       { class: 'vui-list' },
-      items.map((item) => el('li', {}, item as string)),
+      items.map((item) => el('li', {}, item)),
     )
   }
   const reversible = field(option, 'reversible')
