@@ -37,8 +37,15 @@ export function escapeHtml(text: string): string {
   return text.replace(UNSAFE_IN_HTML, (match) => HTML_ESCAPES[match] as string)
 }
 
-function languageOf(locale: string): string {
+// A mistyped `title` or `locale` is only a `warn` (§13.3), so these reach here as anything.
+
+function languageOf(locale: unknown): string {
+  if (typeof locale !== 'string') return DEFAULT_LANG
   return LANGUAGE_SUBTAG.exec(locale)?.[1]?.toLowerCase() ?? DEFAULT_LANG
+}
+
+function titleOf(title: unknown): string {
+  return typeof title === 'string' ? title : DEFAULT_TITLE
 }
 
 function documentScript(document: VuiDocument): string {
@@ -55,7 +62,7 @@ export interface InlineOptions {
 
 /** §10.1, by concatenation: neither the bundle nor the document passes through a pattern. */
 export function inlineHtml(document: VuiDocument, { bundle, generator }: InlineOptions): string {
-  const title = escapeHtml(cleanText(document.title ?? DEFAULT_TITLE))
+  const title = escapeHtml(cleanText(titleOf(document.title)))
   return [
     '<!doctype html>\n',
     `<html lang="${languageOf(document.locale)}"><head><meta charset="utf-8">\n`,

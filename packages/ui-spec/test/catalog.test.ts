@@ -76,6 +76,8 @@ describe('catalog', () => {
     expect(field('table', 'columns').type).toBe('Column[]')
     expect(field('plan', 'items').type).toBe('PlanItem[]')
     expect(field('table', 'sort').type).toBe('[integer ≥0, asc|desc]')
+    expect(field('table', 'rows').type).toBe('(scalar or RowOptions)[][]')
+    expect(field('list', 'items').type).toBe('(string or ListItem)[]')
   })
 
   it('names the sub-shapes a component uses, without nesting them twice', () => {

@@ -815,3 +815,68 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Declined: a `#id` link to a closed `section` itself jumps to its title and leaves it shut. The title is visible and the reader is one click away, while opening what a target contains would also change tabs. A host stylesheet loaded after boot and only setting `body` still sees `pageCss` block it; a stylesheet in `<head>` before the bundle is applied by then. `VUI.render` during parsing has no stylesheet until `DOMContentLoaded`, which is §9.2's order and corrects itself. Orca's outer transcript does not scroll to an `#id` target, because a sandboxed frame cannot scroll its parent and §9.3 bars `postMessage`.
 - Rationale: the two defects hit ordinary pages. The rest are rare or cosmetic, and all are reversible.
 - Spec sections: §4.3, §9.2, §10.2.
+
+## VD-103 — CLI exit paths and `--json`
+- Date: 2026-11-05 · Task: 12
+- Context: §11.4 has no usage code, §16 allows only 0 to 5, and a document can break several rules at once.
+- Decision: a usage error exits 2: an argument list that does not parse, which is also the Unix convention. A limit outranks a parse error, which outranks a validation error, because only the first says the document must shrink before anything else helps. `--strict` turns `warn` into exit 1 and shows `info`; `info` alone never changes the code. Anything unexpected is exit 5 with a one-line `vui: internal error`, never a stack. Every command returns one `Outcome`, and one place prints it, so `--json` holds on every path: `{ok, ...}` on stdout and nothing on stderr, with `ok` derived from the exit code. `vui schema --json` wraps the schema in the same envelope as the rest. `show`, `viewer`, `doctor` and `bench` are unknown commands until their tasks add them.
+- Alternatives: a new exit 64, which §16 forbids; the raw schema under `--json`, which breaks "branch on `ok`".
+- Rationale: agents branch on these, so each path has exactly one answer.
+- Spec sections: §11, §11.4, §13.3, §16.
+
+## VD-104 — Diagnostics printing
+- Date: 2026-11-05 · Task: 12
+- Context: §11.3 caps the output at 20 lines and §13.3 sends warnings to stderr, but `validate` exists to print diagnostics, and `ui-spec` itself stops at 1,000.
+- Decision: errors sort before warnings before info, stably, so 20 warnings cannot hide an error. The count line reads `and N more`. `too-many-diagnostics` prints no line: its count joins N, so the number stays true past the cap. A root diagnostic prints `error: message`, since an empty pointer has nothing to show. `validate` prints to stdout; `render` prints to stderr, so its stdout stays the output. `--json` gives the full list, `info` included. `validate` prints nothing on a clean document, as "diagnostics only" says.
+- Rationale: a line limit is only safe if the worst lines survive it.
+- Spec sections: §11.3, §13.2, §13.3.
+
+## VD-105 — `extract` follows the tokenizer, and refuses several documents
+- Date: 2026-11-05 · Task: 12
+- Context: a document's text may spell `<script type='application/vui+json'>`, since JSON keeps single quotes, and a comment or `<template>` can hide one. §10.1 calls the file the single source of truth.
+- Decision: `findDocuments` is a scanner over the HTML tokenizer's states: comments, bogus comments, quoted attributes, raw-text and RCDATA elements, and the script-data states with both escaped ones. It builds no DOM, and the rule is the boot script's selector, outside `template`. Several documents exit 2 and name their lines: a CLI file holds exactly one, and picking the first would lose content silently, while a selecting flag is not in the spec. None, or bad embedded text, also exit 2, with the line and column in the file; `too-deep` exits 3. Input over 500 KiB exits 3, since no CLI file is larger. `extract` takes stdin too, by the task's acceptance, though §11.1 writes `<file.html>`. `ui-spec`'s parser reads the text, so a relaxed document in a CDN file works, and no escape is ever undone by a text replacement.
+- Not done: character references in a `type` attribute, and an SVG `script`. Both only change the answer on a hand-crafted file, to a clean exit 2 or a document the boot script also finds.
+- Rationale: a text search would be wrong on the CLI's own output, for a document that merely mentions a script tag.
+- Spec sections: §10.1, §10.2, §11.1, §15.1.
+
+## VD-106 — Stdin and closed pipes
+- Date: 2026-11-05 · Task: 12
+- Context: each must do something defined, and an agent's shell usually has a terminal on stdin.
+- Decision: a TTY stdin is a usage error, for `-` as well as for no file, because waiting there hangs an agent forever. A closed stdin reaches Node as `/dev/null`, so it behaves as an empty one, which is a parse error at line 1, exit 2. Reading stops one byte past the limit, so a huge input costs no memory. `EPIPE` on stdout is the reader's choice: nothing is printed and the exit code stays what the command computed, so `vui validate bad | head` is still a failure of `validate`. Any other stdout error is exit 5. `bin` sets `process.exitCode` and never calls `process.exit`, so a large write drains. Invalid UTF-8 decodes to U+FFFD and fails in the parser.
+- Rationale: nothing hangs, nothing prints a stack, and no result changes meaning because of who is reading.
+- Spec sections: §11.1, §11.4, §16.
+
+## VD-107 — What reaches a terminal
+- Date: 2026-11-05 · Task: 12
+- Context: `Diagnostic.path` is raw (VD-041), and `JSON.stringify` leaves C1 controls raw, where U+009B is a terminal's CSI.
+- Decision: `safe` escapes `\p{Cc}`, `\p{Cf}`, `\p{Zl}` and `\p{Zp}` in every human line that holds input-derived text, including a bidi control, which would misreport a location. VD-057's pass-through covers rendered text, not locations. `safeJson` also writes U+007F to U+009F as `\uXXXX`, on `--json` and `extract`. The value is the same. U+2028 and U+2029 stay raw there, so `extract` prints exactly `JSON.stringify(canonical)` for any document without C1 controls. `render --format md|text` already passes `cleanValue`. HTML output is the file's content, not a message.
+- Rationale: an escape keeps the information and takes away the effect.
+- Spec sections: §11.3, §13.2, §15.1.
+
+## VD-108 — The visual file
+- Date: 2026-11-05 · Task: 12
+- Context: §10.1 fixes the layout, and §15.1 lists what to escape in the embedded JSON. `<title>` and the generator `<meta>` are HTML contexts.
+- Decision: `</` becomes `<\/`, `<!--` becomes `<!--`, and the two separators become ` ` and ` `. All are JSON escapes, in one pass with a replacer function on serialized JSON, and everything else is plain concatenation, so `$&` is inert. `<title>` runs `cleanText` and then entity escaping, with `vadd-ui` when there is no title or a mistyped one, which only warns. `<html lang>` is the language subtag of `locale`, 2 or 3 letters, or else `en`: the default gives §10.1's literal `lang="en"`, and a Ukrainian document is not declared English (§15.2). `--cdn` writes §10.2's template, byte for byte. The 500 KiB limit applies to every `render` format, stdout included, measured on the final bytes, and it is separate from §13.4's 256 KiB on the document. `--out` does not create directories, so a missing one is exit 5, as §11.4 says.
+- Rationale: each context gets its own escaping, and no value is ever read as a pattern.
+- Spec sections: §10.1, §10.2, §11.4, §13.4, §15.1, §15.2.
+
+## VD-109 — Stamping
+- Date: 2026-11-05 · Task: 12
+- Context: §17.2 says `meta` records which renderer was inlined. A document can carry its own `meta`, and the stamp adds bytes after `validateText` has measured.
+- Decision: `prepare` is the one path from text to a stamped document, used by `validate` and `render`, so neither passes what the other refuses. `meta.generator` is `vadd-ui` and `meta.version` is `@vadd/ui`'s version. They replace a document's claim, and other keys stay. A `meta` that is not an object only warns, and is replaced, since a string would spread into characters. The stamped form is measured again against `LIMITS.inputBytes`, so an `extract` output always validates. `generatedAt` comes from an injected clock, which is `Io.now`, not a flag, and applies only to an absent key.
+- Rationale: a stamp a document can forge records nothing.
+- Spec sections: §5.2, §13.4, §17.2.
+
+## VD-110 — `catalog` lives at `@vadd/ui-spec/catalog`
+- Date: 2026-11-05 · Task: 12
+- Context: the data belongs in `ui-spec`, and the bundle had 559 bytes of gzip margin.
+- Decision: a second entry that `index.ts` does not import. Field names, types and presence come from `SHAPES` and defaults from `COMPONENT_DEFAULTS`, so they cannot drift. The group, the §6 purpose and a minimal example are written by hand, and a test validates each example with zero diagnostics. Unlike the schema, this entry shows sub-shapes such as `Column` flat, and tags chart fields with their kinds. `suggest` is exported from this entry too, so the CLI needs no second edit distance. In the bundle, the catalog adds 0 bytes.
+- Rationale: an agent's reference must not cost a browser anything.
+- Spec sections: §9.5, §11.1, §12.
+
+## VD-111 — `ui-text` output changes from VD-096
+- Date: 2026-11-05 · Task: 12
+- Context: the two gaps between renderers VD-096 left for this task.
+- Decision: `ui-text` now follows the DOM. A `tree` with no item in `items` prints `paths`, through a shared `treeSource`. A date-only `timeline.at` prints as written, through a shared `isIsoTime`. Six corpus snapshots changed, each from `Nov 4, 2026, 12:00 AM UTC` to `2026-11-04`. The readers cost 19 bytes of gzip.
+- Rationale: two renderers, one reading.
+- Spec sections: §6.5, §7.

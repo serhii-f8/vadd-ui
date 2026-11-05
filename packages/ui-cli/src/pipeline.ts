@@ -1,5 +1,13 @@
 import { version } from '@vadd/ui'
-import { type Diagnostic, isLimitCode, LIMITS, type VuiDocument, validateText } from '@vadd/ui-spec'
+import {
+  type Diagnostic,
+  isJsonObject,
+  isLimitCode,
+  type JsonValue,
+  LIMITS,
+  type VuiDocument,
+  validateText,
+} from '@vadd/ui-spec'
 import { EXIT, type ExitCode } from './outcome.js'
 
 export const GENERATOR = 'vadd-ui'
@@ -25,7 +33,9 @@ export function exitCodeOf(diagnostics: readonly Diagnostic[], strict = false): 
 
 /** §17.2: these record what the CLI inlined, so they replace what a document claims. */
 function stamped(document: VuiDocument): VuiDocument {
-  return { ...document, meta: { ...document.meta, generator: GENERATOR, version } }
+  // A mistyped `meta` is only a `warn` (§13.3), and a string must not spread into characters.
+  const meta = isJsonObject(document.meta as JsonValue | undefined) ? document.meta : {}
+  return { ...document, meta: { ...meta, generator: GENERATOR, version } }
 }
 
 export function inputTooLarge(): Diagnostic {

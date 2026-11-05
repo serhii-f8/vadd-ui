@@ -105,6 +105,12 @@ describe('inlineHtml', () => {
     expect(inline()).toContain('<title>vadd-ui</title>')
   })
 
+  it('falls back when a warning let a mistyped title or locale through', () => {
+    const html = inline({ title: 5, locale: 5 })
+    expect(html).toContain('<title>vadd-ui</title>')
+    expect(html).toContain('<html lang="en">')
+  })
+
   it('escapes the generator attribute', () => {
     const html = inlineHtml(doc(), { bundle: '', generator: 'a"><script>' })
     expect(html).toContain('<meta name="generator" content="a&quot;&gt;&lt;script&gt;">')

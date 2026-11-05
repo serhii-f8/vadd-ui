@@ -144,6 +144,21 @@ describe('render', () => {
     expect((await vui(['render', '--format', format, '--cdn'], { stdin: CLEAN })).exit).toBe(2)
   })
 
+  it.each([
+    ['title', '{"title":5,"body":[]}'],
+    ['subtitle', '{"subtitle":5,"body":[]}'],
+    ['locale', '{"locale":5,"body":[]}'],
+    ['density', '{"density":7,"body":[]}'],
+    ['generatedAt', '{"generatedAt":5,"body":[]}'],
+    ['meta', '{"meta":"str","body":[]}'],
+  ])('survives a mistyped %s, which only warns', async (_, stdin) => {
+    for (const format of ['html', 'md', 'text']) {
+      const { exit, stderr } = await vui(['render', '--format', format], { stdin })
+      expect(exit).toBe(0)
+      expect(stderr).toMatch(/^warn /)
+    }
+  })
+
   it('prints warnings to stderr and still writes', async () => {
     const { exit, stdout, stderr } = await vui(['render', '--format', 'text'], { stdin: WARN })
     expect(exit).toBe(0)

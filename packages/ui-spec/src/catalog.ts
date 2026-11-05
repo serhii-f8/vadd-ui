@@ -206,7 +206,7 @@ function typeOf(rule: Rule): string {
     case 'enum':
       return rule.values.join('|')
     case 'array':
-      return `${typeOf(rule.items)}[]`
+      return rule.items.kind === 'oneOf' ? `(${typeOf(rule.items)})[]` : `${typeOf(rule.items)}[]`
     case 'tuple': {
       const items = rule.items.map((item, index) => {
         return `${typeOf(item)}${index < rule.min ? '' : '?'}`

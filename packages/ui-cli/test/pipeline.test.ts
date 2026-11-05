@@ -62,6 +62,12 @@ describe('prepare', () => {
     })
   })
 
+  it.each([['"str"'], ['5'], ['[1]'], ['null']])('replaces a meta of %s', (meta) => {
+    const { document, diagnostics } = prepare(`{"meta":${meta},"body":[]}`, NOW)
+    expect(diagnostics[0]?.code).toBe('bad-type')
+    expect(document?.meta).toEqual({ generator: GENERATOR, version })
+  })
+
   it('stamps a document with warnings', () => {
     const { document, diagnostics } = prepare(
       '{"body":[{"type":"list","items":[{"text":"a","status":"passed"}]}]}',
