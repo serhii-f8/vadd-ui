@@ -1,15 +1,18 @@
 import {
   type CheckItem,
   type ComponentType,
+  diffEntries,
   hasOwn,
   isJsonObject,
+  itemsFromPaths,
   type JsonValue,
-  LIMITS,
   type ListItem,
   type ListNode,
   type PlanItem,
   parseInline,
+  planCounts,
   type TreeItem,
+  tailLines,
   type VuiNode,
 } from '@vadd/ui-spec'
 import {
@@ -60,12 +63,9 @@ function checkEntry(item: CheckItem, context: Context): Entry {
   if (item.cmd !== undefined) tokens.push(text(' '), code(item.cmd))
   if (item.ms !== undefined) tokens.push(text(` — ${format(item.ms, 'ms', context).text}`))
   if (item.output === undefined) return { text: tokens }
-  const lines = item.output.replace(/\n$/, '').split('\n')
-  const hidden = lines.length - CHECK_OUTPUT_LINES
-  const shown =
-    hidden > 0
-      ? [`… ${hidden} earlier line${hidden === 1 ? '' : 's'}`, ...lines.slice(hidden)]
-      : lines
+  const { earlier, last } = tailLines(item.output, CHECK_OUTPUT_LINES)
+  const hidden = earlier.length
+  const shown = hidden > 0 ? [`… ${hidden} earlier line${hidden === 1 ? '' : 's'}`, ...last] : last
   return { text: tokens, blocks: [codeBlock(shown.join('\n'))] }
 }
 
@@ -78,16 +78,6 @@ function planEntries(items: PlanItem[]): Entry[] {
   })
 }
 
-function planCounts(items: PlanItem[]): [done: number, total: number] {
-  return items.reduce<[number, number]>(
-    ([done, total], item) => {
-      const [innerDone, innerTotal] = planCounts(item.children ?? [])
-      return [done + (item.status === 'ok' ? 1 : 0) + innerDone, total + 1 + innerTotal]
-    },
-    [0, 0],
-  )
-}
-
 function treeEntries(items: TreeItem[]): Entry[] {
   return items.map((item) => {
     const entryText = led(statusMark(item.status), withNote([text(item.name)], item.note))
@@ -95,33 +85,6 @@ function treeEntries(items: TreeItem[]): Entry[] {
       ? { text: entryText }
       : { text: entryText, blocks: [list(treeEntries(item.children))] }
   })
-}
-
-type PathTrie = Map<string, PathTrie>
-
-function trieItems(trie: PathTrie): TreeItem[] {
-  return Array.from(trie, ([name, children]) => ({ name, children: trieItems(children) }))
-}
-
-/** §13.4 cannot see nesting that comes from a path, so the cap on it is applied here. */
-function segmentsOf(path: string): string[] {
-  const parts = path.split('/').filter((part) => part !== '')
-  if (parts.length <= LIMITS.depth) return parts
-  const last = LIMITS.depth - 1
-  return [...parts.slice(0, last), parts.slice(last).join('/')]
-}
-
-function itemsFromPaths(paths: string[]): TreeItem[] {
-  const root: PathTrie = new Map()
-  for (const path of paths) {
-    let node = root
-    for (const segment of segmentsOf(path)) {
-      const child: PathTrie = node.get(segment) ?? new Map()
-      node.set(segment, child)
-      node = child
-    }
-  }
-  return trieItems(root)
 }
 
 function listEntry(item: ListNode['items'][number]): Entry {
@@ -278,30 +241,20 @@ const RENDERERS: Renderers = {
     const [done, total] = planCounts(node.items)
     return [para([text(`${done}/${total} done`)]), list(planEntries(node.items))]
   },
-  diff: (node) => {
-    const hunks = node.hunks ?? {}
-    const paths = new Set(node.files.map(([path]) => path))
-    const entries = node.files.map(([path, added, removed, change]): Entry => {
-      const tokens: Inline = [
-        ...(change === undefined ? [] : [text(`${change} `)]),
-        code(path),
-        text(` +${added} −${removed}`),
-      ]
-      const hunk = hasOwn(hunks, path) ? hunks[path] : undefined
-      return hunk === undefined
-        ? { text: tokens }
-        : { text: tokens, blocks: [codeBlock(hunk, 'diff')] }
-    })
-    const orphans = Object.entries(hunks)
-      .filter(([path]) => !paths.has(path))
-      .map(
-        ([path, hunk]): Entry => ({
-          text: [code(path)],
-          blocks: [codeBlock(hunk, 'diff')],
-        }),
-      )
-    return [list([...entries, ...orphans])]
-  },
+  diff: (node) => [
+    list(
+      diffEntries(node.files, node.hunks).map(({ path, added, removed, change, hunk }): Entry => {
+        const tokens: Inline = [
+          ...(change === undefined ? [] : [text(`${change} `)]),
+          code(path),
+          ...(added === undefined ? [] : [text(` +${added} −${removed}`)]),
+        ]
+        return hunk === undefined
+          ? { text: tokens }
+          : { text: tokens, blocks: [codeBlock(hunk, 'diff')] }
+      }),
+    ),
+  ],
   tree: (node) => [list(treeEntries(node.items ?? itemsFromPaths(node.paths ?? [])))],
   timeline: (node, context) => [
     list(

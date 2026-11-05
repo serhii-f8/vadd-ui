@@ -1,5 +1,13 @@
 export { CHART_LABELS } from './chart-labels.js'
 export {
+  cleanText,
+  type DiffEntry,
+  diffEntries,
+  itemsFromPaths,
+  planCounts,
+  tailLines,
+} from './dev-view.js'
+export {
   clip,
   type Diagnostic,
   type DiagnosticCode,
