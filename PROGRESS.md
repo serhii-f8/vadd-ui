@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T16:50:31Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T20:33:21Z · Mode: manual
 
 ## Summary
-Done 11 / 22 · In progress: none · Blocked: none · Next: 12 — CLI core
+Done 12 / 22 · In progress: none · Blocked: none · Next: 13 — Viewer server
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -39,7 +39,7 @@ Recorded 2026-11-04 during bootstrap.
 | 09 | Charts | §6.4, §9.4, §15.2 | 08 | done | removed | ctx_c8b1959577eb | [design](docs/superpowers/specs/2026-11-05-charts-design.md) | [plan](docs/superpowers/plans/2026-11-05-charts.md) | f14dde8 | 2026-11-05 |
 | 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | done | removed | ctx_b15f10f3a930 | [design](docs/superpowers/specs/2026-11-05-dev-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-dev-components.md) | 2c3edaf | 2026-11-05 |
 | 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | done | removed | ctx_82df097ce3f9 | [design](docs/superpowers/specs/2026-11-05-ui-bundle-design.md) | [plan](docs/superpowers/plans/2026-11-05-ui-bundle.md) | 4bead43 | 2026-11-05 |
-| 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | todo | | | | | | |
+| 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | done | removed | ctx_6cbdfd5d1778 | [design](docs/superpowers/specs/2026-11-05-cli-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-cli-core.md) | d7d6c61 | 2026-11-05 |
 | 13 | Viewer server | §4.1, §15.3 | 11 | todo | | | | | | |
 | 14 | Viewer feed app | §4.1 | 13 | todo | | | | | | |
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | todo | | | | | | |
@@ -168,3 +168,14 @@ none
 - Not tested: Firefox and WebKit (§17.4). The Playwright config runs Chromium only; task 21's host matrix should take this.
 - Corrections to worker notes: `ui-react` is task 18, not task 19. `vui show` is task 15, and the viewport meta belongs to the HTML it and task 16 write, not to task 13.
 - Follow-ups: every later change to `ui-render` or `ui-spec` draws on 0.55 KiB gzip. VD-089's reserve is unspent: property mangling and a `ui-spec` cut. Tasks 12 and 17 still have the VD-096 items. Tasks 15 and 16: viewport meta (VD-098). Task 18: in a shadow root the reveal runs but the browser does not jump (VD-100). Task 20: VD-088. Opening a page at `#id` does not reveal a hidden target (VD-100).
+
+### 12 — CLI core
+- Built: `vui render`, `validate`, `catalog`, `schema` and `extract` in `packages/ui-cli`, with `--json` on every path through one `Outcome`; a hand-written HTML tokenizer scanner for `extract`; §10.1 and §10.2 output; `@vadd/ui-spec/catalog`, a second entry the bundle never imports. `ui-text` follows the DOM for `tree` paths and date-only `timeline` values (VD-096).
+- Decisions: VD-103 to VD-111, no DEVIATION. VD-104 amends VD-039: `DiagnosticLog` keeps up to 2,000 entries when they are errors, so an error past 1,000 warnings still has a line to fix; three `ui-spec` tests changed for it, and the bound stays small. VD-111 changes six `ui-text` corpus snapshots from `Nov 4, 2026, 12:00 AM UTC` to `2026-11-04`. Worker calls with no spec text behind them: usage errors exit 2, `--out -` means stdout, several documents in one file exit 2.
+- Evidence (coordinator rerun on `main` at d7d6c61): `pnpm gate` exit 0. Vitest 72 files, 6,101 tests. Playwright 363 tests. Banned-API check clean on 71 source files and 2 built files. `check-bundle-size: 109.9 KiB minified, 37.5 KiB gzip`. Coverage: lines 99.86% (3636/3641), statements 99.47%, branches 97.75%. Spec hash unchanged; the only `package.json` changes are `bin` and the `./catalog` export.
+- Bundle: worker figures 112,505 bytes minified and 38,384 gzip, up 31 bytes gzip, margin 528 bytes. `catalog` adds 0 bytes.
+- Coordinator probes on the real `dist/bin.js`: a document holding `$&`, `</script>`, `<!--`, U+2028, U+2029, `<\/` and a literal ` ` round-tripped through `render --format html` and `extract` with its text equal, and the inlined bundle is byte-identical. Terminal escapes in a title, type and `meta` key left no raw ESC or C1 byte on stdout, in human or `--json` output. Exit codes reproduced: 0; 1 validation; 2 parse, usage, empty file, `/dev/null` stdin and UTF-16; 3 over the input limit; 5 missing file and missing `--out` directory. `--json` was valid on the failures tried. `catalog --json` lists 24. CRLF and BOM input pass. Mutants on d16e52e, each failing 1 to 9 tests: no `</` escape, no `<!--` escape, no separator escape, limit at `>=`, no error-first sort, no limit exit. My first separator mutant did not apply; the rerun failed 3 tests.
+- Worker evidence, not rerun: exact 500 KiB and 256 KiB edges (512,000/512,001 and 262,144/262,145); full corpus through the real `bin`; `pnpm pack` plus `npm install` outside the repo; a hostile document inert in Chromium in both schemes at three widths and in the Orca pane; 20 lines then a count.
+- Review: fresh reviewer found no Critical issues and 2 Important, both fixed red then green: an error hidden past 1,000 warnings, and raw C1 controls in HTML on stdout. The worker's own probes found 2 more: `title: 5` crashed html output, and a string `meta` spread into characters. Declined: tracking SVG foreign content in `extract` (VD-105); escaping `Cf`, `Zl`, `Zp` in `safeJson`, which breaks byte equality for joined emoji (VD-107); the `and N more` count may include hidden `info` (VD-104).
+- Not tested: native Windows and macOS, including PowerShell's UTF-16 pipes, which should exit 2 with a clear message by reasoning only, and closed stdin there. Task 21 owns the host matrix.
+- Follow-ups: task 15 adds `show`, `viewer` and `doctor` to the unknown-command list and reuses `prepare` and `renderOutput`; `bench` is task 19. Tasks 15 and 16: viewport meta (VD-098). Task 17: tell agents to send the tail of long output (VD-096). 528 bytes of bundle margin remain.
