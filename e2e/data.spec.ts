@@ -199,16 +199,16 @@ test.describe('fills', () => {
     expect(share).toBeCloseTo(0.25, 2)
   })
 
-  test('a spark column is as high as its share', async ({ page }) => {
+  test('a spark line fills its tile and its height', async ({ page }) => {
     const input = [{ type: 'stats', items: [{ label: 'L', value: 1, spark: [0, 25, 100] }] }]
     const { frame } = await open(page, input)
-    const heights = await frame.evaluate(() =>
-      [...document.querySelectorAll('.vui-spark-col')].map(
-        (col) => col.getBoundingClientRect().height,
-      ),
-    )
-    expect((heights[1] as number) / (heights[2] as number)).toBeCloseTo(0.25, 1)
-    expect(heights[0]).toBeGreaterThan(0)
+    const sizes = await frame.evaluate(() => {
+      const line = document.querySelector('.vui-spark path') as SVGGraphicsElement
+      const box = line.getBoundingClientRect()
+      return { line: box.width, height: box.height, room: line.closest('dd')?.clientWidth ?? 0 }
+    })
+    expect(sizes.line).toBeCloseTo(sizes.room, -1)
+    expect(sizes.height).toBeGreaterThan(10)
   })
 
   test('no element in a data document has a style attribute', async ({ page }) => {

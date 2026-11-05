@@ -25,6 +25,91 @@ const cards = (count: number) =>
     children: [],
   }))
 
+const DAYS = Array.from(
+  { length: 30 },
+  (_, index) => `2026-10-${String(index + 1).padStart(2, '0')}`,
+)
+const wave = (scale: number, shift: number) =>
+  DAYS.map((_, index) => Math.round(scale * (2 + Math.sin(index / 3 + shift))))
+const QUARTERS = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026']
+const SLO = { y: 100, label: 'SLO', tone: 'err' }
+
+/** Each kind gets its own baselines; `chart-line` is §19.3's chart. */
+function chartScenes(): Scene[] {
+  const bar = {
+    x: QUARTERS,
+    series: { Web: [120, 180, 95, 88, 140, 210], Native: [80, 60, 110, 130, 90, 75] },
+  }
+  const kinds: [string, Record<string, unknown>][] = [
+    ['bar', { title: 'Calls per quarter', yFormat: 'compact', refLines: [SLO], ...bar }],
+    [
+      'hbar',
+      {
+        title: 'Slowest queries',
+        yFormat: 'ms',
+        x: ['listProducts', 'getVariant', 'searchSku', 'a-very-long-query-name-for-the-axis'],
+        series: { p95: [84, 61, 212, 1340] },
+        refLines: [{ y: 500, label: 'Budget', tone: 'warn' }],
+      },
+    ],
+    ['stacked', { title: 'Calls by client', stackTotal: true, height: 'lg', ...bar }],
+    [
+      'line',
+      {
+        title: 'Query latency',
+        yFormat: 'ms',
+        x: ['10:00', '10:05', '10:10', '10:15', '10:20'],
+        series: { p50: [42, 40, 45, 41, 39], p95: [120, 180, 95, 88, 84] },
+        refLines: [SLO],
+      },
+    ],
+    [
+      'area',
+      {
+        title: 'Traffic',
+        yFormat: 'bytes',
+        x: DAYS,
+        series: { In: wave(4096, 0), Out: wave(2048, 2) },
+      },
+    ],
+    [
+      'donut',
+      {
+        title: 'Hit rate by store',
+        x: ['Warsaw', 'Kyiv', 'Berlin', 'Lisbon', 'Oslo'],
+        series: { Hits: [420, 310, 180, 90, 60] },
+      },
+    ],
+    ['spark', { title: 'Trend', values: wave(10, 1) }],
+  ]
+  const scenes: Scene[] = kinds.map(([kind, fields]) => ({
+    name: `chart-${kind}`,
+    input: [{ type: 'chart', kind, ...fields }],
+  }))
+  const many = Object.fromEntries(
+    Array.from({ length: 12 }, (_, index) => [`Series ${index + 1}`, wave(5 + index, index / 2)]),
+  )
+  const firstSix = Object.fromEntries(
+    Object.entries(many).map(([name, values]) => [name, values.slice(0, 6)]),
+  )
+  scenes.push({
+    name: 'chart-palette',
+    input: [
+      {
+        type: 'chart',
+        kind: 'line',
+        title: 'Twelve series',
+        height: 'sm',
+        legend: 'none',
+        x: DAYS,
+        series: many,
+      },
+      { type: 'chart', kind: 'bar', title: 'Twelve series', x: DAYS.slice(0, 6), series: firstSix },
+    ],
+  })
+  return scenes
+}
+
 export const SCENES: Scene[] = [
   {
     name: 'document',
@@ -408,4 +493,5 @@ export const SCENES: Scene[] = [
       },
     ],
   },
+  ...chartScenes(),
 ]

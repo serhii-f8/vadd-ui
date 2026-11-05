@@ -11,8 +11,17 @@ const kvColumns = [1, 2, 3]
   )
   .join('')
 
+// §6.4, §8.2: the palette, then the same hues fainter. Marks and swatches read one variable.
+const seriesColors = Array.from({ length: 12 }, (_, index) => {
+  const token = `var(--vui-chart-${(index % 5) + 1})`
+  const share = [100, 60, 35][Math.floor(index / 5)]
+  const color = share === 100 ? token : `color-mix(in srgb,${token} ${share}%,transparent)`
+  return `.vui-root [data-vui-series="${index + 1}"]{--vui-tone-line:${color}}`
+}).join('')
+
 export const dataCss = `
 ${fillScale}
+${seriesColors}
 .vui-track{display:flex;gap:1px;height:.5em;overflow:hidden;border-radius:999px;background:var(--vui-muted)}
 .vui-fill{display:block;width:var(--vui-fill);background:var(--vui-tone-line,var(--vui-primary))}
 .vui-table-box{position:relative;min-width:0;overflow-x:auto;container-type:inline-size;border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}
@@ -70,8 +79,28 @@ ${kvColumns}
 .vui-stat-value{font-size:1.5em;font-variant-numeric:tabular-nums;font-weight:600;line-height:1.2}
 .vui-stat-delta{font-size:.86em;font-variant-numeric:tabular-nums}
 .vui-stat-spark{margin-block-start:var(--vui-space-1)}
-.vui-spark{display:flex;align-items:flex-end;gap:1px;height:1.5em}
-.vui-spark-col{flex:1;min-width:1px;max-width:8px;min-height:2px;height:var(--vui-fill);background:var(--vui-tone-line,var(--vui-chart-1))}
+.vui-spark{display:block;height:1.5em}
+.vui-spark svg{display:block;overflow:visible}
+.vui-chart{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0}
+.vui-chart-plot{position:relative}
+.vui-chart-plot svg{display:block}
+.vui-chart-hit{position:absolute;inset:0}
+.vui-chart-plot .vui-sr-only{top:0}
+.vui-chart text{fill:var(--vui-muted-fg);font-size:11px}
+.vui-chart .vui-chart-total{fill:var(--vui-surface-fg)}
+.vui-chart .vui-chart-ref-label{fill:var(--vui-tone-text)}
+.vui-chart path,.vui-chart circle,.vui-spark path{fill:none}
+.vui-chart .vui-chart-bar,.vui-chart .vui-chart-area{fill:var(--vui-tone-line)}
+.vui-chart .vui-chart-area{fill-opacity:.2}
+.vui-chart-line{stroke:var(--vui-tone-line,var(--vui-chart-1));stroke-width:2;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.vui-chart-slice,.vui-chart-ref{stroke:var(--vui-tone-line)}
+.vui-chart-grid{stroke:var(--vui-border)}
+.vui-chart-ref{stroke-dasharray:4 3}
+.vui-chart-tip{position:absolute;top:0;left:var(--vui-fill);z-index:2;width:max-content;max-width:max(50%,10em);padding:var(--vui-space-1) var(--vui-space-2);border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg);font-size:.86em;pointer-events:none}
+.vui-chart-tip[data-vui-end]{transform:translateX(-100%)}
+.vui-chart-tip-row{display:flex;align-items:baseline;gap:.3em;font-variant-numeric:tabular-nums}
+.vui-chart-tip-row b{margin-inline-start:auto}
+.vui-chart[data-vui-kind="spark"]{width:8em}
 .vui-list{display:flex;flex-direction:column;gap:var(--vui-space-1);margin:0;padding-inline-start:1.5em}
 ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-progress{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0}

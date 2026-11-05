@@ -99,9 +99,12 @@ describe('stats', () => {
     expect(box.querySelector('.vui-stat .vui-sr-only')).toBeNull()
   })
 
-  it('scales a spark to its range', () => {
+  it('draws a spark as one line, the same path a spark chart draws', () => {
     const box = tiles({ spark: [10, 15, 20] })
-    expect(fills(box, '.vui-spark-col')).toEqual(['0', '50', '100'])
+    const { box: chart } = show([{ type: 'chart', kind: 'spark', values: [10, 15, 20] }])
+    const path = box.querySelector('.vui-spark path')?.getAttribute('d')
+    expect(path).toBe('M0 23L50 12L100 1')
+    expect(chart.querySelector('path[data-vui-series]')?.getAttribute('d')).toBe(path)
   })
 
   it('describes a spark in words', () => {
@@ -119,13 +122,17 @@ describe('stats', () => {
   })
 
   it('sets a flat spark at mid height', () => {
-    expect(fills(tiles({ spark: [5, 5] }), '.vui-spark-col')).toEqual(['50', '50'])
+    const path = tiles({ spark: [5, 5] })
+      .querySelector('.vui-spark path')
+      ?.getAttribute('d')
+    expect(path).toBe('M0 12L100 12')
   })
 
-  it('samples a long spark at most 40 columns', () => {
-    const box = tiles({ spark: Array.from({ length: 1000 }, (_, index) => index) })
-    expect(all(box, '.vui-spark-col').length).toBeLessThanOrEqual(40)
-    expect(box.querySelector('.vui-spark')?.getAttribute('aria-label')).toContain('1,000 points')
+  it('keeps a long spark to what a line can show', () => {
+    const box = tiles({ spark: Array.from({ length: 5000 }, (_, index) => index) })
+    const path = box.querySelector('.vui-spark path')?.getAttribute('d')
+    expect(path?.match(/L/g)).toHaveLength(999)
+    expect(box.querySelector('.vui-spark')?.getAttribute('aria-label')).toContain('5,000 points')
   })
 
   it('skips an empty spark', () => {
