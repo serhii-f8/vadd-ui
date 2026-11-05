@@ -36,6 +36,26 @@ export function toneClass(tone: Tone): string {
   return TONE_CLASSES[tone]
 }
 
+// VD-051's marks, with a word for the tones that have one. `muted`, `accent` and `default`
+// mean nothing, so color tells nothing that a mark should repeat.
+const TONE_MARKS: Partial<Readonly<Record<Tone, readonly [string, string]>>> = {
+  ok: ['✓', 'ok'],
+  warn: ['⚠', 'warning'],
+  err: ['✗', 'error'],
+  info: ['ℹ', 'info'],
+}
+
+/** §15.2: what a node's tone says, without color. */
+export function toneMark(tone: Tone): HTMLElement | null {
+  const mark = TONE_MARKS[tone]
+  if (mark === undefined) return null
+  const [glyph, word] = mark
+  return el('span', { class: 'vui-node-mark' }, [
+    el('span', { 'aria-hidden': 'true' }, glyph),
+    el('span', { class: 'vui-sr-only' }, word),
+  ])
+}
+
 /** §15.2: an icon and a text label, so a status never rests on color alone. */
 export function statusBadge(status: Status): HTMLElement {
   return el('span', { class: `vui-status ${toneClass(STATUS_TONES[status])}` }, [

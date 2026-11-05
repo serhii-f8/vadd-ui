@@ -1,5 +1,9 @@
+import { COMPONENTS } from '../src/components/index.js'
 import type { Registry } from '../src/context.js'
 import { el } from '../src/el.js'
+import { createRenderer } from '../src/renderer.js'
+
+const realRender = createRenderer(COMPONENTS)
 
 export function target(): HTMLElement {
   const element = document.createElement('div')
@@ -7,7 +11,7 @@ export function target(): HTMLElement {
   return element
 }
 
-/** Enough of `stack` and `md` to give the core a tree. Real ones arrive in task 07. */
+/** Enough of `stack` and `md` to test the core without the catalog. */
 export const testRegistry: Registry = new Map([
   ['md', { render: (node, ctx) => el('p', {}, ctx.inline(String(node.text))) }],
   [
@@ -18,3 +22,10 @@ export const testRegistry: Registry = new Map([
     },
   ],
 ])
+
+/** A render of `body` with the real catalog. */
+export function show(body: unknown[], fields: Record<string, unknown> = {}) {
+  const box = target()
+  const handle = realRender({ vui: 1, ...fields, body } as never, box)
+  return { box, handle }
+}

@@ -26,6 +26,7 @@ export {
 } from './inline.js'
 export { hasOwn, isJsonObject, type JsonObject, type JsonValue, setOwn } from './json.js'
 export { LIMITS } from './limits.js'
+export { type MdBlock, type MdItem, type MdList, parseMd } from './md-block.js'
 export {
   type NormalizeOptions,
   type NormalizeResult,

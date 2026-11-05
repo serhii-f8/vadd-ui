@@ -528,3 +528,60 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Note for the coordinator: §17.4 sets Chromium 110 and requires `color-mix()`, and as far as is known `color-mix()` arrived in Chromium 111 (not tested here). §8.1 mandates it, so at that floor tone tints and `--vui-*-text` would not resolve.
 - Rationale: fix what breaks isolation, memory or validity now, and keep component behavior in the component's own task.
 - Spec sections: §5.4, §9.3, §13.4, §15.2, §17.4.
+
+## VD-067 — The `md` parser moves to `ui-spec`
+- Date: 2026-11-05 · Task: 07
+- Context: VD-054 defines what `md` accepts, task 05 asks hosts to agree, and §3 gives `ui-render` no edge to `ui-text`.
+- Decision: `parseMd(text): MdBlock[]` moves to `ui-spec` with its behavior unchanged, and returns raw inline strings, so each host parses them with its own context. `ui-text`'s `mdBlocks` maps that tree to serializer blocks. Its snapshots and tests pass unchanged, which is the proof nothing moved.
+- Alternatives: a second copy in `ui-render`, which can drift; a new shared package, which §3 does not list.
+- Rationale: both hosts run one reader. VD-055 held back such a move for want of a second caller; here there is one. `ui-spec` gains a public export, and the parser touches no DOM.
+- Spec sections: §3, §6.2.
+
+## VD-068 — What `tone` draws on a node
+- Date: 2026-11-05 · Task: 07
+- Context: §5.4 says "frame or accent", leaving it open. §15.2 forbids conveying tone by color alone.
+- Decision: the frame draws it, so every component has a tone with no code of its own. Any tone but `default` draws a 3 px inline-start bar. `ok`, `warn`, `err` and `info` also draw a mark in the gutter: VD-051's glyph, `aria-hidden`, plus a visually hidden word (`ok`, `warning`, `error`, `info`). `muted`, `accent` and `default` mean nothing, so no mark, as in VD-051. `card` makes the bar its whole border, and `callout` adds a 12% tint. Lines use a new `--vui-tone-line`, because `--vui-accent` is a background and vanishes as a line: it is `--vui-primary` for `accent`. `Component.tone` gives a default the frame applies when the node has none, since a drop can remove `callout`'s `info` (VD-060). Later components may override the bar in CSS through `[data-vui-type]`.
+- Alternatives: leave it per component, which repeats code and lets a component forget; a mark from CSS `content`, whose alt-text syntax is past the §17.4 floors.
+- Rationale: one rule, and no tone rests on color alone.
+- Spec sections: §5.4, §8.1, §15.2.
+
+## VD-069 — `grid` collapses by its own width, and spans clamp
+- Date: 2026-11-05 · Task: 07
+- Context: §6.1 and §8.4 say "under 480 px" without saying of what. §5.4 gives `span` 1–12 while `cols` stops at 6, and does not say what a span past the columns means. §6.1 says "auto by child count" and gives no table.
+- Decision: a `@container` query on a box around the grid, so the Viewer feed, a VADD sidebar and a nested grid collapse by the room they have. Under 480 px of that width there is one column and spans are off. A span is the number of columns, clamped to `cols` by rewriting the child's `data-vui-span`, since `grid-column: span 7` in three columns invents tracks. Auto: 1–3 children give that many columns, 4 gives 2, 5–6 give 3, more give 4, none gives 1. A bad `cols` goes auto.
+- Alternatives: a media query, which is wrong in a narrow column of a wide window; reading `span` as twelfths, which `cols` rules out.
+- Rationale: `@container` is inside every §17.4 floor. A grid in a wide window but a narrow cell now collapses, which is the point of the rule.
+- Spec sections: §5.4, §6.1, §8.4, §17.4.
+
+## VD-070 — `tabs`: every tab in the Tab order, and no element ids
+- Date: 2026-11-05 · Task: 07
+- Context: the ARIA practice is a roving `tabindex`, with `aria-controls` by id. §15.2 says tabs are buttons "keyboard reachable in DOM order". Generated ids collide when two renders share a page.
+- Decision: native buttons with `role="tab"`, all in the Tab order, as §15.2 reads. Arrows, Home and End also move and select, since a screen reader announces a tablist. Panels are named by `aria-label`, so no id is needed. Every panel is built and the inactive ones are `hidden`, so diagnostics and ids do not depend on the open tab. The index lives in `state`; if it is gone after `update`, `active` applies, then 0. `label` is plain text: rules type it `string`, `ui-text` prints it as text, and a link cannot sit in a button. An empty list draws nothing.
+- Alternatives: roving `tabindex`, which conflicts with §15.2; lazy panels, which would change diagnostics by tab.
+- Rationale: the spec's wording wins, and the arrows cost little. A `#id` link into a hidden tab or a closed fold goes nowhere for now.
+- Spec sections: §6.1, §9.3, §15.2.
+
+## VD-071 — `code`: fold in place, wrap lines, and the copy chain
+- Date: 2026-11-05 · Task: 07
+- Context: §9.3 says `code` folds after `maxLines`, and gives the copy chain in prose. It does not say whether the first lines stay visible.
+- Decision: the first `maxLines` lines stay, then a toggle "N more lines", then the rest, in DOM order. `mark` and line numbers count across the whole text. Lines wrap, so no sideways scroller needs focus. Without `lines` and `mark` the body is one text node, the fast path for 20,000 chars. A marked line is a `<mark>` with a tint and a bar. Numbers are `aria-hidden` and not selectable, and the fold toggle is not selectable either, so a selection copies code only. Copy: `navigator.clipboard.writeText` of the exact `text`; then open the fold, select and `execCommand('copy')`; then the button says `Select text to copy` and the selection stays. `Copied` goes back to `Copy` after 1.5 s. A fence in `md` uses this block with the defaults, for §9.3 height safety. One trailing newline is not a line, as in `ui-text`.
+- Alternatives: fold the whole block, which hides even the first line; scroll sideways, which needs a focusable region.
+- Rationale: in Orca's real sandboxed frame the chain ended in `Copied` with every line selected, so step 2 works there; the frame cannot use the clipboard API.
+- Spec sections: §6.2, §9.3, §15.2.
+
+## VD-072 — Smaller calls in the layout and text components
+- Date: 2026-11-05 · Task: 07
+- Context: the spec leaves these open.
+- Decision: `stack` gaps are `--vui-space-2`, `-3` and `-4` for `sm`, `md` and `lg`, with `md` the default. In `md`, `###` takes the node's content level and `####` one deeper, capped at h6, so headings stay consistent under a title (§15.2, VD-065); `NodeContext` gains `level`. A `card`'s frame is its surface, so title and note sit inside. `divider` `label` is plain text, as in `ui-text`, on a `role="separator"` with `aria-label`. Code sits on `--vui-surface`, because `--vui-muted-fg` reaches only 4.34:1 on `--vui-muted`. Marked lines use `--vui-info`, which reads as a highlight and not a warning. A non-object tab is an `error`, so the node becomes a card; `tabs` only skips one past VD-066's cap.
+- Rationale: simplest choices that meet the spec.
+- Spec sections: §6.1, §6.2, §8.3, §15.2.
+
+## VD-073 — Task 07 review: exact copy, list numbers, CRLF, target width, declined findings
+- Date: 2026-11-05 · Task: 07
+- Context: a fresh review found no critical defects and four important ones, each reproduced: copy through the selection lost blank lines while saying `Copied`; CRLF text broke `md`; an ordered list always started at 1, so numbered steps split by a fence restarted; a `grid` in a shrink-to-fit target collapsed to 0 px, because `container-type` gives its box no intrinsic width.
+- Decision: `execCopy` writes the exact `text` in a one-shot `copy` listener; an e2e test confirms that inside Orca's sandboxed frame, blank lines and fold included. An empty line row holds a newline, so a reader's own selection keeps it. `parseMd` splits on `\r\n`, `\r` and `\n`. `MdList.start` keeps the first number when it is not 1, and `<ol start>` and both text outputs use it. This changes VD-054's "ordered lists renumber from 1": items still count up from the first marker, and later markers are ignored, so `3. a`, `5. b` prints 3 and 4. `.vui-root` is `box-sizing: border-box` and fills its containing block through `stretch` and its vendor forms, which keeps a target's margin and padding inside it, unlike `width: 100%`. Two minors were promoted, since each is one line: `mark` is a `Set`, because 50,000 marks turned a valid node into a budget card; tabs ignore arrows with Alt, Ctrl or Meta, which blocked browser Back.
+- Host requirement: a target or parent sized to its content must not set that width itself. A target with an explicit `width: fit-content`, or inside a shrink-to-fit parent, leaves `grid` no width to measure. The stylesheet cannot win there, and tasks 16 to 18 hosts must give the target a width.
+- Declined, as minors: a marked line in a closed fold gives no hint on the toggle. A copy rejection landing after `update` runs on the old DOM; it needs a slow rejection in that window. The toggle's focus ring is clipped by `overflow: hidden`. `###` and `####` share one size, and differ as `h3` and `h4`. A remembered tab index stays while out of range, so 3→2→3 tabs returns to it. A tone mark's glyph and word enter a reader's selection. A plain block's manual selection loses a blank line right at the fold; the copy button does not.
+- Also not fixed: a plain standalone page has no background from the renderer (§8.3), so on a dark OS its light text sits on the browser's white. The Orca shell paints its own. The standalone and CDN templates of §4.3 and §10.2 should set one; this was seen in the Orca browser pane with a bare test page.
+- Rationale: the four defects hit real input in real hosts. The rest change little for a reader, and all are reversible.
+- Spec sections: §4.3, §6.1, §6.2, §8.3, §8.4, §9.3, §10.2.

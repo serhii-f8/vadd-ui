@@ -3,20 +3,7 @@ import { el } from '../../packages/ui-render/src/el.js'
 import { statusBadge, toneClass } from '../../packages/ui-render/src/inline.js'
 import { STATUSES, TONES } from '../../packages/ui-spec/src/index.js'
 
-// Just enough components to exercise the core. Real ones with these names win (see `entry.ts`).
-
-const md: Component = {
-  render: (node, ctx) => el('p', { class: 'vui-note' }, ctx.inline(String(node.text))),
-}
-
-const stack: Component = {
-  render: (node, ctx) =>
-    el(
-      'div',
-      { class: 'vui-doc' },
-      ctx.children(node.children as never, `${ctx.pointer}/children`),
-    ),
-}
+// Components only the harness has, to exercise the core.
 
 const tones: Component = {
   render: () =>
@@ -75,8 +62,6 @@ const boom: Component = {
 }
 
 export const FIXTURES: Registry = new Map([
-  ['md', md],
-  ['stack', stack],
   ['x-tones', tones],
   ['x-values', values],
   ['x-tall', tall],

@@ -6,6 +6,7 @@ import { safeHref } from '@vadd/ui-spec'
 const TAGS = [
   'a',
   'b',
+  'blockquote',
   'button',
   'caption',
   'code',
@@ -28,6 +29,7 @@ const TAGS = [
   'ins',
   'kbd',
   'li',
+  'mark',
   'ol',
   'p',
   'pre',

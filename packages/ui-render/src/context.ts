@@ -1,4 +1,4 @@
-import type { Formatted, JsonObject, JsonValue } from '@vadd/ui-spec'
+import type { Formatted, JsonObject, JsonValue, Tone } from '@vadd/ui-spec'
 import type { Child } from './el.js'
 
 /** What a component gets besides its node. Tasks 07 to 10 build on this. */
@@ -8,6 +8,8 @@ export interface NodeContext {
   readonly locale: string
   /** Memory that outlives `update`, keyed by node `id` or path (§9.1, §9.3). */
   readonly state: Map<string, unknown>
+  /** The heading level of this node's content: one below its title, if it has one. */
+  readonly level: number
   /** True when the wrapper already drew `title`, as the toggle of a fold. */
   readonly titleDrawn: boolean
   /** §7, reporting any issue as a `warn` at `pointer`. */
@@ -16,8 +18,8 @@ export interface NodeContext {
   value(value: JsonValue | undefined, format: string | undefined, pointer: string): Node[]
   /** §5.5 inline text, as nodes. */
   inline(text: string): Node[]
-  /** The heading for inline text, at this node's level. */
-  heading(text: string): HTMLElement
+  /** The heading for inline text, at `level`, or at this node's own by default. */
+  heading(text: string, level?: number): HTMLElement
   /** One child node, isolated like any other. */
   child(node: JsonValue, pointer: string): HTMLElement
   /** The nodes of a list at `pointer`. */
@@ -35,6 +37,8 @@ export interface Component {
   render(node: JsonObject, context: NodeContext): Child | Child[]
   /** The component draws `title` itself, as a `table` caption. */
   ownsTitle?: boolean
+  /** The tone of a node with none, as a `callout`'s `info` (VD-060: a drop can remove it). */
+  tone?: Tone
 }
 
 export type Registry = ReadonlyMap<string, Component>

@@ -87,7 +87,7 @@ describe('stylesheet constraints', () => {
   it('never styles outside the renderer root', () => {
     const selectors = stylesheet
       .replace(/@keyframes [^{]+\{(?:[^{}]*\{[^{}]*\})*\}/g, '')
-      .replace(/@media [^{]+\{/g, '')
+      .replace(/@(?:media|container) [^{]+\{/g, '')
       .matchAll(/(?:^|\})([^{}]+)\{/g)
     for (const [, selector] of selectors) expect(selector).toMatch(/\.vui-/)
   })
