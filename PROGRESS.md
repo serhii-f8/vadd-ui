@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T11:53:01Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T13:11:29Z · Mode: manual
 
 ## Summary
-Done 7 / 22 · In progress: none · Blocked: none · Next: 08 — Data components
+Done 8 / 22 · In progress: none · Blocked: none · Next: 09 — Charts
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -35,7 +35,7 @@ Recorded 2026-11-04 during bootstrap.
 | 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | done | removed | ctx_7a145f940999 | [design](docs/superpowers/specs/2026-11-04-ui-text-design.md) | [plan](docs/superpowers/plans/2026-11-04-ui-text.md) | 8cf1641 | 2026-11-04 |
 | 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | done | removed | ctx_c2e643a2dd6e | [design](docs/superpowers/specs/2026-11-05-render-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-render-core.md) | b65c54d | 2026-11-05 |
 | 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | done | removed | ctx_1d7a5b7dd91d | [design](docs/superpowers/specs/2026-11-05-layout-text-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-layout-text-components.md) | dc4b4d6 | 2026-11-05 |
-| 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | todo | | | | | | |
+| 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | done | removed | ctx_075e7f415cf0 | [design](docs/superpowers/specs/2026-11-05-data-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-data-components.md) | 2e55ec8 | 2026-11-05 |
 | 09 | Charts | §6.4, §9.4, §15.2 | 08 | todo | | | | | | |
 | 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | todo | | | | | | |
 | 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | todo | | | | | | |
@@ -125,3 +125,13 @@ none
 - Review: fresh reviewer found no Critical issues and 4 Important, all fixed test-first: copy lost blank lines while saying `Copied`, CRLF broke `md`, ordered lists always restarted at 1, and `grid` collapsed to 0 px in a shrink-to-fit target. Declined minors are in VD-073.
 - Incident: a held cross-session prompt from a claude-mem observer opened in the worker's terminal again. It was left unanswered, and the worker finished regardless.
 - Follow-ups: tasks 08 to 10: watch bundle size, since 12.8 KiB gzip remains for 15 components and the boot script, and `check-bundle-size` stays idle until task 11. Tasks 16 to 18: hosts must give the target a width (VD-073). Task 11: `#id` links into hidden tabs and closed folds go nowhere (VD-070); the §4.3 and §10.2 templates must set a background. Task 16: try copy in a real Orca chat.
+
+### 08 — Data components
+- Built: `table` with all §6.6 fields and the four cell types, `kv`, `stats` with a column sparkline, `list`, `progress`. Bars use 101 constant CSS rules, so no document value reaches `style`. Table reading moved to `ui-spec` (`parseRow`, `sortRows`, `alignOf`, `groupKey`, `badgeOf`), and the copy chain moved to `copy.ts`.
+- Decisions: VD-074 to VD-080, no DEVIATION. VD-075 and VD-080 change `ui-text` output for `badge` cells: a status word in a `badge` cell now prints `✓ ok`, and `tones` over a status prints as in the DOM. VD-078: `stats.spark` draws columns, which task 09 may swap for its chart. VD-080: a table takes VD-073's host width requirement.
+- Evidence (coordinator rerun on `main` at 2e55ec8): `pnpm gate` exit 0, run twice in a row because a wall-clock test failed on the branch once. Vitest 56 files, 5,401 tests. Playwright 199 tests. Banned-API check clean on 59 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Coverage: lines 99.96% (2667/2668), statements 99.51%, branches 98.43%. Spec hash unchanged.
+- Coordinator probes: `ui-render` entry through esbuild is 90.0 KiB min and 29.9 KiB gzip, with no boot script. No `style` attribute or `.style` use in `ui-render/src`. Mutants on 061c45a: pin threshold failed 1 test; `aria-sort` stuck at `none` failed 5; row `th` scope failed 2; fill scale failed 9. Inspected the worker's Orca pane capture: tables, cell types, groups and the wide table read correctly. The blank band above a scrolled wide table is its caption scrolling away (VD-076).
+- Worker evidence, not rerun: all six acceptance criteria tested; 36 inspected baselines; the 1,000 × 6 first page at 2.7 ms warm, against the reviewer's 18 to 20 ms.
+- Review: fresh reviewer found no Critical issues and 3 Important, all fixed: a screen-reader word escaping the table box grew the page by 1,300 px, a long pinned column left no other column reachable at 320 px, and a bad `tones` value threw from a click handler to the host. Declined minors are in VD-080.
+- Test changed: task 07's `code.test.ts` long-mark test ran at 150 to 167 ms of the 200 ms budget and failed once. It now renders 1,500 rows, and a mutant with `Array.includes` still fails it (worker evidence).
+- Follow-ups: tasks 09 and 10: 8.1 KiB gzip remains for 10 core components and the boot script, so size is now the tightest constraint. Task 09: decide whether to replace VD-078's sparkline. Tasks 16 to 18: the host width requirement now covers `table` and `kv` as well as `grid`. Task 20 owns axe-core (TASKS line 217); it is not installed yet, so the §16 accessibility gate has not run on any component.
