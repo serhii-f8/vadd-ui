@@ -35,6 +35,15 @@ export {
 export { MAX_NESTING, type ParseError, type ParseResult, parse } from './parser.js'
 export type { PathMap } from './path-map.js'
 export { escapeSegment, joinPointer } from './pointer.js'
+export {
+  alignOf,
+  type Badge,
+  badgeOf,
+  groupKey,
+  type ParsedRow,
+  parseRow,
+  sortRows,
+} from './table-view.js'
 export type * from './types.js'
 export {
   COMPONENT_TYPES,

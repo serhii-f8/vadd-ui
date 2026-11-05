@@ -378,6 +378,12 @@ describe('table', () => {
     )
   })
 
+  it('marks a status word in a badge cell', () => {
+    const columns = [{ key: 'b', label: 'B', cell: 'badge' }]
+    const output = md({ type: 'table', columns, rows: [['ok']] })
+    expect(output).toContain('| ✓ ok |')
+  })
+
   it('renders nothing for a table with no columns', () => {
     const document = documentOf({ body: [] })
     document.body = [{ type: 'table', columns: [], rows: [], pageSize: 25, sticky: false }]
