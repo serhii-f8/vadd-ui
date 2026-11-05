@@ -1,4 +1,5 @@
 import type { Registry } from '../context.js'
+import { code } from './code.js'
 import { card, divider, grid, section, stack } from './layout.js'
 import { tabs } from './tabs.js'
 
@@ -10,4 +11,5 @@ export const COMPONENTS: Registry = new Map([
   ['card', card],
   ['tabs', tabs],
   ['divider', divider],
+  ['code', code],
 ])
