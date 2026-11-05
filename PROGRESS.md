@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-04T21:30:50Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T09:34:30Z · Mode: manual
 
 ## Summary
-Done 5 / 22 · In progress: none · Blocked: none · Next: 06 — ui-render core
+Done 6 / 22 · In progress: none · Blocked: none · Next: 07 — Layout and text components
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -33,7 +33,7 @@ Recorded 2026-11-04 during bootstrap.
 | 03 | ui-spec: validator, diagnostics, limits, schema, conformance | §5.4, §6, §13.1, §16, §17.1, §19 | 02 | done | removed | ctx_16d884678f96 | [design](docs/superpowers/specs/2026-11-04-spec-validator-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-validator.md) | 4149910 | 2026-11-04 |
 | 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | done | removed | ctx_81dd35dc6907 | [design](docs/superpowers/specs/2026-11-04-spec-formats-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-formats.md) | bcc143c | 2026-11-04 |
 | 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | done | removed | ctx_7a145f940999 | [design](docs/superpowers/specs/2026-11-04-ui-text-design.md) | [plan](docs/superpowers/plans/2026-11-04-ui-text.md) | 8cf1641 | 2026-11-04 |
-| 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | todo | | | | | | |
+| 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | done | removed | ctx_c2e643a2dd6e | [design](docs/superpowers/specs/2026-11-05-render-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-render-core.md) | b65c54d | 2026-11-05 |
 | 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | todo | | | | | | |
 | 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | todo | | | | | | |
 | 09 | Charts | §6.4, §9.4, §15.2 | 08 | todo | | | | | | |
@@ -103,3 +103,14 @@ none
 - Review: fresh reviewer found 1 Critical (control characters removed after escaping produced live HTML) and 6 Important issues, all fixed red to green. The fixes had no second review.
 - Corrections to worker notes: VD-056's DOM `tree` is task 10, not task 11; VD-057's flag belongs to the CLI, task 12, not task 13.
 - Follow-ups: task 07 follows VD-054 for `md`; task 08 follows VD-055 for sort and alignment; task 10 follows VD-056 for `tree.paths`. The DOM keeps §5.2 order, since VD-050 applies to text only. These helpers live in `ui-text`, which `ui-render` cannot import (§3).
+
+### 06 — ui-render core
+- Built: `el()`, `prepare` and `sanitize`, `createRenderer` with the §9.1 API, per-node isolation, the cooperative watchdog, placeholder and error cards, diagnostics badge and panel, fold state, §8.1 tokens and CSS, an empty `COMPONENTS` registry for tasks 07 to 10, and the Orca shell harness with Orca's vendored bootstrap in a sandboxed iframe. `ui-spec` gained `inspect()`, `MAX_ISSUES`, `clip`, `setOwn`, `isLocale` and the `render-failed` and `render-budget` codes.
+- Decisions: VD-058 to VD-066, with three DEVIATIONs. VD-058: `.light` and `class=""` mean light on a dark OS. VD-059: new `--vui-*-text` tokens, because `#16a34a` and `#d97706` give only 3.30:1 and 3.19:1 on white; §8.1 tokens stay exact as fills. VD-066: text over 1 MiB is refused, not truncated.
+- Evidence (coordinator rerun on `main` at b65c54d): `pnpm gate` exit 0. Vitest 46 files, 4,765 tests. Playwright 72 tests. Banned-API check clean on 46 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Overall coverage: lines 99.9% (2171/2173), statements 99.4%, branches 98.27%. Spec hash unchanged.
+- Coordinator probes on f1d5ec7: recomputed both contrast ratios above. Mutants: watchdog budget to 2,000,000 ms failed 5 tests; tone text share to 95% failed 3 tests; error card tint failed 12 visual tests; `--vui-warn`, which has no host source, failed 8 visual tests. Changing the fallback values of `--vui-border` and `--vui-err` failed no visual test, because the harness theme supplies `--border` and `--destructive`; pixel baselines therefore never exercise fallbacks on hostable tokens, and only `tokens.test.ts` covers them. Inspected the worker's Orca dark screenshot and one baseline (`cards-360-light`): isolation cards and diagnostics read correctly.
+- Not checked by coordinator: §8.1 and §13.4 were not reread during integration, because the shell read was denied; token exactness rests on `tokens.test.ts`. Coordinator did not repeat the live Orca pane check.
+- Worker evidence, not rerun: all 9 acceptance criteria tested; `ui-render` lines 99.6% (498/500); 9 of 9 mutants killed before the review fixes; real Orca pane heights 429 and 356; a 20-node update at about 0.3 ms with fixture components only. A sample of the 48 baselines was inspected, not all.
+- Review: fresh reviewer found no Critical issues, 4 Important and 9 minor, each reproduced. Fixes and declines are in VD-066.
+- Incidents: a transient `EAI_AGAIN` stopped the worker once, and `send` resumed it. A held cross-session message from a claude-mem observer (pid 6844) opened a prompt in the worker's terminal; the coordinator did not answer it, and the worker finished and reported anyway. The coordinator's note to the worker stayed undelivered, as the worker had already reported.
+- Follow-ups: task 07 decides what `tone` draws on a node, and components must apply their own defaults, since `maxLines` can be absent after a drop. Tasks 08 and 22 guard `sort`, `group`, row options and flow edges left dangling by a cut. Task 11 owns a dark standalone page (§8.3) and should add pixel coverage with no host tokens. Task 16 may drop vendoring only if the harness still runs Orca's real bootstrap. Task 21: §17.4's Chromium 110 floor may predate `color-mix()`, which §8.1 mandates (from memory, untested). CI: baselines come from this WSL machine, so a runner with other fonts needs one regeneration with `--update-snapshots=all`.
