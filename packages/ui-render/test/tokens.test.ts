@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { stylesheet } from '../src/css/index.js'
-import { TOKENS, TONE_TEXT_SHARE } from '../src/css/tokens.js'
+import { pageCss, TOKENS, TONE_TEXT_SHARE } from '../src/css/tokens.js'
 
 // §8.1, cell by cell: name, source, light, dark.
 const SPEC: [string, string | null, string, string][] = [
@@ -126,5 +126,30 @@ describe('§15.2 contrast', () => {
     expect(ruleBody('.vui-root')).toContain(
       `--vui-ok-text:color-mix(in srgb,var(--vui-ok) ${TONE_TEXT_SHARE * 100}%,var(--vui-surface-fg));`,
     )
+  })
+})
+
+describe('pageCss', () => {
+  const selectors = [...pageCss.matchAll(/(?:^|[{}])([^{}@]+)\{/g)].map((match) => match[1])
+
+  it('paints the canvas with --vui-bg in both schemes, under a host --background', () => {
+    expect(pageCss).toContain('color-scheme:light;background:var(--background,#ffffff)')
+    expect(pageCss).toContain('color-scheme:dark;background:var(--background,#0a0a0a)')
+  })
+
+  it('reads the theme the same way the tokens do', () => {
+    expect(pageCss).toContain('.dark')
+    expect(pageCss).toContain('@media (prefers-color-scheme: dark)')
+    expect(pageCss).toContain(':not(.light):not([class=""])')
+  })
+
+  it('has zero specificity everywhere, so any host rule wins', () => {
+    expect(selectors).toHaveLength(3)
+    for (const selector of selectors) expect(selector).toMatch(/^:where\(.*\)$/)
+  })
+
+  it('stays out of the stylesheet, since only a bare page wants it', () => {
+    expect(stylesheet).not.toContain(pageCss)
+    expect(stylesheet).not.toContain('background:var(--background')
   })
 })

@@ -13,6 +13,7 @@ const dir = fileURLToPath(new URL('../packages/ui/', import.meta.url))
 // The one source of the version; `check-versions` ties this manifest to the root.
 const { version } = JSON.parse(readFileSync(`${dir}package.json`, 'utf8'))
 
+/** @type {import('esbuild').BuildOptions} */
 const shared = {
   bundle: true,
   minify: true,

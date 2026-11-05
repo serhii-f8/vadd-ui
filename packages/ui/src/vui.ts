@@ -1,3 +1,4 @@
+import { start } from './boot.js'
 import { type Render, render, version } from './index.js'
 
 declare global {
@@ -8,3 +9,4 @@ declare global {
 }
 
 window.VUI = { render, version }
+start()

@@ -1,6 +1,7 @@
 import { isJsonObject } from '@vadd/ui-spec'
 import type { Component } from '../context.js'
 import { el } from '../el.js'
+import { opensWith } from '../reveal.js'
 import { nodeList, text, whole } from './fields.js'
 
 const ACTIVE = 'active'
@@ -56,7 +57,7 @@ export const tabs: Component = {
     )
     const panels = items.map(({ tab, index }, position) => {
       const children = nodeList(tab, 'children')
-      return el(
+      const panel = el(
         'div',
         {
           class: 'vui-tab-panel',
@@ -66,6 +67,8 @@ export const tabs: Component = {
         },
         context.children(children, `${context.pointer}/tabs/${index}/children`),
       )
+      opensWith(panel, () => select(position))
+      return panel
     })
     const keydown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return

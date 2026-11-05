@@ -12,7 +12,8 @@ const alias = Object.fromEntries(
   ]),
 )
 
-// What the bundle build defines, from the same manifest.
+// What the bundle build defines, from the same manifest. At the transform, since Vitest
+// turns a plain `define` into a global that these workers do not see.
 const { version } = JSON.parse(
   readFileSync(new URL('./packages/ui/package.json', import.meta.url), 'utf8'),
 )
@@ -41,7 +42,7 @@ export default defineConfig({
     projects: [
       {
         resolve: { alias },
-        define,
+        oxc: { define },
         test: {
           name: 'node',
           include: [
@@ -54,7 +55,7 @@ export default defineConfig({
       },
       {
         resolve: { alias },
-        define,
+        oxc: { define },
         test: {
           name: 'jsdom',
           include: ['packages/{ui-render,ui,ui-react}/test/**/*.test.{ts,tsx}'],
