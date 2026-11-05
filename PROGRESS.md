@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T13:11:29Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T14:56:46Z · Mode: manual
 
 ## Summary
-Done 8 / 22 · In progress: none · Blocked: none · Next: 09 — Charts
+Done 9 / 22 · In progress: none · Blocked: none · Next: 10 — Dev-workflow components
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -36,7 +36,7 @@ Recorded 2026-11-04 during bootstrap.
 | 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | done | removed | ctx_c2e643a2dd6e | [design](docs/superpowers/specs/2026-11-05-render-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-render-core.md) | b65c54d | 2026-11-05 |
 | 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | done | removed | ctx_1d7a5b7dd91d | [design](docs/superpowers/specs/2026-11-05-layout-text-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-layout-text-components.md) | dc4b4d6 | 2026-11-05 |
 | 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | done | removed | ctx_075e7f415cf0 | [design](docs/superpowers/specs/2026-11-05-data-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-data-components.md) | 2e55ec8 | 2026-11-05 |
-| 09 | Charts | §6.4, §9.4, §15.2 | 08 | todo | | | | | | |
+| 09 | Charts | §6.4, §9.4, §15.2 | 08 | done | removed | ctx_c8b1959577eb | [design](docs/superpowers/specs/2026-11-05-charts-design.md) | [plan](docs/superpowers/plans/2026-11-05-charts.md) | f14dde8 | 2026-11-05 |
 | 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | todo | | | | | | |
 | 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | todo | | | | | | |
 | 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | todo | | | | | | |
@@ -135,3 +135,13 @@ none
 - Review: fresh reviewer found no Critical issues and 3 Important, all fixed: a screen-reader word escaping the table box grew the page by 1,300 px, a long pinned column left no other column reachable at 320 px, and a bad `tones` value threw from a click handler to the host. Declined minors are in VD-080.
 - Test changed: task 07's `code.test.ts` long-mark test ran at 150 to 167 ms of the 200 ms budget and failed once. It now renders 1,500 rows, and a mutant with `Array.includes` still fails it (worker evidence).
 - Follow-ups: tasks 09 and 10: 8.1 KiB gzip remains for 10 core components and the boot script, so size is now the tightest constraint. Task 09: decide whether to replace VD-078's sparkline. Tasks 16 to 18: the host width requirement now covers `table` and `kv` as well as `grid`. Task 20 owns axe-core (TASKS line 217); it is not installed yet, so the §16 accessibility gate has not run on any component.
+
+### 09 — Charts
+- Built: `bar`, `hbar`, `stacked`, `line`, `area`, `donut`, `spark` on one engine (`chart/model.ts`, `draw.ts`, `scale.ts`, `resize.ts`, `components/chart.ts`), with 1-2-5 ticks, label thinning, LTTB to 1,000, a pointer tooltip on the nearest original point, one shared `ResizeObserver`, `role="img"` with `<title>`, generated `<desc>` and a hidden table of at most 200 rows. `stats.spark` now draws the chart's line. `CHART_LABELS` moved to `ui-spec`; `ui-text` output is unchanged.
+- Decisions: VD-081 to VD-088, no DEVIATION. VD-085 replaces VD-078's columns and changes six `stats` baselines. VD-087: the chart budget test reads the fastest of 7 runs. VD-088 records a known defect for task 20.
+- Evidence (coordinator rerun on `main` at f14dde8): `pnpm gate` exit 0. Vitest 58 files, 5,530 tests. Playwright 254 tests. Banned-API check clean on 65 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Coverage: lines 99.9% (3021/3024), statements 99.45%, branches 98.16%. Spec hash unchanged; no `package.json` changes.
+- Coordinator probes: `ui-render` entry through esbuild is 101.1 KiB min and 34.57 KiB gzip, up 4.88 from the worker's 29.69 baseline. No `.style`, `style` attribute or `getComputedStyle` in `ui-render/src`; one `new ResizeObserver`. Mutants on da295fe, each failing 1 to 3 tests: drawn cap 1,200, tick cap 7, no 2 step, `nearest` tie, LTTB last point. Hostile documents through 6 cartesian and donut kinds plus `spark` (empty, single point, zeros, negatives, 1e308, subnormals, 5,000 alternating ±1e308, script and `__proto__`-style names, ±1e308 `refLines`): no throw, no script, `style`, `fill` or `stroke`; one defect, VD-088. Invalid documents among them were refused by validation, as they should be.
+- Worker evidence, not rerun: all eight acceptance criteria tested; 48 chart baselines inspected; 5 × 1,000 chart at 3.8 ms fastest and 4.0 ms median alone, limit 25 ms; 11 worker mutants, all killed after two stronger tests; Orca pane captures inspected, not viewed by the coordinator.
+- Review: fresh reviewer found 1 Critical, 4 Important and 6 minor, all fixed. Critical: a slice under 0.5% painted a full ring. Details in VD-086.
+- Process: the worker ran `executing-plans` inline, which the brief allows. Tests-first mostly held, but the bar, line and donut code and their tests landed as one large step; review fixes were strictly test-first.
+- Follow-ups: task 10: 3.43 KiB gzip remains for 7 dev components and task 11's boot script, and the worker's 3.5 KiB target for charts was missed. Set a task 10 size target, and try reclaiming from `ui-spec` (40.1 KiB min at task 07) before cutting features; property mangling is a task 11 build option. Task 20: VD-088; tooltip is pointer only, with the hidden table for other readers (VD-081); axe-core has still not run. Task 22: `scatter` is a placeholder. `ui-text` sparklines still sample by stride while the DOM uses LTTB, so long series can differ.

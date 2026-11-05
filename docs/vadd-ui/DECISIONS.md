@@ -695,3 +695,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Rationale: a budget test should fail on the code, not on the machine.
 - Spec sections: §9.5, §16.
 
+
+## VD-088 — A donut whose sum overflows is left to task 20
+- Date: 2026-11-05 · Task: 09
+- Context: a coordinator probe gave a `donut` 5,000 values of alternating 1e308 and -1e308 with matching `x`. The positive sum overflows to `Infinity`, `value / whole` in `chart/draw.ts` is `NaN`, and the ring's `stroke-dasharray` reads `NaN 100`. Nothing throws. No other kind and no other hostile document in the probe put `NaN`, `Infinity` or `undefined` in an attribute.
+- Decision: merge task 09 as it is, and hand this to task 20, whose fuzzer covers the class. The sum must exceed about 1.8e308, which no ordinary document reaches, and 3.43 KiB gzip is left for tasks 10 and 11.
+- Alternatives: reopen the worker now, which reruns a full cycle for input no real chart holds.
+- Rationale: reversible, recorded with its repro, and the owner task already exists. This is a known defect, not a declined one.
+- Spec sections: §6.4, §16.
