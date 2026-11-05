@@ -37,7 +37,9 @@ const beforeEnd = (argv: readonly string[]): readonly string[] => {
 
 /** Read before parsing, so that a bad argument list still answers in JSON. */
 export function wantsJson(argv: readonly string[]): boolean {
-  return beforeEnd(argv).includes(JSON_FLAG)
+  return beforeEnd(argv).some((argument) => {
+    return argument === JSON_FLAG || argument.startsWith(`${JSON_FLAG}=`)
+  })
 }
 
 const isFlag = (argument: string) => argument.length > 1 && argument.startsWith('-')

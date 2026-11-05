@@ -50,10 +50,10 @@ describe('hostile documents inside the input limit', () => {
 describe('the diagnostic cap', () => {
   const badItems = (count: number) => repeat(count, () => 5)
 
-  it('stops at 1,000 and says how many it left out', () => {
-    const { diagnostics, ok } = validate({ body: [{ type: 'list', items: badItems(1_500) }] })
+  it('stops errors at 2,000 and says how many it left out', () => {
+    const { diagnostics, ok } = validate({ body: [{ type: 'list', items: badItems(2_500) }] })
     expect(ok).toBe(false)
-    expect(diagnostics).toHaveLength(1_001)
+    expect(diagnostics).toHaveLength(2_001)
     expect(diagnostics.at(-1)).toMatchObject({
       severity: 'error',
       code: 'too-many-diagnostics',
@@ -70,7 +70,7 @@ describe('the diagnostic cap', () => {
   })
 
   it('never loses a limit, which decides the exit code', () => {
-    const input = { body: [{ type: 'list', items: badItems(1_500) }, ...repeat(400, () => 'x')] }
+    const input = { body: [{ type: 'list', items: badItems(2_500) }, ...repeat(400, () => 'x')] }
     const found = validate(input).diagnostics.map((d) => d.code)
     expect(found).toContain('limit-nodes')
     expect(found.at(-1)).toBe('too-many-diagnostics')

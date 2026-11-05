@@ -102,6 +102,21 @@ describe('findDocuments', () => {
     expect(texts(html)).toEqual(['{"a":1}'])
   })
 
+  it('needs the double escape to read past a nested end tag', () => {
+    expect(texts(`<script><!--<script></script>${DOC}`)).toEqual([])
+  })
+
+  it('leaves the escape at once on an empty comment in a script', () => {
+    expect(texts(`<script><!--><script></script>${DOC}`)).toEqual(['{"a":1}'])
+  })
+
+  it.each([
+    ['<!--!>', `<!--!>${DOC}`],
+    ['<!---!>', `<!---!>${DOC}`],
+  ])('stays in a comment past %s, as a browser does', (_, html) => {
+    expect(texts(html)).toEqual([])
+  })
+
   it('finds nothing after a double escape that never ends', () => {
     expect(texts(`<script><!--<script>${DOC}`)).toEqual([])
   })

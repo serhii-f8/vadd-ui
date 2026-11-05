@@ -33,7 +33,6 @@ const SPACE = /[\t\n\f\r ]/
 const SPACE_OR_SLASH = /[\t\n\f\r /]/
 const NAME_END = /[\t\n\f\r />]/
 const LETTER = /[a-z]/i
-const COMMENT_END = /--!?>/g
 const SCRIPT_MARK = /<!--|-->|<\/?script(?=[\t\n\f\r />])/gi
 
 function indexWhere(html: string, from: number, pattern: RegExp): number {
@@ -127,11 +126,12 @@ function endOfMarkup(html: string, from: number): number {
     const close = html.indexOf('>', from)
     return close === -1 ? html.length : close + 1
   }
-  const comment = new RegExp(COMMENT_END)
-  // From the dashes of the opener: `<!-->` is a whole comment.
-  comment.lastIndex = from + 2
-  const match = comment.exec(html)
-  return match === null ? html.length : match.index + match[0].length
+  // `-->` may reuse the opener's dashes, so `<!-->` is whole, while `--!>` may not.
+  const arrow = html.indexOf('-->', from + 2)
+  const bang = html.indexOf('--!>', from + 4)
+  const ends = [arrow === -1 ? -1 : arrow + 3, bang === -1 ? -1 : bang + 4]
+  const found = ends.filter((end) => end !== -1)
+  return found.length === 0 ? html.length : Math.min(...found)
 }
 
 /** What the boot script would find: `script[type="application/vui+json"]`, outside `template`. */

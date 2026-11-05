@@ -225,6 +225,23 @@ describe('render', () => {
     expect((await vui(['render', '--format', 'md'], { stdin: CLEAN, bundle })).exit).toBe(0)
   })
 
+  it.each([
+    ['inline', ['--format', 'html']],
+    ['CDN', ['--format', 'html', '--cdn']],
+  ])('keeps C1 controls off a terminal in %s HTML, with the value intact', async (_, flags) => {
+    const stdin = JSON.stringify({ title: 'a\x9b2J', body: ['b\x90c\x85d\x9ce'] })
+    const { stdout } = await vui(['render', ...flags], { stdin })
+    expect(stdout).not.toMatch(/[\x80-\x9f]/)
+    const back = await vui(['extract'], { stdin: stdout })
+    expect(JSON.parse(back.stdout).title).toBe('a\x9b2J')
+    expect(JSON.parse(back.stdout).body[0].text).toBe('b\x90c\x85d\x9ce')
+  })
+
+  it('takes --out - as stdout', async () => {
+    const { stdout } = await vui(['render', '--format', 'md', '--out', '-'], { stdin: CLEAN })
+    expect(stdout).toBe('### T\n\nhello\n')
+  })
+
   it('strips terminal controls from text output', async () => {
     const stdin = JSON.stringify({ title: 'a\x1b[2J', body: ['b\x9bc\x07'] })
     const { stdout } = await vui(['render', '--format', 'text'], { stdin })
@@ -264,6 +281,20 @@ describe('input limit, in bytes', () => {
     const { exit, stdout } = await vui(['validate'], { stdin })
     expect(exit).toBe(3)
     expect(stdout).toContain('limit')
+  })
+
+  it('refuses bytes that are not UTF-8, rather than alter them', async () => {
+    const stdin = Buffer.concat([
+      Buffer.from('{"body":["a'),
+      Buffer.from([0xff]),
+      Buffer.from('b"]}'),
+    ])
+    const { exit, stdout, stderr } = await vui(['render', '--format', 'text'], { stdin })
+    expect(exit).toBe(2)
+    expect(stdout).toBe('')
+    expect(stderr).toBe('vui: input is not valid UTF-8\n')
+    const { json } = await vuiJson(['validate'], { stdin })
+    expect(json.error).toMatchObject({ code: 'parse-error' })
   })
 
   it('counts a multi-byte input by bytes', async () => {
@@ -395,6 +426,26 @@ describe('validate', () => {
     expect(lines[20]).toBe('and 3970 more')
   })
 
+  it('shows an error found after the cap filled with warnings', async () => {
+    const rows = Array.from({ length: 1_500 }, () => ['x'])
+    const table = { type: 'table', columns: ['A:ms'], rows }
+    const stdin = JSON.stringify({ body: [table, { type: 'tabel' }] })
+    const { exit, stdout } = await vui(['validate'], { stdin })
+    expect(exit).toBe(1)
+    expect(stdout.split('\n')[0]).toMatch(/^error \/body\/1: unknown type/)
+    expect(stdout).toMatch(/^warn /m)
+  })
+
+  it('shows an error found after the cap filled with notices', async () => {
+    const fields = Object.fromEntries(Array.from({ length: 1_300 }, (_, i) => [`k${i}`, 1]))
+    const stdin = JSON.stringify({
+      body: [{ type: 'md', text: 'a', ...fields }, { type: 'tabel' }],
+    })
+    const { exit, stdout } = await vui(['validate'], { stdin })
+    expect(exit).toBe(1)
+    expect(stdout).toBe('error /body/1: unknown type "tabel" (did you mean "table"?)\n')
+  })
+
   it('gives the full list in JSON', async () => {
     const stdin = JSON.stringify({ body: Array.from({ length: 30 }, () => ({ type: 'tabel' })) })
     const { json } = await vuiJson(['validate'], { stdin })
@@ -457,6 +508,12 @@ describe('catalog', () => {
     const { exit, stderr } = await vui(['catalog', 'tabel'])
     expect(exit).toBe(2)
     expect(stderr).toBe('vui: unknown component "tabel" (did you mean "table"?)\n')
+  })
+
+  it('escapes a hostile file name in a failure', async () => {
+    const { stderr } = await vui(['validate', '/nonexistent/a\x1b[2J\nb'])
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: matching controls is the point.
+    expect(stderr.trimEnd()).not.toMatch(/[\x00-\x1f]/)
   })
 
   it('escapes a hostile name', async () => {
@@ -606,6 +663,15 @@ describe('extract', () => {
     const one = '<script type="application/vui+json">{}</script>'
     const path = tempFile('big.html', `${one}${' '.repeat(OUTPUT_LIMIT - one.length)}`)
     expect((await vui(['extract', path])).exit).toBe(0)
+  })
+
+  it('names only the first few documents of many', async () => {
+    const one = '<script type="application/vui+json">{}</script>\n'
+    const { exit, stderr } = await vui(['extract'], { stdin: one.repeat(500) })
+    expect(exit).toBe(2)
+    expect(stderr).toBe(
+      'vui: 500 embedded documents, at lines 1, 2, 3, 4, 5 and 495 more; a visual file holds one\n',
+    )
   })
 
   it('escapes a hostile message', async () => {

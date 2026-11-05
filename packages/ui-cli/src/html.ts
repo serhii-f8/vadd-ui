@@ -8,12 +8,12 @@ const DEFAULT_LANG = 'en'
 const LANGUAGE_SUBTAG = /^([a-z]{2,3})(?:-|$)/i
 
 // `<` only occurs inside a string once serialized, so these never touch structure.
-const UNSAFE_IN_SCRIPT = /<\/|<!--|\u2028|\u2029/g
-const SCRIPT_ESCAPES: Record<string, string> = {
-  '</': '<\\/',
-  '<!--': '\\u003c!--',
-  '\u2028': '\\u2028',
-  '\u2029': '\\u2029',
+// C1 controls too: with no `--out` this text is stdout, and U+009B is a terminal's CSI.
+const UNSAFE_IN_SCRIPT = /<\/|<!--|[\u0080-\u009f\u2028\u2029]/g
+const SCRIPT_ESCAPES: Record<string, string> = { '</': '<\\/', '<!--': '\\u003c!--' }
+
+function codeEscape(character: string): string {
+  return `\\u${(character.codePointAt(0) as number).toString(16).padStart(4, '0')}`
 }
 
 const UNSAFE_IN_HTML = /[&<>"]/g
@@ -29,7 +29,7 @@ const HTML_ESCAPES: Record<string, string> = {
  * nothing here needs an inverse. A replacer function keeps `$&` in the text inert.
  */
 export function embedJson(json: string): string {
-  return json.replace(UNSAFE_IN_SCRIPT, (match) => SCRIPT_ESCAPES[match] as string)
+  return json.replace(UNSAFE_IN_SCRIPT, (match) => SCRIPT_ESCAPES[match] ?? codeEscape(match))
 }
 
 /** For HTML text and a double-quoted attribute. */

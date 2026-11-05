@@ -29,6 +29,9 @@ Stdin is read when the file is - or omitted. --json works on every command.
 Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 5 I/O.
 `
 
+const STDOUT = '-'
+const LISTED_DOCUMENTS = 5
+
 const COMPONENT_NAMES: readonly string[] = CATALOG.map(({ name }) => name)
 
 async function readDocument(parsed: ParsedArgs, io: Io): Promise<Input> {
@@ -70,7 +73,7 @@ export async function render(parsed: ParsedArgs, io: Io): Promise<Outcome> {
     }
   }
   const out = parsed.flags.out
-  if (typeof out !== 'string') {
+  if (typeof out !== 'string' || out === STDOUT) {
     return {
       exit: EXIT.ok,
       stdout: output,
@@ -157,8 +160,12 @@ function embeddedText(html: string): { text: string; offset: number } {
   if (first === undefined) throw new CliError(EXIT.parse, 'no-document', 'no embedded document')
   if (documents.length === 1) return first
   // §10.1 makes the file the single source of truth, so a pick here would lose content.
-  const lines = documents.map(({ offset }) => locate(html, offset).line).join(', ')
-  const message = `${documents.length} embedded documents, at lines ${lines}; a visual file holds one`
+  const listed = documents.slice(0, LISTED_DOCUMENTS)
+  const lines = listed.map(({ offset }) => locate(html, offset).line).join(', ')
+  const rest = documents.length - listed.length
+  const more = rest === 0 ? '' : ` and ${rest} more`
+  const count = `${documents.length} embedded documents`
+  const message = `${count}, at lines ${lines}${more}; a visual file holds one`
   throw new CliError(EXIT.parse, 'several-documents', message)
 }
 

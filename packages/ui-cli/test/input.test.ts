@@ -41,6 +41,22 @@ describe('readInput', () => {
     expect(await readInput(path, stdin([]), 10)).toEqual({ text: 'x'.repeat(10), tooLarge: false })
   })
 
+  it('refuses input that is not UTF-8', async () => {
+    const error = await failure(() => readInput('-', stdin([Buffer.from([0x61, 0xff])]), 100))
+    expect(error.exit).toBe(2)
+    expect(error.code).toBe('parse-error')
+  })
+
+  it('takes a replacement character that was written', async () => {
+    const path = tempFile('a', '\ufffd')
+    expect((await readInput(path, stdin([]), 100)).text).toBe('\ufffd')
+  })
+
+  it('keeps a BOM for the parser', async () => {
+    const path = tempFile('a', '\ufeffx')
+    expect((await readInput(path, stdin([]), 100)).text).toBe('\ufeffx')
+  })
+
   it('stops one byte past the limit', async () => {
     const path = tempFile('a', 'x'.repeat(11))
     expect(await readInput(path, stdin([]), 10)).toEqual({ text: '', tooLarge: true })

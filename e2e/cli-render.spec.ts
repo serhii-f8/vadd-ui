@@ -2,13 +2,13 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { expect, type Page, test } from '@playwright/test'
 import type { Scheme } from './harness/theme.js'
 
 // What `vui render --format html` writes, from the real `bin`, opened as a user would open it.
 
-const BIN = new URL('../packages/ui-cli/dist/bin.js', import.meta.url).pathname
+const BIN = fileURLToPath(new URL('../packages/ui-cli/dist/bin.js', import.meta.url))
 const ATTACK = '</script><script>window.pwned=1</script><!--<script>'
 const TRAPS = ['$& $1 $`', 'a b c', '<\\/script>', '\\u2028', ATTACK]
 

@@ -117,4 +117,8 @@ describe('wantsJson', () => {
     expect(wantsJson(['render', '--', '--json'])).toBe(false)
     expect(wantsJson(['render'])).toBe(false)
   })
+
+  it('answers in JSON even for a bad --json', () => {
+    expect(wantsJson(['validate', '--json=1'])).toBe(true)
+  })
 })
