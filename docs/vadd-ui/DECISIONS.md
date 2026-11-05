@@ -457,3 +457,65 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: fix each; none changes what a normal document shows.
 - Rationale: smallest honest scope. All are reversible.
 - Spec sections: §5.5, §7, §9.3, §15.1.
+
+## VD-058 — `.light` and an emptied class mean light — DEVIATION
+- Date: 2026-11-05 · Task: 06
+- Context: §8.1 applies dark fallbacks under `prefers-color-scheme: dark` "when no `.dark` class exists". Orca's shell writes `<html class="light">`, and its live toggle only flips `.dark`, so a frame that started dark and switched to light has `class=""`. Host tokens hide this for most colors, but `--vui-ok`, `--vui-warn` and `--vui-info` have no host source. On a dark OS they would stay in their dark values on a white Orca card.
+- Decision: the OS rule is `:root:where(:not(.dark):not(.light):not([class=""])) .vui-root`. A page with no `class`, or with unrelated classes, still follows the OS. `.vui-root.vui-root.vui-root[data-vui-theme=…]` repeats the class because a single class loses to `:root.dark .vui-root`, which VD-007 says it must beat.
+- Alternatives: `light-dark()`, which needs Chromium 123 and so breaks the §17.4 floor; reading `color-scheme` in script, which §8.2 rules out.
+- Rationale: one selector, no script, and a side benefit for the Viewer, whose toggle leaves the same empty class.
+- Spec sections: §8.1, §8.2.
+
+## VD-059 — Tone text is derived, because two §8.1 tones miss 4.5:1 — DEVIATION
+- Date: 2026-11-05 · Task: 06
+- Context: the task wants tokens that match §8.1 exactly, and tones at 4.5:1 against `--vui-surface`. On white, `#16a34a` is 3.30:1 and `#d97706` is 3.19:1, so both cannot hold for those values as text.
+- Decision: §8.1 tokens stay exact and remain the fill colors. New `--vui-{ok,warn,err,info}-text` tokens are `color-mix(in srgb, var(--vui-tone) 70%, var(--vui-surface-fg))`, and all tone-colored text uses them. 70% is the one share that passes on the surface and on the 12% tint, in both schemes, with fallback tokens and with Orca's own. Lowest ratio: 4.69:1 (`warn` on its tint, light). A `muted` pill draws `--vui-surface-fg`, because muted text on its own tint is only 4.09:1.
+- Alternatives: darken the two tokens, which breaks "match exactly"; per-scheme overrides, which do not follow host themes.
+- Rationale: both requirements hold, and the text color still tracks the host.
+- Spec sections: §8.1, §15.2.
+
+## VD-060 — What the renderer does with each diagnostic
+- Date: 2026-11-05 · Task: 06
+- Context: §13.3 says an `error` makes an error card, §9.3 says invalid fields are dropped and rendering is lenient, and §13.4 says the browser truncates. Diagnostics carry input pointers and a cap of 1,000, and a renderer walks the canonical tree.
+- Decision: `ui-spec` gains `inspect()`, which `validate` wraps. It adds `paths` and `issues`, every problem with its canonical pointer and no cap. Then: a limit truncates in place and shows as `warn`; a `warn` of `bad-type`, `bad-enum` or `bad-range` deletes that object key, so a component with a default must apply it itself (`maxLines` can be absent after this); any other `error` goes to the deepest node containing its pointer, which becomes an error card; `unknown-type` stays a placeholder (VD-033). An array item is never removed by a drop, since that would renumber its neighbours. A document-level error such as `bad-version` shows in diagnostics and still renders (§17.1). Input over 256 KiB still parses, with a `warn`.
+- Alternatives: reverse-mapping input pointers, which is ambiguous for shorthands; a second validator pass in the renderer.
+- Rationale: one rule per severity, and no second copy of the §6 field rules.
+- Spec sections: §9.3, §13.2–13.4, §17.1.
+
+## VD-061 — The registry is a parameter, not global state
+- Date: 2026-11-05 · Task: 06
+- Context: tasks 07 to 10 add components, and tests need fixture components. A mutable global registry would let page script replace a component, and it would leak between tests.
+- Decision: `createRenderer(registry, clock?)` builds a `render`. `components/index.ts` holds the built-in `COMPONENTS` map, and the public `render` is built from it at import. `createRenderer` stays out of the package's `index.ts`, so §9.1 stays the public surface; tests and the harness import it by path.
+- Alternatives: `registerComponent()` on the public API.
+- Rationale: §9.1 lists no registration API.
+- Spec sections: §9.1.
+
+## VD-062 — Host objects are copied down to JSON before `normalize`
+- Date: 2026-11-05 · Task: 06
+- Context: task 02 left this to `render(object)`. `JSON.parse` never yields cycles, getters, proxies or shared subtrees, and `normalize` is total only over JSON.
+- Decision: `sanitize` follows `JSON.stringify` for functions, symbols and `undefined`. A `Date` becomes ISO text. Cycles, `NaN`, infinities and `bigint` become `null` with a `warn`. A throwing getter or proxy drops that value. Depth stops at the parser's cap of 128 with `limit-depth`. A budget of 500,000 values stops shared-subtree bombs with `limit-input-size`. `toJSON` is not called. Warnings stop at 20. The copy also means `prepare` can cut it in place without touching host data.
+- Alternatives: `JSON.parse(JSON.stringify(x))`, which throws on cycles and `bigint`, and hangs on a shared-subtree bomb.
+- Rationale: total and bounded, with a diagnostic for what changed.
+- Spec sections: §9.3, §15.1.
+
+## VD-063 — The Orca shell is vendored, and runs in a real sandboxed iframe
+- Date: 2026-11-05 · Task: 06
+- Context: VD-009 says to read the constants from `stablyai/orca` and check them against the installed 1.4.248. A copied CSP string in a test page would prove little: the shell's sandbox, base element, height bootstrap and message checks all matter. `host/orca.ts` is task 16.
+- Decision: `e2e/harness/orca/` holds `native-chat-visual-shell.ts` and its token list byte for byte, at a commit named in its README (MIT). The host page uses `NativeChatVisualFrame.tsx`'s attributes (`sandbox="allow-scripts"`, `referrerPolicy="no-referrer"`) and calls Orca's own `buildNativeChatVisualDocument`, clamp and theme message. Theme values come from Orca's `main.css`. The installed app's bundle has the same CSP directives and the same `connect-src 'none'`; its skill file is older than `main`, which adds token guidance only. Vendored files keep their extensionless import, so `e2e/` has its own `tsconfig.json` with `bundler` resolution, and `pnpm typecheck` runs it. Task 16 can drop the vendoring only if the harness keeps running Orca's real bootstrap.
+- Alternatives: fetch at test time, which breaks offline CI; retype the shell, which can drift.
+- Rationale: the code under test is Orca's own. §17.3's scheduled job can diff these files too.
+- Spec sections: §4.2, §16, §17.3.
+
+## VD-064 — Baselines are one platform's, and watchdog time is a node's own
+- Date: 2026-11-05 · Task: 06
+- Context: `toHaveScreenshot` adds the platform to file names by default, and text rendering differs by OS, while CI and development both run Linux Chromium (VD-010). Separately, VD-008 sets a budget per component, and a parent's elapsed time includes its children.
+- Decision: baselines live in `e2e/__screenshots__/` with no platform suffix, at `maxDiffPixelRatio: 0.001` and a per-pixel `threshold` of 0.1. They are from this WSL machine, so a CI runner with other fonts will need a one-time regeneration with `--update-snapshots=all`. The default mode skips differences inside the tolerance. The watchdog charges a component its own time only, so ten 50 ms children do not fail their parent. There is no total document budget: §13.4 limits bound the node count, and a total would fail innocent nodes.
+- Rationale: §16 names one browser. Own time blames the node at fault.
+- Spec sections: §9.3, §15.1, §16.
+
+## VD-065 — Smaller calls in the core
+- Date: 2026-11-05 · Task: 06
+- Context: the spec leaves these open.
+- Decision: `render` adds `.vui-root` to `target` if it is missing, and `destroy` removes it only if `render` added it, so the boot script's element works too. `render` does not inject CSS (§9.2 gives that to the boot script); `stylesheet` is exported. A `fold` with no `title` is ignored, since the title is the toggle. A repeated `id` gets no second DOM `id` and keeps state by path. Node state keys include the type, so another component at the same path starts fresh. Headings are `h2` for the visual and `h3` to `h6` by titled ancestors. `el()` throws on a banned tag or attribute and the node guard shows a card; a banned `href` is dropped silently, since it can come from a document. `<img>` is not on the tag list: nothing in §6 needs it and it can load remote content. SVG is task 09's addition. Status icons match VD-051, and `none` gets `○` because §15.2 wants an icon on every status. A standalone page with a dark OS and a white background is left for task 11, since §8.3 bars the renderer from setting one.
+- Rationale: simplest choices that meet the spec.
+- Spec sections: §5.4, §8.3, §9.2, §9.3, §15.1, §15.2.

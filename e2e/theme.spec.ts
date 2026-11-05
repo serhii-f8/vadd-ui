@@ -22,45 +22,56 @@ const surfaceToken = (page: Page) =>
       .trim(),
   )
 
-/** Every default tone's rendered contrast against the card, resolved by the engine. */
-function contrasts(host: Pick<Page, 'evaluate'>, tones: string[]): Promise<Record<string, number>> {
-  return host.evaluate((names) => {
-    const root = document.getElementById('r') ?? (document.getElementById('vui') as HTMLElement)
-    const canvas = document.createElement('canvas')
-    canvas.width = 1
-    canvas.height = 1
-    const paint = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
-    const rgb = (color: string) => {
-      paint.fillStyle = '#000'
-      paint.fillRect(0, 0, 1, 1)
-      paint.fillStyle = color
-      paint.fillRect(0, 0, 1, 1)
-      return [...paint.getImageData(0, 0, 1, 1).data].slice(0, 3)
-    }
-    const channel = (value: number) => {
-      const unit = value / 255
-      return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4
-    }
-    const luminance = (color: number[]) => {
-      const [r = 0, g = 0, b = 0] = color
-      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
-    }
-    const card = document.createElement('div')
-    card.className = 'vui-card'
-    root.append(card)
-    const surface = getComputedStyle(card).backgroundColor
-    const result: Record<string, number> = {}
-    for (const name of names) {
-      const span = document.createElement('span')
-      span.className = `vui-tone-${name}`
-      card.append(span)
-      const ink = luminance(rgb(getComputedStyle(span).color))
-      const paper = luminance(rgb(surface))
-      result[name] = (Math.max(ink, paper) + 0.05) / (Math.min(ink, paper) + 0.05)
-    }
-    card.remove()
-    return result
-  }, tones)
+/** Rendered contrast per tone, resolved by the engine: as text on a card, or on its own pill. */
+function contrasts(
+  host: Pick<Page, 'evaluate'>,
+  tones: string[],
+  kind: 'text' | 'pill' = 'text',
+): Promise<Record<string, number>> {
+  return host.evaluate(
+    ([names, drawn]) => {
+      const root = document.getElementById('r') ?? (document.getElementById('vui') as HTMLElement)
+      const canvas = document.createElement('canvas')
+      canvas.width = 1
+      canvas.height = 1
+      const paint = canvas.getContext('2d', {
+        willReadFrequently: true,
+      }) as CanvasRenderingContext2D
+      const rgb = (color: string) => {
+        paint.fillStyle = '#000'
+        paint.fillRect(0, 0, 1, 1)
+        paint.fillStyle = color
+        paint.fillRect(0, 0, 1, 1)
+        return [...paint.getImageData(0, 0, 1, 1).data].slice(0, 3)
+      }
+      const channel = (value: number) => {
+        const unit = value / 255
+        return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4
+      }
+      const luminance = (color: number[]) => {
+        const [r = 0, g = 0, b = 0] = color
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+      }
+      const card = document.createElement('div')
+      card.className = 'vui-card'
+      root.append(card)
+      const result: Record<string, number> = {}
+      for (const name of names as string[]) {
+        const span = document.createElement('span')
+        span.className = `${drawn === 'pill' ? 'vui-status ' : ''}vui-tone-${name}`
+        card.append(span)
+        const style = getComputedStyle(span)
+        const ink = luminance(rgb(style.color))
+        const background =
+          drawn === 'pill' ? style.backgroundColor : getComputedStyle(card).backgroundColor
+        const paper = luminance(rgb(background))
+        result[name] = (Math.max(ink, paper) + 0.05) / (Math.min(ink, paper) + 0.05)
+      }
+      card.remove()
+      return result
+    },
+    [tones, kind] as const,
+  )
 }
 
 test.describe('scheme selection with fallback tokens', () => {
@@ -142,6 +153,19 @@ test.describe('§15.2 contrast, as the engine resolves it', () => {
       }
     }
   })
+})
+
+test('status pills reach 4.5:1 on their own tint', async ({ page }) => {
+  for (const scheme of ['light', 'dark'] as const) {
+    await standalone(page, scheme)
+    for (const [tone, ratio] of Object.entries(await contrasts(page, TONES, 'pill'))) {
+      expect(ratio, `fallback ${scheme} ${tone}`).toBeGreaterThanOrEqual(4.5)
+    }
+    const { frame } = await openVisual(page, { input: [] }, scheme, 720)
+    for (const [tone, ratio] of Object.entries(await contrasts(frame, TONES, 'pill'))) {
+      expect(ratio, `orca ${scheme} ${tone}`).toBeGreaterThanOrEqual(4.5)
+    }
+  }
 })
 
 test.describe('motion', () => {

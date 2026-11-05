@@ -12,13 +12,6 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": [
-    "packages/*/test/**/*",
-    "skills/*/test/**/*",
-    "scripts/**/*",
-    "e2e/**/*",
-    "vitest.config.ts",
-    "playwright.config.ts"
-  ],
+  "include": ["packages/*/test/**/*", "skills/*/test/**/*", "scripts/**/*", "vitest.config.ts"],
   "exclude": ["scripts/test/fixtures/**"]
 }

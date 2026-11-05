@@ -1,7 +1,7 @@
-import { STATUSES, TONES } from '@vadd/ui-spec'
 import type { Component, Registry } from '../../packages/ui-render/src/context.js'
 import { el } from '../../packages/ui-render/src/el.js'
 import { statusBadge, toneClass } from '../../packages/ui-render/src/inline.js'
+import { STATUSES, TONES } from '../../packages/ui-spec/src/index.js'
 
 // Just enough components to exercise the core. Real ones with these names win (see `entry.ts`).
 

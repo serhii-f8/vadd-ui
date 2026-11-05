@@ -1,0 +1,10 @@
+{
+  // The vendored Orca sources use extensionless imports and must stay byte for byte (VD-063).
+  "extends": "../tsconfig.test.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["**/*", "../playwright.config.ts"],
+  "exclude": []
+}

@@ -1,4 +1,4 @@
-import type { NativeChatVisualTheme } from './orca/src/shared/native-chat/native-chat-visual-shell'
+import type { NativeChatVisualTheme } from './orca/src/shared/native-chat/native-chat-visual-shell.js'
 
 // Real token values from Orca's `src/renderer/src/assets/main.css` at the commit named in
 // `orca/README.md`. Orca resolves `--chart-*` to Tailwind's blue scale, written out here.
