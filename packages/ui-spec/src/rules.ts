@@ -64,7 +64,7 @@ const tone = oneIn('a tone', TONES)
 const status = oneIn('a status', STATUSES)
 const size = oneIn('a size', ['sm', 'md', 'lg'])
 
-const NODE_BASE: Record<string, Field> = {
+export const NODE_BASE: Record<string, Field> = {
   id: opt(string),
   title: opt(string),
   note: opt(string),
