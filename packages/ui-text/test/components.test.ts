@@ -677,6 +677,15 @@ describe('dev workflow', () => {
     )
   })
 
+  it('tree falls back to paths when items is empty, as the DOM does', () => {
+    expect(md({ type: 'tree', items: [], paths: ['a/b'] })).toContain('b')
+  })
+
+  it('timeline keeps a date with no time as written, as the DOM does', () => {
+    const output = md({ type: 'timeline', items: [{ at: '2026-11-05', text: 'x' }] })
+    expect(output).toContain('**2026-11-05**')
+  })
+
   it('timeline formats ISO times and keeps labels', () => {
     both(
       {

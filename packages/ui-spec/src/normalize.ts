@@ -36,7 +36,7 @@ const ENVELOPE_ORDER = [
 const ENVELOPE_DEFAULTS: Record<string, JsonValue> = { vui: 1, density: 'compact', locale: 'en-US' }
 
 /** §6 fields with a stated concrete default (VD-024). `table.sticky` is computed. */
-const COMPONENT_DEFAULTS: Record<string, Record<string, JsonValue>> = {
+export const COMPONENT_DEFAULTS: Record<string, Record<string, JsonValue>> = {
   callout: { tone: 'info' },
   code: { maxLines: 30 },
   log: { maxLines: 40 },

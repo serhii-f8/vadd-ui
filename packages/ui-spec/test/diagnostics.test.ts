@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
   type DiagnosticCode,
+  DiagnosticLog,
   isLimitCode,
   LIMIT_CODES,
+  MAX_DIAGNOSTICS,
   MAX_MESSAGE,
   makeDiagnostic,
   quote,
   SCHEMA_CODES,
+  type Severity,
 } from '../src/diagnostics.js'
 import { LIMITS } from '../src/limits.js'
 
@@ -81,5 +84,28 @@ describe('LIMITS', () => {
       string: 2_000,
       flowNodes: 40,
     })
+  })
+})
+
+describe('DiagnosticLog past its cap', () => {
+  const fill = (log: DiagnosticLog, severity: Severity, count: number) => {
+    for (let i = 0; i < count; i++) {
+      if (log.wants(severity, 'bad-enum')) {
+        log.add(makeDiagnostic(severity, `/${i}`, 'bad-enum', 'x'))
+      }
+    }
+  }
+
+  it('still takes an error once warnings filled it', () => {
+    const log = new DiagnosticLog()
+    fill(log, 'warn', MAX_DIAGNOSTICS + 5)
+    fill(log, 'error', 1)
+    expect(log.finish().filter(({ severity }) => severity === 'error')).toHaveLength(1)
+  })
+
+  it('still bounds errors', () => {
+    const log = new DiagnosticLog()
+    fill(log, 'error', MAX_DIAGNOSTICS * 3)
+    expect(log.finish().length).toBeLessThanOrEqual(MAX_DIAGNOSTICS * 2 + 1)
   })
 })

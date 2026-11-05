@@ -59,7 +59,7 @@ export interface Diagnostic {
 export const MAX_MESSAGE = 120
 const MAX_QUOTED = 30
 
-/** The CLI prints 20. This bounds memory on a document made of mistakes (VD-039). */
+/** The CLI prints 20. This bounds memory on a document made of mistakes (VD-039, VD-104). */
 export const MAX_DIAGNOSTICS = 1_000
 
 // Control characters and line separators, which `JSON.stringify` leaves partly in place.
@@ -108,7 +108,11 @@ export function makeDiagnostic(
   return diagnostic
 }
 
-/** Collects up to `MAX_DIAGNOSTICS`, plus the first of each limit, which sets the exit code. */
+/**
+ * Collects up to `MAX_DIAGNOSTICS`, plus the first of each limit, which sets the exit code.
+ * Errors get as much room again: a document that fails must be able to say why, however many
+ * warnings came first.
+ */
 export class DiagnosticLog {
   readonly diagnostics: Diagnostic[] = []
   private readonly limits = new Set<string>()
@@ -119,7 +123,8 @@ export class DiagnosticLog {
   wants(severity: Severity, code: DiagnosticCode): boolean {
     const firstLimit = isLimitCode(code) && !this.limits.has(code)
     if (firstLimit) this.limits.add(code)
-    if (firstLimit || this.diagnostics.length < MAX_DIAGNOSTICS) return true
+    const room = severity === 'error' ? MAX_DIAGNOSTICS * 2 : MAX_DIAGNOSTICS
+    if (firstLimit || this.diagnostics.length < room) return true
     this.omitted++
     if (RANK[severity] > RANK[this.worst]) this.worst = severity
     return false

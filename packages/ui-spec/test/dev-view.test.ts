@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { cleanText, diffEntries, itemsFromPaths, planCounts, tailLines } from '../src/index.js'
+import {
+  cleanText,
+  diffEntries,
+  isIsoTime,
+  itemsFromPaths,
+  planCounts,
+  tailLines,
+  treeSource,
+} from '../src/index.js'
 
 describe('cleanText', () => {
   it('removes CSI and OSC sequences whole', () => {
@@ -126,5 +134,38 @@ describe('diffEntries', () => {
     expect(diffEntries([['constructor', 1, 2]], {})).toEqual([
       { path: 'constructor', added: 1, removed: 2 },
     ])
+  })
+})
+
+describe('treeSource', () => {
+  const paths = ['src/a.ts']
+  const fromPaths = [{ name: 'src', children: [{ name: 'a.ts', children: [] }] }]
+
+  it('prefers items that hold an object', () => {
+    const items = [{ name: 'x' }]
+    expect(treeSource(items, paths)).toEqual(items)
+  })
+
+  it('falls back to paths when items is empty', () => {
+    expect(treeSource([], paths)).toEqual(fromPaths)
+  })
+
+  it('falls back to paths when items holds no object', () => {
+    expect(treeSource(['x'], paths)).toEqual(fromPaths)
+  })
+
+  it('skips a path that is not a string', () => {
+    expect(treeSource([], ['a', 7])).toEqual([{ name: 'a', children: [] }])
+  })
+})
+
+describe('isIsoTime', () => {
+  it('accepts a date with a time', () => {
+    expect(isIsoTime('2026-11-05T10:00:00Z')).toBe(true)
+  })
+
+  it('leaves a date and a label as written', () => {
+    expect(isIsoTime('2026-11-05')).toBe(false)
+    expect(isIsoTime('2026-11 sprint')).toBe(false)
   })
 })

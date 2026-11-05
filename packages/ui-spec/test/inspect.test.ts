@@ -23,10 +23,10 @@ describe('inspect', () => {
   })
 
   it('keeps every issue past the diagnostic cap', () => {
-    const rows = Array.from({ length: 1_500 }, () => [1, 2, 3])
+    const rows = Array.from({ length: 2_500 }, () => [1, 2, 3])
     const { issues, diagnostics } = inspect({ type: 'table', columns: ['a'], rows })
-    expect(issues.filter((issue) => issue.code === 'row-arity')).toHaveLength(1_500)
-    expect(diagnostics.length).toBeLessThanOrEqual(1_001)
+    expect(issues.filter((issue) => issue.code === 'row-arity')).toHaveLength(2_500)
+    expect(diagnostics.length).toBeLessThanOrEqual(2_001)
   })
 
   it('caps other issues, and never a limit, which truncation depends on', () => {

@@ -4,14 +4,15 @@ import {
   type DiffFile,
   diffEntries,
   hasOwn,
+  isIsoTime,
   isJsonObject,
-  itemsFromPaths,
   type JsonObject,
   type JsonValue,
   type PlanItem,
   planCounts,
   type Tone,
   tailLines,
+  treeSource,
 } from '@vadd/ui-spec'
 import type { Component, NodeContext } from '../context.js'
 import { type Child, el } from '../el.js'
@@ -121,14 +122,8 @@ export const plan: Component = {
 
 export const tree: Component = {
   render(node, context) {
-    const items = nodeList(node, 'items')
-    const paths = nodeList(node, 'paths').filter((path) => typeof path === 'string')
-    return rows(
-      objects(items).length > 0 ? items : (itemsFromPaths(paths) as unknown as JsonValue[]),
-      context,
-      (item) => [text(item, 'name')],
-      'vui-rows vui-tree',
-    )
+    const source = treeSource(nodeList(node, 'items'), nodeList(node, 'paths'))
+    return rows(source, context, (item) => [text(item, 'name')], 'vui-rows vui-tree')
   },
 }
 
@@ -246,8 +241,6 @@ export const log: Component = {
   },
 }
 
-const ISO_TIME = /^\d{4}-\d\d-\d\dT/
-
 export const timeline: Component = {
   render(node, context) {
     const entries = drawn(nodeList(node, 'items'), context, (item, index) => {
@@ -257,7 +250,7 @@ export const timeline: Component = {
         el(
           'span',
           { class: 'vui-time' },
-          ISO_TIME.test(at) ? context.format(at, 'date:datetime', pointer).text : at,
+          isIsoTime(at) ? context.format(at, 'date:datetime', pointer).text : at,
         ),
         el('div', { class: 'vui-row' }, [
           badgeOf(item),

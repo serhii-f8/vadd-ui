@@ -5,12 +5,17 @@ import { defineConfig } from 'vitest/config'
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
 
 // Tests run against source, so they never see a stale `dist` and need no build first.
-const alias = Object.fromEntries(
-  ['ui-spec', 'ui-render', 'ui-text', 'ui', 'ui-viewer', 'ui-cli', 'ui-react'].map((name) => [
+// A subpath comes first: an alias matches by prefix, and the first match wins.
+const alias = Object.fromEntries([
+  [
+    '@vadd/ui-spec/catalog',
+    fileURLToPath(new URL('./packages/ui-spec/src/catalog.ts', import.meta.url)),
+  ],
+  ...['ui-spec', 'ui-render', 'ui-text', 'ui', 'ui-viewer', 'ui-cli', 'ui-react'].map((name) => [
     `@vadd/${name}`,
     fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url)),
   ]),
-)
+])
 
 // What the bundle build defines, from the same manifest. At the transform, since Vitest
 // turns a plain `define` into a global that these workers do not see.
@@ -32,13 +37,17 @@ export default defineConfig({
         'packages/ui-text/src/**/*.ts',
         'packages/ui-render/src/**/*.ts',
         'packages/ui/src/**/*.ts',
+        'packages/ui-cli/src/**/*.ts',
       ],
+      // Three lines of wiring, run for real by `ui-cli/test/bin.test.ts`.
+      exclude: ['packages/ui-cli/src/bin.ts'],
       reporter: ['text-summary'],
       thresholds: {
         'packages/ui-spec/src/**/*.ts': { lines: 95 },
         'packages/ui-text/src/**/*.ts': { lines: 95 },
         'packages/ui-render/src/**/*.ts': { lines: 95 },
         'packages/ui/src/**/*.ts': { lines: 95 },
+        'packages/ui-cli/src/**/*.ts': { lines: 95 },
       },
     },
     projects: [

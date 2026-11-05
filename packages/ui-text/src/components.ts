@@ -3,8 +3,8 @@ import {
   type ComponentType,
   diffEntries,
   hasOwn,
+  isIsoTime,
   isJsonObject,
-  itemsFromPaths,
   type JsonValue,
   type ListItem,
   type ListNode,
@@ -13,6 +13,7 @@ import {
   planCounts,
   type TreeItem,
   tailLines,
+  treeSource,
   type VuiNode,
 } from '@vadd/ui-spec'
 import {
@@ -255,12 +256,21 @@ const RENDERERS: Renderers = {
       }),
     ),
   ],
-  tree: (node) => [list(treeEntries(node.items ?? itemsFromPaths(node.paths ?? [])))],
+  tree: (node) => [
+    list(
+      treeEntries(
+        treeSource(
+          (node.items ?? []) as unknown as JsonValue[],
+          node.paths ?? [],
+        ) as unknown as TreeItem[],
+      ),
+    ),
+  ],
   timeline: (node, context) => [
     list(
       node.items.map((item) => ({
         text: [
-          bold(text(format(item.at, 'date:datetime', context).text)),
+          bold(text(isIsoTime(item.at) ? format(item.at, 'date:datetime', context).text : item.at)),
           text(' '),
           ...led(statusMark(item.status), parseInline(item.text)),
         ],

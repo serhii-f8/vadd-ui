@@ -5069,24 +5069,24 @@ exports[`valid corpus snapshots (§16) > tabs valid 3: {"active":0} > plain 1`] 
 `;
 
 exports[`valid corpus snapshots (§16) > timeline valid 0: {} > markdown 1`] = `
-"- **Nov 4, 2026, 12:00 AM UTC** t
+"- **2026-11-04** t
 "
 `;
 
 exports[`valid corpus snapshots (§16) > timeline valid 0: {} > plain 1`] = `
-"- Nov 4, 2026, 12:00 AM UTC t
+"- 2026-11-04 t
 "
 `;
 
 exports[`valid corpus snapshots (§16) > timeline valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
-"- **Nov 4, 2026, 12:00 AM UTC** t
+"- **2026-11-04** t
 
 _caption with **bold**_
 "
 `;
 
 exports[`valid corpus snapshots (§16) > timeline valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
-"- Nov 4, 2026, 12:00 AM UTC t
+"- 2026-11-04 t
 
 caption with bold
 "
@@ -5095,14 +5095,14 @@ caption with bold
 exports[`valid corpus snapshots (§16) > timeline valid 2: {"title":"Node title"} > markdown 1`] = `
 "#### Node title
 
-- **Nov 4, 2026, 12:00 AM UTC** t
+- **2026-11-04** t
 "
 `;
 
 exports[`valid corpus snapshots (§16) > timeline valid 2: {"title":"Node title"} > plain 1`] = `
 "Node title
 
-- Nov 4, 2026, 12:00 AM UTC t
+- 2026-11-04 t
 "
 `;
 

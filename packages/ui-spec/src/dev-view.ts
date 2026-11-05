@@ -67,6 +67,20 @@ export function itemsFromPaths(paths: string[]): TreeItem[] {
   return trieItems(root)
 }
 
+/** §6.5 gives `tree` two sources: `items` when it holds an item, or else `paths`. */
+export function treeSource(items: JsonValue[], paths: JsonValue[]): JsonValue[] {
+  if (items.some((item) => isJsonObject(item))) return items
+  const named = paths.filter((path) => typeof path === 'string')
+  return itemsFromPaths(named as string[]) as unknown as JsonValue[]
+}
+
+const ISO_TIME = /^\d{4}-\d\d-\d\dT/
+
+/** A `timeline.at` to format. A label or a bare date prints as written (VD-092). */
+export function isIsoTime(at: string): boolean {
+  return ISO_TIME.test(at)
+}
+
 export interface DiffEntry {
   path: string
   added?: number
