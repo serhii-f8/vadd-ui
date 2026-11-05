@@ -86,11 +86,10 @@ describe('prepare: §13.4 truncation', () => {
     const count = LIMITS.tableColumns + 2
     const columns = repeat(count, (index) => `c${index}`)
     const cells = repeat(count, (index) => index)
-    const body = [{ type: 'table', columns, rows: [[...cells, { tone: 'warn' }]] }]
-    const { document } = prepare({ vui: 1, body } as never)
-    const [table] = document?.body as never as { rows: unknown[][] }[]
+    const rows = [[...cells, { tone: 'warn' }]]
+    const [table] = body({ type: 'table', columns, rows }) as unknown as { rows: unknown[][] }[]
     expect(table?.rows[0]).toHaveLength(LIMITS.tableColumns + 1)
-    expect(table?.rows[0]?.at(-1)).toEqual({ tone: 'warn' })
+    expect(table?.rows[0]?.[LIMITS.tableColumns]).toEqual({ tone: 'warn' })
   })
 
   it('passes unconverted object rows through a column cut, to an error card', () => {

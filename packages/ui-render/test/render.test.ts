@@ -31,8 +31,8 @@ describe('§9.1 API', () => {
 
   it('draws an unregistered type as a placeholder through the public render', () => {
     const box = target()
-    render(doc([{ type: 'stats', items: [] }]), box)
-    expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('stats')
+    render(doc([{ type: 'log', text: 'x' }]), box)
+    expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('log')
   })
 
   it('draws the document title and subtitle', () => {

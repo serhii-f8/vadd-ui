@@ -3,6 +3,7 @@ import {
   type InlineToken,
   STATUS_TONES,
   type Status,
+  TONES,
   type Tone,
 } from '@vadd/ui-spec'
 import { el } from './el.js'
@@ -36,6 +37,11 @@ export function toneClass(tone: Tone): string {
   return TONE_CLASSES[tone]
 }
 
+/** The tone a document field names, if it names one. */
+export function toneOf(value: unknown): Tone | undefined {
+  return (TONES as readonly unknown[]).includes(value) ? (value as Tone) : undefined
+}
+
 // VD-051's marks, with a word for the tones that have one. `muted`, `accent` and `default`
 // mean nothing, so color tells nothing that a mark should repeat.
 const TONE_MARKS: Partial<Readonly<Record<Tone, readonly [string, string]>>> = {
@@ -45,12 +51,18 @@ const TONE_MARKS: Partial<Readonly<Record<Tone, readonly [string, string]>>> = {
   info: ['ℹ', 'info'],
 }
 
-/** §15.2: what a node's tone says, without color. */
-export function toneMark(tone: Tone): HTMLElement | null {
+/** VD-068's classes: a bar for any tone but `default`, and room for a mark if it has one. */
+export function tonedClass(tone: Tone): string {
+  if (tone === 'default') return toneClass(tone)
+  return `${toneClass(tone)} vui-toned${TONE_MARKS[tone] === undefined ? '' : ' vui-marked'}`
+}
+
+/** §15.2: what a tone says, without color, placed by `className`. */
+export function toneMark(tone: Tone, className = 'vui-node-mark'): HTMLElement | null {
   const mark = TONE_MARKS[tone]
   if (mark === undefined) return null
   const [glyph, word] = mark
-  return el('span', { class: 'vui-node-mark' }, [
+  return el('span', { class: className }, [
     el('span', { 'aria-hidden': 'true' }, glyph),
     el('span', { class: 'vui-sr-only' }, word),
   ])

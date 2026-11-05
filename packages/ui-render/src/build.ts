@@ -12,14 +12,20 @@ import {
   type JsonValue,
   type PathMap,
   parseInline,
-  TONES,
   type Tone,
 } from '@vadd/ui-spec'
 import { errorCard, placeholderCard } from './cards.js'
 import type { NodeContext, Registry } from './context.js'
 import { type Child, el } from './el.js'
 import { foldable } from './fold.js'
-import { type LinkHandler, renderInline, renderValue, toneClass, toneMark } from './inline.js'
+import {
+  type LinkHandler,
+  renderInline,
+  renderValue,
+  tonedClass,
+  toneMark,
+  toneOf,
+} from './inline.js'
 import type { Failure } from './prepare.js'
 import { BUDGET_MS, BudgetExceeded, type Watchdog } from './watchdog.js'
 
@@ -135,20 +141,10 @@ function createContext(
   return context
 }
 
-function isTone(value: string | undefined): value is Tone {
-  return (TONES as readonly (string | undefined)[]).includes(value)
-}
-
 /** Unknown types are not validated (VD-033), so nothing here can be trusted to be a span. */
 function spanOf(node: JsonObject): number | undefined {
   const span = hasOwn(node, 'span') ? node.span : undefined
   return typeof span === 'number' ? span : undefined
-}
-
-function frameClass(tone: Tone | undefined, marked: boolean): string {
-  if (tone === undefined) return 'vui-node'
-  if (tone === 'default') return `vui-node ${toneClass(tone)}`
-  return `vui-node ${toneClass(tone)} vui-toned${marked ? ' vui-marked' : ''}`
 }
 
 /** VD-068: a bar for any tone but `default`, and a mark for one that means something. */
@@ -158,14 +154,13 @@ function frame(
   content: Child[],
   fallbackTone?: Tone,
 ): HTMLElement {
-  const field = stringField(node, 'tone')
-  const tone = isTone(field) ? field : fallbackTone
+  const tone = toneOf(stringField(node, 'tone')) ?? fallbackTone
   const mark = tone === undefined ? null : toneMark(tone)
   const span = spanOf(node)
   const type = stringField(node, 'type')
   const attributes = {
     id,
-    class: frameClass(tone, mark !== null),
+    class: tone === undefined ? 'vui-node' : `vui-node ${tonedClass(tone)}`,
     'data-vui-span': span,
     'data-vui-type': type,
   }
