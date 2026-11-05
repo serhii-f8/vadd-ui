@@ -10,6 +10,8 @@ export interface Scene {
   now?: string
   /** Default `hidden`, since fixture types are unknown to the validator. */
   diagnostics?: 'hidden' | 'badge' | 'panel'
+  /** Opens every closed fold before the shot. */
+  open?: boolean
 }
 
 export const WIDTHS = [360, 720, 1100] as const
@@ -33,6 +35,250 @@ const wave = (scale: number, shift: number) =>
   DAYS.map((_, index) => Math.round(scale * (2 + Math.sin(index / 3 + shift))))
 const QUARTERS = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026']
 const SLO = { y: 100, label: 'SLO', tone: 'err' }
+
+const CHECK_OUTPUT = Array.from({ length: 24 }, (_, index) =>
+  index === 23
+    ? '\u001b[31m✗ auth.spec.ts:88  expected 401, got 200\u001b[0m'
+    : `\u001b[32m✓\u001b[0m auth.spec.ts:${index + 1}  passes`,
+).join('\n')
+
+const CHECKS = {
+  type: 'checks',
+  title: 'Verification',
+  items: [
+    { name: 'Typecheck', status: 'ok', cmd: 'pnpm tsc -b', ms: 9100 },
+    { name: 'Lint', status: 'warn', cmd: 'pnpm lint', ms: 1240, output: '2 warnings' },
+    { name: 'E2E', status: 'fail', cmd: 'pnpm e2e', ms: 17700, output: CHECK_OUTPUT },
+    { name: 'Deploy preview', status: 'skip' },
+    { name: `Long ${LONG_TOKEN}`, status: 'run', cmd: `pnpm ${LONG_TOKEN}`, ms: 90500 },
+  ],
+}
+
+const DIFF = {
+  type: 'diff',
+  title: 'Changes',
+  files: [
+    ['src/auth/refresh.ts', 64, 12, 'M'],
+    ['src/auth/rotation.repo.ts', 88, 0, 'A'],
+    ['src/auth/legacy.ts', 0, 140, 'D'],
+    ['src/auth/{old => new}/token.ts', 3, 3, 'R'],
+    ['docs/auth.md', 5, 1],
+    [`src/${LONG_TOKEN}.ts`, 1200, 34, 'M'],
+  ],
+  hunks: {
+    'src/auth/refresh.ts':
+      '--- a/src/auth/refresh.ts\n+++ b/src/auth/refresh.ts\n@@ -10,4 +10,5 @@ export function refresh() {\n   const token = read()\n-  return issue(token)\n+  const next = rotate(token)\n+  return issue(next)\n }',
+    'src/auth/orphan.ts': '@@ -1 +1 @@\n-old\n+new',
+  },
+}
+
+/** The core components of §6.5 and §6.7, then §19.1 and §19.2 as written. */
+function devScenes(): Scene[] {
+  return [
+    { name: 'checks', input: [CHECKS] },
+    { name: 'checks-open', input: [CHECKS], open: true },
+    {
+      name: 'plan',
+      input: [
+        {
+          type: 'plan',
+          title: 'Plan',
+          items: [
+            { text: 'Add **rotation** table', status: 'ok', note: 'Merged in `0042`' },
+            {
+              text: 'Invalidate on refresh',
+              status: 'run',
+              children: [
+                { text: 'Write the failing test', status: 'ok' },
+                {
+                  text: 'Revoke the family',
+                  status: 'wait',
+                  children: [{ text: 'Backfill', status: 'none' }],
+                },
+              ],
+            },
+            { text: 'Replay protection test', status: 'fail' },
+            { text: `Long ${LONG_TOKEN}`, status: 'skip' },
+          ],
+        },
+      ],
+    },
+    { name: 'diff', input: [DIFF] },
+    { name: 'diff-open', input: [DIFF], open: true },
+    {
+      name: 'tree',
+      input: [
+        {
+          type: 'grid',
+          children: [
+            {
+              type: 'tree',
+              title: 'Items',
+              items: [
+                {
+                  name: 'src',
+                  status: 'ok',
+                  children: [
+                    {
+                      name: 'auth',
+                      note: 'Touched by **this** change',
+                      children: [{ name: 'a.ts' }],
+                    },
+                    { name: 'index.ts', status: 'warn' },
+                  ],
+                },
+                { name: 'README.md' },
+              ],
+            },
+            {
+              type: 'tree',
+              title: 'Paths',
+              paths: ['src/auth/refresh.ts', 'src/auth/repo.ts', 'src/index.ts', 'package.json'],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'timeline',
+      input: [
+        {
+          type: 'timeline',
+          title: 'Rollout',
+          items: [
+            { at: '2026-11-05T09:12:00Z', text: 'Canary **started**', status: 'ok' },
+            { at: '2026-11-05T09:40:00Z', text: 'Error rate over budget', status: 'fail' },
+            { at: '2026-11-05T10:05:00Z', text: 'Rolled back' },
+            { at: 'Next week', text: 'Second attempt', status: 'wait' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'decision',
+      input: [
+        {
+          type: 'decision',
+          question: 'Cache layer for catalog queries?',
+          context: 'p95 is **140 ms** against a budget of 80 ms.',
+          pick: 1,
+          options: [
+            {
+              label: 'In-process LRU',
+              pros: ['No infra'],
+              cons: ['Per-pod', 'Cold after a deploy'],
+              effort: 'S',
+              reversible: true,
+            },
+            {
+              label: 'Redis',
+              pros: ['Shared'],
+              cons: ['New dependency'],
+              effort: 'M',
+              reversible: true,
+              risk: 'med',
+              verify: 'p95 < 80 ms in `bench`',
+            },
+            { label: 'Do nothing', risk: 'high', reversible: false },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'log',
+      input: [
+        {
+          type: 'log',
+          title: 'Worker log',
+          maxLines: 8,
+          text: [
+            '2026-11-05T09:12:00Z INFO worker started',
+            '2026-11-05T09:12:01Z DEBUG loading config',
+            'plain line with no level',
+            '[WARN] token cache is cold',
+            '',
+            '\u001b[31mERROR\u001b[0m rotation failed: expected 401, got 200',
+            'ERROR second failure right after the first',
+            `INFO ${LONG_TOKEN}`,
+            'INFO in the fold',
+            'tail line',
+          ].join('\n'),
+        },
+      ],
+    },
+    {
+      name: 'example-19-1',
+      input: {
+        title: 'Objective #14 — refresh-token rotation',
+        subtitle: 'branch vadd/obj-14 @ 4f2c1a9',
+        body: [
+          {
+            type: 'stats',
+            items: [
+              { label: 'Checks', value: '5/6', tone: 'warn' },
+              { label: 'Tests', value: 142, delta: -3, deltaFormat: 'delta' },
+              {
+                label: 'Coverage',
+                value: 0.874,
+                format: 'pct',
+                delta: 0.012,
+                deltaFormat: 'delta:pct',
+              },
+              { label: 'Duration', value: 48200, format: 'ms' },
+            ],
+          },
+          {
+            type: 'checks',
+            items: [
+              { name: 'Typecheck', status: 'ok', cmd: 'pnpm tsc -b', ms: 9100 },
+              { name: 'Unit tests', status: 'ok', cmd: 'pnpm vitest run', ms: 21400 },
+              {
+                name: 'E2E',
+                status: 'fail',
+                cmd: 'pnpm e2e',
+                ms: 17700,
+                output: 'auth.spec.ts:88  expected 401, got 200',
+              },
+            ],
+          },
+          {
+            type: 'callout',
+            tone: 'warn',
+            text: 'E2E fails on expired-token replay. Rotation is not invalidating the old token.',
+          },
+        ],
+      },
+    },
+    {
+      name: 'example-19-2',
+      input: [
+        {
+          type: 'grid',
+          children: [
+            {
+              type: 'plan',
+              title: 'Plan',
+              items: [
+                { text: 'Add rotation table', status: 'ok' },
+                { text: 'Invalidate on refresh', status: 'run' },
+                { text: 'Replay protection test', status: 'wait' },
+              ],
+            },
+            {
+              type: 'diff',
+              title: 'Changes',
+              files: [
+                ['src/auth/refresh.ts', 64, 12, 'M'],
+                ['src/auth/rotation.repo.ts', 88, 0, 'A'],
+                ['migrations/0042_token_rotation.sql', 21, 0, 'A'],
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ]
+}
 
 /** Each kind gets its own baselines; `chart-line` is §19.3's chart. */
 function chartScenes(): Scene[] {
@@ -494,4 +740,5 @@ export const SCENES: Scene[] = [
     ],
   },
   ...chartScenes(),
+  ...devScenes(),
 ]

@@ -21,6 +21,18 @@ import { field, lineCount, nodeList, objects, text, whole } from './fields.js'
 
 const CHECK_OUTPUT_LINES = 20
 
+/** What `draw` makes of each object in `list`, with the VD-008 checkpoint. */
+function drawn<T>(
+  list: JsonValue[],
+  context: NodeContext,
+  draw: (item: JsonObject, index: number) => T,
+): T[] {
+  return objects(list).map(({ item, index }) => {
+    context.checkpoint()
+    return draw(item, index)
+  })
+}
+
 const statusLabel = (label: string) =>
   el('span', { class: `vui-status vui-pick ${toneClass('ok')}` }, [
     el('span', { 'aria-hidden': 'true' }, '✓'),
@@ -53,11 +65,11 @@ function checkOutput(item: JsonObject, index: number, context: NodeContext): HTM
 
 export const checks: Component = {
   render(node, context) {
-    const rows = objects(nodeList(node, 'items')).map(({ item, index }) => {
+    const rows = drawn(nodeList(node, 'items'), context, (item, index) => {
       const cmd = text(item, 'cmd')
       const ms = field(item, 'ms')
       return el('li', {}, [
-        el('div', { class: 'vui-row' }, [
+        el('div', { class: 'vui-row vui-check-head' }, [
           badgeOf(item),
           text(item, 'name'),
           cmd === '' ? null : el('code', { class: 'vui-code' }, cmd),
@@ -83,8 +95,7 @@ function rows(
   label: (item: JsonObject) => Child[],
   className: string,
 ): HTMLElement {
-  context.checkpoint()
-  const entries = objects(items).map(({ item }) => {
+  const entries = drawn(items, context, (item) => {
     const children = nodeList(item, 'children')
     return el('li', {}, [
       el('div', { class: 'vui-row' }, [badgeOf(item), el('span', {}, label(item))]),
@@ -180,6 +191,7 @@ export const diff: Component = {
     const hunks = field(node, 'hunks')
     const entries = diffEntries(files, isJsonObject(hunks) ? (hunks as never) : undefined)
     const items = entries.map((entry, index) => {
+      context.checkpoint()
       const { hunk } = entry
       return el(
         'li',
@@ -188,13 +200,13 @@ export const diff: Component = {
           ? context.fold(
               `hunk${index}`,
               fileRow(entry),
-              () => pre(runs(hunk.split('\n'), lineTone)),
+              () => pre(runs(cleanText(hunk).trimEnd().split('\n'), lineTone)),
               false,
             )
           : fileRow(entry),
       )
     })
-    return el('ul', { class: 'vui-rows' }, items)
+    return el('ul', { class: 'vui-rows vui-diff' }, items)
   },
 }
 
@@ -229,7 +241,7 @@ const ISO_TIME = /^\d{4}-\d\d/
 
 export const timeline: Component = {
   render(node, context) {
-    const entries = objects(nodeList(node, 'items')).map(({ item, index }) => {
+    const entries = drawn(nodeList(node, 'items'), context, (item, index) => {
       const at = text(item, 'at')
       const pointer = `${context.pointer}/items/${index}/at`
       return el('li', {}, [
@@ -281,7 +293,7 @@ export const decision: Component = {
   render(node, context) {
     const pick = whole(node, 'pick')
     const details = text(node, 'context')
-    const cards = objects(nodeList(node, 'options')).map(({ item, index }) =>
+    const cards = drawn(nodeList(node, 'options'), context, (item, index) =>
       el('li', { class: `vui-card${index === pick ? ' vui-option-pick' : ''}` }, [
         index === pick ? statusLabel('Recommended') : null,
         el('p', { class: 'vui-card-title' }, text(item, 'label')),

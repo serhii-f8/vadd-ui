@@ -8,9 +8,19 @@ const SCHEMES: Scheme[] = ['light', 'dark']
 async function open(page: Page, name: string, scheme: Scheme, width: number) {
   const scene = SCENES.find((item) => item.name === name)
   if (!scene) throw new Error(name)
-  const { name: _, ...visual } = scene
+  const { name: _, open: unfold, ...visual } = scene
   const opened = await openVisual(page, visual, scheme, width)
   await settled(opened)
+  if (unfold) {
+    await opened.frame.evaluate(() => {
+      const closed = '.vui-fold-toggle[aria-expanded="false"]'
+      for (let next = document.querySelector<HTMLElement>(closed); next !== null; ) {
+        next.click()
+        next = document.querySelector<HTMLElement>(closed)
+      }
+    })
+    await settled(opened)
+  }
   return opened
 }
 

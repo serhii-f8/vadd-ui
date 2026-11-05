@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { show } from '../helpers.js'
 
 const all = (box: Element, selector: string) => [...box.querySelectorAll(selector)]
@@ -234,6 +234,12 @@ describe('diff', () => {
     expect(box.querySelector('pre')?.textContent).toBe(`${hunk}\n`)
   })
 
+  it('cleans a colored hunk and drops its last newline', () => {
+    const { box } = show([{ type: 'diff', files: [], hunks: { x: '\u001b[32m+y\u001b[m\r\n' } }])
+    box.querySelector('button')?.click()
+    expect(box.querySelector('pre')?.textContent).toBe('+y\n')
+  })
+
   it('reads no hunk from a prototype', () => {
     const { box } = show([{ type: 'diff', files: [['constructor', 1, 1]], hunks: {} }])
     expect(box.querySelector('button')).toBeNull()
@@ -383,5 +389,34 @@ describe('decision', () => {
   it('sits in a box that a container query can measure', () => {
     const { box } = show([decision])
     expect(box.querySelector('.vui-grid-box > .vui-options')).not.toBeNull()
+  })
+})
+
+describe('a list that takes too long', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  const many = Array.from({ length: 5 }, (_, index) => ({
+    name: `n${index}`,
+    text: `t${index}`,
+    at: 'x',
+    label: 'l',
+    status: 'ok',
+  }))
+
+  it.each([
+    ['checks', { items: many.map(({ name, status }) => ({ name, status })) }],
+    ['plan', { items: many.map(({ text, status }) => ({ text, status })) }],
+    ['tree', { items: many.map(({ name }) => ({ name })) }],
+    ['timeline', { items: many.map(({ at, text }) => ({ at, text })) }],
+    ['decision', { question: 'q', options: many.map(({ label }) => ({ label })) }],
+    ['diff', { files: many.map(({ name }) => [name, 1, 1]) }],
+  ])('stops %s at a checkpoint', (type, fields) => {
+    let time = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => {
+      time += 100
+      return time
+    })
+    const { box } = show([{ type, ...fields }])
+    expect(box.querySelector('.vui-card-error')?.textContent).toContain('took longer')
   })
 })

@@ -114,11 +114,14 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-rows{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0;margin:0;padding:0;list-style:none}
 .vui-rows li{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0}
 .vui-rows .vui-rows{padding-inline-start:var(--vui-space-4)}
-.vui-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--vui-space-2);min-width:0}
+.vui-row{display:flex;align-items:baseline;gap:0 var(--vui-space-2);min-width:0}
+.vui-row>span:last-child:not(.vui-row-end){flex:1;min-width:0}
+.vui-row>.vui-status,.vui-row-end{flex:none}
+.vui-check-head{flex-wrap:wrap}
 .vui-row-end{margin-inline-start:auto;color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
 .vui-row-end .vui-tone-ok,.vui-row-end .vui-tone-err{font-weight:600}
-.vui-row>.vui-code{min-width:0}
-.vui-diff-mark{flex:none;font-family:var(--vui-mono),monospace}
+.vui-diff:has(button)>li>.vui-row{padding-inline-start:calc(.8em + var(--vui-space-1))}
+.vui-diff-mark{font-family:var(--vui-mono),monospace}
 .vui-rows .vui-fold-toggle>:last-child{flex:1;min-width:0}
 .vui-code-pre [class*="vui-tone-"]{display:block;background:color-mix(in srgb,var(--vui-tone) 12%,transparent)}
 .vui-code-pre .vui-tone-muted{background:none}
