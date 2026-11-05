@@ -223,9 +223,14 @@ describe('chart drawing', () => {
     expect(y(tops[0] as string, 2)).toBeCloseTo(y(tops[1] as string, 1), 5)
   })
 
-  it('stacks a negative value down', () => {
+  it('stacks a negative value down from zero, whatever sits above', () => {
     const { box } = chart({ kind: 'stacked', x: ['a'], series: { s: [2], t: [-1] } })
     expect(texts(box, '.vui-chart-tick')).toContain('-1')
+    const y = (path: string | null | undefined, point: number) =>
+      Number(path?.split(/[ML]/)[point]?.split(' ')[1])
+    const [upper, lower] = all(box, 'path.vui-chart-bar').map((p) => p.getAttribute('d'))
+    expect(y(lower, 1)).toBeCloseTo(y(upper, 1), 5)
+    expect(y(lower, 2)).toBeGreaterThan(y(upper, 1))
   })
 
   it('lays hbar out across, with labels at the start', () => {
@@ -428,13 +433,20 @@ describe('chart drawing', () => {
   })
 
   it('shares one index list between bars past 1,000', () => {
-    const values = Array.from({ length: 3000 }, (_, index) => index % 7)
-    const { box } = chart({ kind: 'bar', x: values.map(String), series: { s: values, t: values } })
-    const counts = all(box, 'path.vui-chart-bar').map(
-      (p) => p.getAttribute('d')?.match(/M/g)?.length,
+    const spike = (at: number) =>
+      Array.from({ length: 3000 }, (_, index) => (index === at ? 500 : (index * 31) % 7))
+    const x = spike(0).map((_, index) => String(index))
+    const { box } = chart({ kind: 'bar', x, series: { s: spike(100), t: spike(2000) } })
+    const starts = all(box, 'path.vui-chart-bar').map((p) =>
+      [...(p.getAttribute('d') ?? '').matchAll(/M([\d.]+) /g)].map((match) => Number(match[1])),
     )
-    expect(counts[0]).toBeLessThanOrEqual(1000)
-    expect(counts[0]).toBe(counts[1])
+    const [first = [], second = []] = starts
+    expect(first.length).toBeLessThanOrEqual(1000)
+    expect(second).toHaveLength(first.length)
+    const gap = (second[0] as number) - (first[0] as number)
+    expect(
+      second.every((start, index) => Math.abs(start - (first[index] as number) - gap) < 0.2),
+    ).toBe(true)
   })
 })
 
