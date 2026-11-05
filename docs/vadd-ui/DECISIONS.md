@@ -760,3 +760,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Declined, with the reviewer: failed `checks` starting closed (VD-091); selecting a `diff` row copying the hidden word; repeated `Output` button names, for task 20's axe-core; `\x1b(B` leaving `(B`, which `cleanText` already did; long list components having no height fold, since §9.3 does not name them.
 - Rationale: fix what misleads a reader or loses a node now.
 - Spec sections: §6.5, §6.7, §9.3, §15.2.
+
+## VD-096 — Routing task 10's open items
+- Date: 2026-11-05 · Task: 10
+- Context: the worker left three follow-ups, and a coordinator mutant showed `DEFAULT_LOG_LINES = 40` in `dev.ts` can change with no test failing. `normalize` fills `log.maxLines` first, so that fallback does not run on a normalized document; the mutant on `normalize.ts` fails the default test.
+- Decision: `ui-text` prints nothing for a `tree` with `items: []` and good `paths`, where the DOM falls back to `paths`. This is a real gap between renderers on a valid document, and task 12 takes it as the first change it makes to text output. A date-only `timeline.at` printing midnight in `ui-text` goes with it, since VD-092 already prefers the DOM's reading. A `checks.output` over 2,000 chars is not a defect: §13.4 makes it invalid, the browser truncates by keeping the head, and "last 20 lines" holds for every valid document. Task 17's skill must tell agents to send the tail of a long output, since failures usually sit there. Task 11 checks whether the `DEFAULT_LOG_LINES` and `DEFAULT_MAX_LINES` fallbacks can go, because each byte counts there.
+- Rationale: each item has an owner task, and none blocks the merge.
+- Spec sections: §6.5, §7, §9.3, §9.5, §13.4.

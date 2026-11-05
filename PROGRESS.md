@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T14:56:46Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T16:12:05Z · Mode: manual
 
 ## Summary
-Done 9 / 22 · In progress: none · Blocked: none · Next: 10 — Dev-workflow components
+Done 10 / 22 · In progress: none · Blocked: none · Next: 11 — @vadd/ui bundle and boot script
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -37,7 +37,7 @@ Recorded 2026-11-04 during bootstrap.
 | 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | done | removed | ctx_1d7a5b7dd91d | [design](docs/superpowers/specs/2026-11-05-layout-text-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-layout-text-components.md) | dc4b4d6 | 2026-11-05 |
 | 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | done | removed | ctx_075e7f415cf0 | [design](docs/superpowers/specs/2026-11-05-data-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-data-components.md) | 2e55ec8 | 2026-11-05 |
 | 09 | Charts | §6.4, §9.4, §15.2 | 08 | done | removed | ctx_c8b1959577eb | [design](docs/superpowers/specs/2026-11-05-charts-design.md) | [plan](docs/superpowers/plans/2026-11-05-charts.md) | f14dde8 | 2026-11-05 |
-| 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | todo | | | | | | |
+| 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | done | removed | ctx_b15f10f3a930 | [design](docs/superpowers/specs/2026-11-05-dev-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-dev-components.md) | 2c3edaf | 2026-11-05 |
 | 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | todo | | | | | | |
 | 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | todo | | | | | | |
 | 13 | Viewer server | §4.1, §15.3 | 11 | todo | | | | | | |
@@ -145,3 +145,13 @@ none
 - Review: fresh reviewer found 1 Critical, 4 Important and 6 minor, all fixed. Critical: a slice under 0.5% painted a full ring. Details in VD-086.
 - Process: the worker ran `executing-plans` inline, which the brief allows. Tests-first mostly held, but the bar, line and donut code and their tests landed as one large step; review fixes were strictly test-first.
 - Follow-ups: task 10: 3.43 KiB gzip remains for 7 dev components and task 11's boot script, and the worker's 3.5 KiB target for charts was missed. Set a task 10 size target, and try reclaiming from `ui-spec` (40.1 KiB min at task 07) before cutting features; property mangling is a task 11 build option. Task 20: VD-088; tooltip is pointer only, with the hidden table for other readers (VD-081); axe-core has still not run. Task 22: `scatter` is a placeholder. `ui-text` sparklines still sample by stride while the DOM uses LTTB, so long series can differ.
+
+### 10 — Dev-workflow components
+- Built: `checks`, `plan`, `diff`, `tree`, `timeline`, `decision`, `log` in `components/dev.ts`, on a new shared `.vui-rows` list and `ctx.fold` bodies that build at first open. Shared readers moved to `ui-spec/src/dev-view.ts` (`cleanText`, `tailLines`, `planCounts`, `itemsFromPaths`, `diffEntries`). §19.1 and §19.2 render in the harness.
+- Decisions: VD-090 to VD-096, no DEVIATION. VD-091: every `checks` output starts closed, failures too, as §9.3 says. VD-095: `planCounts` skips non-items, which changes `ui-text` on invalid documents only. VD-096 routes the open items.
+- Evidence (coordinator rerun on `main` at 2c3edaf): `pnpm gate` exit 0. Vitest 60 files, 5,626 tests. Playwright 334 tests. Banned-API check clean on 67 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Coverage: lines 99.9% (3142/3145), statements 99.47%, branches 98.22%. Spec hash unchanged; no `package.json` changes.
+- Size: `ui-render` entry 108.4 KiB min and 36.86 KiB gzip by the VD-089 method, under its 37.4 limit. 2.29 KiB used of 2.83, with nothing removed from existing code. 1.14 KiB gzip remains for task 11.
+- Coordinator probes: mutants on 9f274a1: `tailLines` count, `WARNING`, plan done count, CRLF, path depth and the `normalize` default each failed tests. `DEFAULT_LOG_LINES` in `dev.ts` survived, because `normalize` sets the value first (VD-096). Hostile documents (script payloads in every text field, ANSI and OSC in output, blank output, `__proto__` paths and hunks, `../` and over-deep paths, out-of-range dates, a 2,800-line log, 19,990 digits and `T`/`Z` runs through the level regex, an out-of-range `pick`, empty `options`): no markup from a document reached the DOM, no error cards, no control inside `decision`, each under 100 ms in jsdom.
+- Worker evidence, not rerun: 20 dev nodes at 1.1 ms against 15 ms; a document near the input cap at 14.9 ms; tinted lines at or above 4.5:1 in both schemes; 66 baselines over 11 scenes inspected; Orca pane capture at head, not viewed by the coordinator.
+- Review: fresh reviewer found no Critical issues, 5 Important and 9 minor, all fixed or declined with the reviewer (VD-095).
+- Follow-ups: task 11: 1.14 KiB gzip for the boot script; property mangling is in reserve; check the two redundant fallbacks (VD-096); `#id` links into hidden tabs and folds (VD-070). Task 12: `ui-text` `tree` fallback and date-only `timeline` (VD-096). Task 17: tell agents to send the tail of long output (VD-096). Task 20: VD-088; repeated `Output` button names for axe-core (VD-095). Orca's full-page screenshot tiled the first viewport on the long test page, so the worker used a viewport capture.
