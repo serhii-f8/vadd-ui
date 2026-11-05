@@ -711,3 +711,43 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: leave the split to the worker, which is how task 09 overran its own target; property mangling now, which belongs to task 11's build and is held in reserve there.
 - Rationale: §9.5 is a hard gate, and the overrun would otherwise surface only at task 11.
 - Spec sections: §9.2, §9.5.
+
+## VD-090 — Dev-component readers move to `ui-spec`, and a fold body can wait
+- Date: 2026-11-05 · Task: 10
+- Context: `ui-text` already read ANSI, last-N-lines, `paths`, plan counts and orphan hunks. §9.3 starts `diff` hunks folded, and `hunks` have no cap as a set: 256 KiB of two-character lines would build 128,000 spans for content nobody opened.
+- Decision: `cleanText`, `tailLines`, `planCounts`, `itemsFromPaths` and `diffEntries` live in `ui-spec/src/dev-view.ts`, and `ui-text` output is unchanged. A `ctx.fold` body may be a function, built at the first open, or at render if the fold is remembered open. Hunks use it. Check output does not: it is capped at 2,000 chars. VD-056's depth cap now covers the DOM `tree`, as it asked.
+- Alternatives: a copy per renderer, which VD-067 and VD-075 already ruled out; eager hunks with coalesced runs alone, which leaves the worst case to the watchdog.
+- Rationale: one reader, and folded content costs nothing.
+- Spec sections: §6.5, §9.3, §9.5, §13.4.
+
+## VD-091 — What `checks` and `diff` show
+- Date: 2026-11-05 · Task: 10
+- Context: §6.5 says output "folds" and "last 20 lines shown"; §9.3 says outputs "start folded". A failing check's output could reasonably start open. §6.5 lists `A|M|D|R` with no words for them, and does not say how a hunk attaches to its file.
+- Decision: every output starts closed, a failure too, as §9.3 says. Open, it shows the last 20 lines, with a nested closed fold `N earlier lines` above them: `ui-text` must drop them, but the DOM need not lose them. A file with a hunk makes its whole row the toggle. The mark is the letter with a tint and a hidden word (`added`, `modified`, `deleted`, `renamed`). Hunk lines tint by first character, and `---` and `+++` headers do not count as changes. A hunk gets `cleanText` too, for `git diff --color`.
+- Alternatives: open on failure, against §9.3; a separate `Show diff` button, which adds a control per file.
+- Rationale: §9.3 is the stricter text, and the height rule it serves applies to failures as well.
+- Spec sections: §6.5, §9.3, §15.2.
+
+## VD-092 — `log` levels and `timeline` labels
+- Date: 2026-11-05 · Task: 10
+- Context: §6.5 says levels are "detected by `ERROR`, `WARN`, `INFO`, `DEBUG` prefixes", but real lines start with a time or a bracket. `at` is "ISO time or label", and `date:datetime` reports `bad-value` on a label.
+- Decision: a level is one of the four words, case-sensitive, after anything that is not a letter, past a `T` or `Z` that a digit or space follows. `WARNING` counts, since `WARN` is its prefix. `log` runs `cleanText` first, or a colored level has no prefix; §6.5 names this only for `checks`, but `ui-text` already cleans every string. Lines stay in one `pre`; only runs of a level get an element, so 20,000 chars stay a small DOM. `DEBUG` is muted with no tint. `log` keeps `code`'s fold from VD-071: the first `maxLines` stay. An `at` starting `YYYY-MM` is formatted; anything else prints as written and reports nothing.
+- Alternatives: a row element per line, which is 10,000 elements at the cap; the tail visible instead of the head, which §9.3's "fold after `maxLines`" does not say.
+- Rationale: matches real logs, stays linear on long lines, and the level word keeps meaning off color alone.
+- Spec sections: §6.5, §9.3, §15.2.
+
+## VD-093 — `decision` layout and fields
+- Date: 2026-11-05 · Task: 10
+- Context: §6.7 asks for side-by-side cards, stacked under 600 px, and does not say how many fit. `question` is not listed as inline text, while `context` and `verify` are.
+- Decision: cards sit in a `.vui-grid-box`; columns are `auto-fit, minmax(12em, 1fr)`, and `@container (max-width: 599.98px)` gives one column, by the width of the node, per VD-069 and VD-073. Above 600 px, many options wrap into rows instead of shrinking. `question` is plain text, as in `ui-text`, drawn as a bold paragraph. Fields use `kv`'s layout in `ui-text`'s order. The pick has a stronger border and a `✓ Recommended` label. Nothing in the card is a control (D8).
+- Alternatives: `grid-auto-flow: column`, where six options make slivers at 600 px.
+- Rationale: reuses `kv` and `card`, and the pick never rests on color alone.
+- Spec sections: §6.7, §8.4, §15.2, §18 D8.
+
+## VD-094 — Shape of the shared row list, and size result
+- Date: 2026-11-05 · Task: 10
+- Context: `.vui-list-status` pulls an item back by 1.5 em, which cancels nesting. §17.4 keeps Firefox 115, which has no `:has()`.
+- Decision: `.vui-rows` is a new bullet-free list for `checks`, `plan`, `tree`, `timeline` and `diff`. Only `checks` rows wrap: elsewhere a status stays beside its text. Plain `diff` rows indent past the fold icon with `:has(button)`; without `:has()` they sit 1 em to the left, which is cosmetic. Size: the `ui-render` entry went from 34.58 to 36.77 KiB gzip, under VD-089's 37.4, with nothing removed.
+- Alternatives: a per-row spacer element for the icon, which costs an element per file.
+- Rationale: one rule set for five components.
+- Spec sections: §6.5, §9.5, §17.4.
