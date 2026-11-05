@@ -239,3 +239,149 @@ describe('diff', () => {
     expect(box.querySelector('button')).toBeNull()
   })
 })
+
+describe('log', () => {
+  const lines = (count: number) => Array.from({ length: count }, (_, i) => `l${i}`).join('\n')
+
+  it.each([
+    ['ERROR boom', 'err'],
+    ['WARN careful', 'warn'],
+    ['WARNING careful', 'warn'],
+    ['INFO hello', 'info'],
+    ['DEBUG detail', 'muted'],
+    ['[ERROR] boom', 'err'],
+    ['12:00:01 INFO hello', 'info'],
+    ['2026-11-05T10:00:00.123Z ERROR boom', 'err'],
+  ])('finds the level of %s', (line, tone) => {
+    const { box } = show([{ type: 'log', text: line }])
+    expect(box.querySelector('pre span')?.className).toBe(`vui-tone-${tone}`)
+  })
+
+  it.each(['plain line', 'error in lower case', 'no ERROR at the start'])(
+    'leaves %s plain',
+    (line) => {
+      const { box } = show([{ type: 'log', text: line }])
+      expect(box.querySelector('pre span')).toBeNull()
+    },
+  )
+
+  it('finds a level behind a color, and copies clean text', async () => {
+    const written: string[] = []
+    Object.assign(navigator, {
+      clipboard: { writeText: async (value: string) => void written.push(value) },
+    })
+    const { box } = show([{ type: 'log', text: '\u001b[31mERROR\u001b[0m boom' }])
+    expect(box.querySelector('pre .vui-tone-err')?.textContent).toBe('ERROR boom\n')
+    click(box, 'Copy')
+    await Promise.resolve()
+    expect(written).toEqual(['ERROR boom'])
+  })
+
+  it('folds after 40 lines by default', () => {
+    const { box } = show([{ type: 'log', text: lines(41) }])
+    expect(box.querySelector('.vui-fold-toggle')?.textContent).toContain('1 more line')
+    expect(all(box, 'pre')[0]?.textContent?.trimEnd().split('\n')).toHaveLength(40)
+  })
+
+  it('does not fold at exactly 40 lines', () => {
+    const { box } = show([{ type: 'log', text: lines(40) }])
+    expect(box.querySelector('.vui-fold-toggle')).toBeNull()
+  })
+
+  it('takes maxLines', () => {
+    const { box } = show([{ type: 'log', text: lines(5), maxLines: 2 }])
+    expect(box.querySelector('.vui-fold-toggle')?.textContent).toContain('3 more lines')
+  })
+
+  it('keeps blank lines', () => {
+    const { box } = show([{ type: 'log', text: 'a\n\nERROR b\n\nc' }])
+    expect(box.querySelector('pre')?.textContent).toBe('a\n\nERROR b\n\nc\n')
+  })
+
+  it('draws a run of plain or of one level as one node', () => {
+    const text = `${'x\n'.repeat(9_000)}${'ERROR a\n'.repeat(100)}${'y\n'.repeat(100)}`
+    const { box } = show([{ type: 'log', text, maxLines: 20_000 }])
+    expect(box.querySelector('pre code')?.childNodes).toHaveLength(3)
+  })
+})
+
+describe('decision', () => {
+  const options = [
+    {
+      label: 'In-process LRU',
+      pros: ['No infra', 'Fast'],
+      cons: ['Per-pod'],
+      effort: 'S',
+      reversible: true,
+    },
+    {
+      label: 'Redis',
+      pros: ['Shared'],
+      effort: 'M',
+      reversible: false,
+      risk: 'med',
+      verify: 'p95 `< 80 ms`',
+    },
+  ]
+  const decision = { type: 'decision', question: 'Cache **layer**?', pick: 1, options }
+
+  it('shows the question as written, and context as inline text', () => {
+    const { box } = show([{ ...decision, context: 'See **this**' }])
+    expect(box.textContent).toContain('Cache **layer**?')
+    expect(box.querySelector('strong')?.textContent).toBe('this')
+  })
+
+  it('draws one card per option, as a list', () => {
+    const { box } = show([decision])
+    expect(all(box, '.vui-options > li.vui-card')).toHaveLength(2)
+    expect(texts(box, '.vui-card-title')).toEqual(['In-process LRU', 'Redis'])
+  })
+
+  it('lists the fields of an option in order', () => {
+    const { box } = show([decision])
+    expect(texts(all(box, '.vui-card')[0] as Element, 'dt')).toEqual([
+      'Pros',
+      'Cons',
+      'Effort',
+      'Reversible',
+    ])
+    expect(texts(all(box, '.vui-card')[1] as Element, 'dt')).toEqual([
+      'Pros',
+      'Effort',
+      'Reversible',
+      'Risk',
+      'Verify',
+    ])
+    expect(texts(all(box, '.vui-card')[0] as Element, 'dd li')).toEqual([
+      'No infra',
+      'Fast',
+      'Per-pod',
+    ])
+    expect(texts(all(box, '.vui-card')[1] as Element, 'dd')).toContain('no')
+    expect(box.querySelector('dd code')?.textContent).toBe('< 80 ms')
+  })
+
+  it('marks the pick with words as well as a border', () => {
+    const { box } = show([decision])
+    const picked = box.querySelector('.vui-option-pick')
+    expect(picked?.textContent).toContain('Redis')
+    expect(picked?.textContent).toContain('Recommended')
+    expect(all(box, '.vui-option-pick')).toHaveLength(1)
+  })
+
+  it('marks nothing without a pick, or with one out of range', () => {
+    const { pick: _, ...none } = decision
+    expect(show([none]).box.querySelector('.vui-option-pick')).toBeNull()
+    expect(show([{ ...decision, pick: 9 }]).box.querySelector('.vui-option-pick')).toBeNull()
+  })
+
+  it('has no way to answer (D8)', () => {
+    const { box } = show([decision])
+    expect(box.querySelector('button, input, select, textarea, form, [tabindex]')).toBeNull()
+  })
+
+  it('sits in a box that a container query can measure', () => {
+    const { box } = show([decision])
+    expect(box.querySelector('.vui-grid-box > .vui-options')).not.toBeNull()
+  })
+})

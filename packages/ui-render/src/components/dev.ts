@@ -15,17 +15,25 @@ import {
 import type { Component, NodeContext } from '../context.js'
 import { type Child, el } from '../el.js'
 import { toneClass } from '../inline.js'
+import { codeBlock, maxLinesOf } from './code.js'
 import { badgeOf } from './data.js'
-import { field, lineCount, nodeList, objects, text } from './fields.js'
+import { field, lineCount, nodeList, objects, text, whole } from './fields.js'
 
 const CHECK_OUTPUT_LINES = 20
+
+const statusLabel = (label: string) =>
+  el('span', { class: `vui-status vui-pick ${toneClass('ok')}` }, [
+    el('span', { 'aria-hidden': 'true' }, '✓'),
+    label,
+  ])
 
 function note(item: JsonObject, context: NodeContext): HTMLElement | null {
   const value = text(item, 'note')
   return value === '' ? null : el('p', { class: 'vui-note' }, context.inline(value))
 }
 
-const pre = (content: Child | Child[]) => el('pre', { class: 'vui-code-pre vui-codeblock' }, content)
+const pre = (content: Child | Child[]) =>
+  el('pre', { class: 'vui-code-pre vui-codeblock' }, content)
 
 function checkOutput(item: JsonObject, index: number, context: NodeContext): HTMLElement[] {
   const output = cleanText(text(item, 'output'))
@@ -190,6 +198,33 @@ export const diff: Component = {
   },
 }
 
+const DEFAULT_LOG_LINES = 40
+// A level after anything but letters, or the `T` and `Z` of a timestamp. Each character can
+// match one way only, so a long line cannot backtrack.
+const LOG_LEVEL = /^(?:[^a-zA-Z]|[TZ](?=[\d\s]))*(ERROR|WARN|INFO|DEBUG)/
+const LEVEL_TONES: { [level: string]: Tone } = {
+  ERROR: 'err',
+  WARN: 'warn',
+  INFO: 'info',
+  DEBUG: 'muted',
+}
+
+const levelTone = (line: string) => LEVEL_TONES[LOG_LEVEL.exec(line)?.[1] as string]
+
+export const log: Component = {
+  render(node, context) {
+    const options = {
+      text: cleanText(text(node, 'text')),
+      lang: '',
+      lines: false,
+      mark: new Set<number>(),
+      maxLines: maxLinesOf(node, DEFAULT_LOG_LINES),
+      draw: (lines: string[]) => runs(lines, levelTone),
+    }
+    return codeBlock(context, options, 'log')
+  },
+}
+
 const ISO_TIME = /^\d{4}-\d\d/
 
 export const timeline: Component = {
@@ -210,5 +245,53 @@ export const timeline: Component = {
       ])
     })
     return el('ol', { class: 'vui-rows vui-timeline' }, entries)
+  },
+}
+
+function optionFields(option: JsonObject, context: NodeContext): HTMLElement {
+  const strings = (name: string) => {
+    const items = nodeList(option, name)
+    if (items.length === 0) return null
+    return el(
+      'ul',
+      { class: 'vui-list' },
+      items.map((item) => el('li', {}, item as string)),
+    )
+  }
+  const reversible = field(option, 'reversible')
+  const fields: [string, Child | Child[]][] = [
+    ['Pros', strings('pros')],
+    ['Cons', strings('cons')],
+    ['Effort', text(option, 'effort')],
+    ['Reversible', typeof reversible === 'boolean' ? (reversible ? 'yes' : 'no') : null],
+    ['Risk', text(option, 'risk')],
+    ['Verify', context.inline(text(option, 'verify'))],
+  ]
+  const shown = fields.filter(([, value]) => (Array.isArray(value) ? value.length : value))
+  return el(
+    'dl',
+    { class: 'vui-kv', 'data-vui-cols': 1 },
+    shown.map(([label, value]) =>
+      el('div', { class: 'vui-kv-item' }, [el('dt', {}, label), el('dd', {}, value)]),
+    ),
+  )
+}
+
+export const decision: Component = {
+  render(node, context) {
+    const pick = whole(node, 'pick')
+    const details = text(node, 'context')
+    const cards = objects(nodeList(node, 'options')).map(({ item, index }) =>
+      el('li', { class: `vui-card${index === pick ? ' vui-option-pick' : ''}` }, [
+        index === pick ? statusLabel('Recommended') : null,
+        el('p', { class: 'vui-card-title' }, text(item, 'label')),
+        optionFields(item, context),
+      ]),
+    )
+    return [
+      el('p', { class: 'vui-node-title' }, text(node, 'question')),
+      details === '' ? null : el('p', { class: 'vui-decision-context' }, context.inline(details)),
+      el('div', { class: 'vui-grid-box' }, el('ul', { class: 'vui-options' }, cards)),
+    ]
   },
 }

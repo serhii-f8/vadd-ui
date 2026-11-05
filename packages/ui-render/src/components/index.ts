@@ -2,7 +2,7 @@ import type { Registry } from '../context.js'
 import { chart } from './chart.js'
 import { code } from './code.js'
 import { kv, list, progress, stats } from './data.js'
-import { checks, diff, plan, timeline, tree } from './dev.js'
+import { checks, decision, diff, log, plan, timeline, tree } from './dev.js'
 import { card, divider, grid, section, stack } from './layout.js'
 import { callout, md } from './md.js'
 import { table } from './table.js'
@@ -30,4 +30,6 @@ export const COMPONENTS: Registry = new Map([
   ['diff', diff],
   ['tree', tree],
   ['timeline', timeline],
+  ['decision', decision],
+  ['log', log],
 ])

@@ -1,6 +1,7 @@
+import type { JsonObject } from '@vadd/ui-spec'
 import type { Component, NodeContext } from '../context.js'
 import { copyText, select } from '../copy.js'
-import { el } from '../el.js'
+import { type Child, el } from '../el.js'
 import { lineCount, nodeList, text, whole } from './fields.js'
 
 const DEFAULT_MAX_LINES = 30
@@ -15,6 +16,14 @@ export interface CodeOptions {
   /** Line numbers to highlight, from 1, across the whole text. */
   mark: ReadonlySet<number>
   maxLines: number
+  /** Draws lines itself, as `log` does. */
+  draw?: (lines: string[]) => Child[]
+}
+
+/** `maxLines` if it is usable. */
+export function maxLinesOf(node: JsonObject, fallback: number): number {
+  const wanted = whole(node, 'maxLines')
+  return wanted !== undefined && wanted > 0 ? wanted : fallback
 }
 
 function row(line: string, number: number, options: CodeOptions): HTMLElement {
@@ -33,12 +42,14 @@ function row(line: string, number: number, options: CodeOptions): HTMLElement {
 /** `lines` from line `first`. One text node when no line needs telling apart. */
 function pre(lines: string[], first: number, options: CodeOptions, context: NodeContext) {
   const plain = !options.lines && options.mark.size === 0
-  const content = plain
-    ? lines.join('\n')
-    : lines.map((line, index) => {
-        if (index % CHECK_EVERY === 0) context.checkpoint()
-        return row(line, first + index, options)
-      })
+  const content =
+    options.draw?.(lines) ??
+    (plain
+      ? lines.join('\n')
+      : lines.map((line, index) => {
+          if (index % CHECK_EVERY === 0) context.checkpoint()
+          return row(line, first + index, options)
+        }))
   return el('pre', { class: 'vui-code-pre' }, el('code', { class: 'vui-code-body' }, content))
 }
 
@@ -96,13 +107,12 @@ export function codeBlock(context: NodeContext, options: CodeOptions, name: stri
 
 export const code: Component = {
   render(node, context) {
-    const maxLines = whole(node, 'maxLines')
     const options: CodeOptions = {
       text: text(node, 'text'),
       lang: text(node, 'lang'),
       lines: node.lines === true,
       mark: new Set(nodeList(node, 'mark').filter((line) => typeof line === 'number')),
-      maxLines: maxLines !== undefined && maxLines > 0 ? maxLines : DEFAULT_MAX_LINES,
+      maxLines: maxLinesOf(node, DEFAULT_MAX_LINES),
     }
     return codeBlock(context, options, 'code')
   },
