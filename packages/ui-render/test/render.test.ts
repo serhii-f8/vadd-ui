@@ -31,8 +31,8 @@ describe('§9.1 API', () => {
 
   it('draws an unregistered type as a placeholder through the public render', () => {
     const box = target()
-    render(doc([{ type: 'log', text: 'x' }]), box)
-    expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('log')
+    render(doc([{ type: 'flow', nodes: [], edges: [] }]), box)
+    expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('flow')
   })
 
   it('draws the document title and subtitle', () => {
@@ -270,6 +270,57 @@ describe('fold', () => {
     box.querySelector('button')?.click()
     handle.update(doc([md('x', { id: 'a' })]))
     expect(box.querySelector('button')?.getAttribute('aria-expanded')).toBe('true')
+  })
+})
+
+describe('a fold with a body built on demand', () => {
+  const lazy = (calls: string[]): Registry =>
+    new Map([
+      [
+        'md',
+        {
+          render: (_, ctx) =>
+            ctx.fold(
+              'hunk',
+              'Hunk',
+              () => {
+                calls.push('built')
+                return el('p', {}, 'lines')
+              },
+              false,
+            ),
+        },
+      ],
+    ])
+
+  it('builds nothing while closed', () => {
+    const calls: string[] = []
+    const box = target()
+    createRenderer(lazy(calls))(doc([md('x')]), box)
+    expect(calls).toEqual([])
+    expect(box.querySelector('.vui-fold-body')?.textContent).toBe('')
+  })
+
+  it('builds once, on the first open', () => {
+    const calls: string[] = []
+    const box = target()
+    createRenderer(lazy(calls))(doc([md('x')]), box)
+    const button = box.querySelector('button')
+    button?.click()
+    button?.click()
+    button?.click()
+    expect(calls).toEqual(['built'])
+    expect(box.querySelector('.vui-fold-body')?.textContent).toBe('lines')
+  })
+
+  it('builds at render when a fold was left open', () => {
+    const calls: string[] = []
+    const box = target()
+    const handle = createRenderer(lazy(calls))(doc([md('x', { id: 'a' })]), box)
+    box.querySelector('button')?.click()
+    handle.update(doc([md('x', { id: 'a' })]))
+    expect(box.querySelector('.vui-fold-body')?.textContent).toBe('lines')
+    expect(calls).toEqual(['built', 'built'])
   })
 })
 

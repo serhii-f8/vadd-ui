@@ -1,4 +1,5 @@
 import {
+  hasOwn,
   isJsonObject,
   type JsonObject,
   type JsonValue,
@@ -11,12 +12,9 @@ import type { Component, NodeContext } from '../context.js'
 import { type Child, el, svg } from '../el.js'
 import { fillOf, fillShares } from '../fill.js'
 import { statusBadge, toneClass, tonedClass, toneMark, toneOf } from '../inline.js'
-import { field, finite, nodeList, text, whole } from './fields.js'
+import { field, finite, nodeList, objects, text, whole } from './fields.js'
 
 const MAX_KV_COLS = 3
-
-const objects = (list: JsonValue[]) =>
-  list.flatMap((item, index) => (isJsonObject(item) ? [{ item, index }] : []))
 
 interface Pair {
   key: string
@@ -126,18 +124,22 @@ export const stats: Component = {
   },
 }
 
-function isStatus(value: JsonValue | undefined): value is Status {
-  return typeof value === 'string' && Object.keys(STATUS_TONES).includes(value)
+/** The badge of an item's `status`, if it has a real one. */
+export function badgeOf(item: JsonObject): HTMLElement | null {
+  const status = field(item, 'status')
+  return typeof status === 'string' && hasOwn(STATUS_TONES, status)
+    ? statusBadge(status as Status)
+    : null
 }
 
 function listItem(item: JsonValue, context: NodeContext): HTMLElement {
   if (typeof item === 'string') return el('li', {}, context.inline(item))
   if (!isJsonObject(item)) return el('li')
-  const status = field(item, 'status')
+  const badge = badgeOf(item)
   const note = field(item, 'note')
-  return el('li', { class: isStatus(status) ? 'vui-list-status' : undefined }, [
-    isStatus(status) ? statusBadge(status) : null,
-    isStatus(status) ? ' ' : null,
+  return el('li', { class: badge === null ? undefined : 'vui-list-status' }, [
+    badge,
+    badge === null ? null : ' ',
     ...context.inline(text(item, 'text')),
     typeof note === 'string' ? el('p', { class: 'vui-note' }, context.inline(note)) : null,
   ])

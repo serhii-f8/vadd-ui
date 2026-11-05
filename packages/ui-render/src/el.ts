@@ -126,7 +126,7 @@ export function el<T extends Tag>(
   return fill(element, children)
 }
 
-function fill<T extends Element>(element: T, children: Child | Child[]): T {
+export function fill<T extends Element>(element: T, children: Child | Child[]): T {
   for (const child of Array.isArray(children) ? children : [children]) {
     if (child === null || child === undefined || child === false) continue
     if (typeof child !== 'object') element.append(String(child))
