@@ -11,7 +11,7 @@ export function target(): HTMLElement {
   return element
 }
 
-/** Enough of `stack` and `md` to give the core a tree. Real ones arrive in task 07. */
+/** Enough of `stack` and `md` to test the core without the catalog. */
 export const testRegistry: Registry = new Map([
   ['md', { render: (node, ctx) => el('p', {}, ctx.inline(String(node.text))) }],
   [
