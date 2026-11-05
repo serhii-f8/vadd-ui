@@ -1,4 +1,5 @@
 import { expect, type Frame, type Page, test } from '@playwright/test'
+import { stylesheet } from '../packages/ui-render/src/css/index.js'
 import { openVisual, settled } from './harness/host.js'
 
 const open = async (page: Page, input: unknown, width = 720) => {
@@ -124,18 +125,85 @@ test.describe('keyboard', () => {
 })
 
 test.describe('copy in the sandboxed frame', () => {
-  const lines = Array.from({ length: 4 }, (_, index) => `line ${index + 1}`).join('\n')
+  const text = 'line 1\n\n  line 3\n\n\nline 6\n'
 
-  test('ends in Copied or asks, with all the text selected', async ({ page }) => {
-    const input = [{ type: 'code', lines: true, maxLines: 2, text: lines }]
+  /** Clicks copy, and reports what the frame's `copy` event left on the clipboard. */
+  async function copied(page: Page, input: unknown) {
+    const { frame } = await open(page, input)
+    await frame.evaluate(() => {
+      window.addEventListener('copy', (event) => {
+        const { clipboardData } = event as ClipboardEvent
+        ;(window as unknown as { copied: string }).copied =
+          clipboardData?.getData('text/plain') ?? ''
+      })
+    })
+    const button = frame.locator('.vui-code-copy')
+    await button.click()
+    await expect(button).toHaveText('Copied')
+    return frame.evaluate(() => (window as unknown as { copied: string }).copied)
+  }
+
+  test('copies the exact text from a lined block, blank lines and all', async ({ page }) => {
+    expect(await copied(page, [{ type: 'code', lines: true, text }])).toBe(text)
+  })
+
+  test('copies the exact text across a closed fold', async ({ page }) => {
+    expect(await copied(page, [{ type: 'code', maxLines: 2, text }])).toBe(text)
+  })
+
+  test('leaves every line selected, with the toggle out of it', async ({ page }) => {
+    const input = [{ type: 'code', lines: true, maxLines: 2, text: 'a\nb\nc\nd' }]
     const { frame } = await open(page, input)
     const button = frame.locator('.vui-code-copy')
     await button.click()
-    await expect(button).not.toHaveText('Copy')
-    const label = await button.textContent()
-    expect(['Copied', 'Select text to copy']).toContain(label)
+    await expect(button).toHaveText('Copied')
     const selected = await frame.evaluate(() => document.getSelection()?.toString() ?? '')
-    expect(selected.replace(/\s+/g, ' ').trim()).toBe('line 1 line 2 line 3 line 4')
+    expect(selected.replace(/\s+/g, ' ').trim()).toBe('a b c d')
+  })
+
+  test('a reader selecting a lined block keeps its blank lines', async ({ page }) => {
+    const { frame } = await open(page, [{ type: 'code', lines: true, text: 'a\n\nb' }])
+    const selected = await frame.evaluate(() => {
+      const selection = document.getSelection() as Selection
+      selection.selectAllChildren(document.querySelector('.vui-code-body') as HTMLElement)
+      return selection.toString()
+    })
+    expect(selected.trim().split('\n').length).toBeGreaterThanOrEqual(3)
+  })
+})
+
+test.describe('a target that sizes to its content', () => {
+  const GRID =
+    '<div class="vui-grid-box"><div class="vui-grid" data-vui-cols="2"><div>a</div><div>b</div></div></div>'
+
+  const contexts: [string, string, string][] = [
+    ['inline-block', '', 'display:inline-block'],
+    ['float', '', 'float:left'],
+    ['flex item', 'display:flex;align-items:flex-start', ''],
+    ['absolute', 'position:relative;height:200px', 'position:absolute'],
+  ]
+
+  async function gridWidth(page: Page, outer: string, target: string) {
+    await page.setContent(
+      `<!doctype html><html><head><style>${stylesheet}</style></head><body style="margin:0"><div style="width:800px;${outer}"><div class="vui-root" style="${target}">${GRID}</div></div></body></html>`,
+    )
+    return page.evaluate(
+      () => (document.querySelector('.vui-grid') as HTMLElement).getBoundingClientRect().width,
+    )
+  }
+
+  for (const [name, outer, target] of contexts) {
+    test(`keeps the width it has: ${name}`, async ({ page }) => {
+      expect(await gridWidth(page, outer, target)).toBe(800)
+    })
+  }
+
+  test('a margin on the target still fits', async ({ page }) => {
+    expect(await gridWidth(page, '', 'margin:0 20px')).toBe(760)
+  })
+
+  test('padding on the target still fits', async ({ page }) => {
+    expect(await gridWidth(page, '', 'padding:0 20px')).toBe(760)
   })
 })
 

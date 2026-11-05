@@ -23,7 +23,7 @@ const toneCss = Object.entries(TONES)
   .join('')
 
 export const baseCss = `
-.vui-root{${SPACING(4, 8, 12, 16)}display:block;min-width:0;color:var(--vui-fg);font-family:var(--vui-font),sans-serif;line-height:1.5;overflow-wrap:anywhere}
+.vui-root{${SPACING(4, 8, 12, 16)}display:block;box-sizing:border-box;width:-webkit-fill-available;width:-moz-available;width:stretch;min-width:0;color:var(--vui-fg);font-family:var(--vui-font),sans-serif;line-height:1.5;overflow-wrap:anywhere}
 .vui-root[data-vui-density="comfortable"]{${SPACING(6, 12, 18, 24)}}
 .vui-root *,.vui-root *::before,.vui-root *::after{box-sizing:border-box}
 .vui-doc{display:flex;flex-direction:column;gap:var(--vui-space-4);min-width:0}

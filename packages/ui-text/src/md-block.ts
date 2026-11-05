@@ -1,12 +1,12 @@
 import { type MdBlock, type MdList, parseInline, parseMd } from '@vadd/ui-spec'
 import { type Block, codeBlock, type Entry, list, para } from './blocks.js'
 
-function listBlock({ ordered, items }: MdList): Block {
+function listBlock({ ordered, start, items }: MdList): Block {
   const entries = items.map(({ text: raw, children }): Entry => {
     const text = parseInline(raw)
     return children === undefined ? { text } : { text, blocks: [listBlock(children)] }
   })
-  return list(entries, ordered)
+  return list(entries, ordered, start)
 }
 
 function toBlock(block: MdBlock): Block {

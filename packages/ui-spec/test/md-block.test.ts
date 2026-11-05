@@ -65,6 +65,40 @@ describe('parseMd (VD-054)', () => {
     expect(parseMd('```a```')).toEqual([{ kind: 'paragraph', text: '```a```' }])
   })
 
+  it('reads CRLF and CR line ends', () => {
+    expect(parseMd('### a\r\n- b\r\n- c\r\n\r\n```\r\nd\r\n```\r\ne\rf')).toEqual([
+      { kind: 'heading', level: 3, text: 'a' },
+      { kind: 'list', list: { ordered: false, items: [{ text: 'b' }, { text: 'c' }] } },
+      { kind: 'code', text: 'd' },
+      { kind: 'paragraph', text: 'e f' },
+    ])
+  })
+
+  it('keeps the first number of an ordered list', () => {
+    expect(parseMd('7. a\n9. b')).toEqual([
+      { kind: 'list', list: { ordered: true, start: 7, items: [{ text: 'a' }, { text: 'b' }] } },
+    ])
+  })
+
+  it('leaves out a start of 1, and starts a nested list on its own number', () => {
+    const [block] = parseMd('1. a\n   3. b')
+    expect(block).toEqual({
+      kind: 'list',
+      list: {
+        ordered: true,
+        items: [{ text: 'a', children: { ordered: true, start: 3, items: [{ text: 'b' }] } }],
+      },
+    })
+  })
+
+  it('continues numbered steps split by a fence', () => {
+    const blocks = parseMd('1. one\n\n```\nx\n```\n\n2. two\n3. three')
+    expect(blocks[2]).toEqual({
+      kind: 'list',
+      list: { ordered: true, start: 2, items: [{ text: 'two' }, { text: 'three' }] },
+    })
+  })
+
   it('has no blocks for blank text', () => {
     expect(parseMd(' \n\n')).toEqual([])
   })

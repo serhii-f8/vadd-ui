@@ -9,6 +9,8 @@ export interface MdItem {
 
 export interface MdList {
   ordered: boolean
+  /** The number of the first item, when it is not 1. */
+  start?: number
   items: MdItem[]
 }
 
@@ -40,13 +42,15 @@ interface OpenItem {
 
 interface OpenList {
   ordered: boolean
+  start: number
   indent: number
   items: OpenItem[]
 }
 
-function closeList({ ordered, items }: OpenList): MdList {
+function closeList({ ordered, start, items }: OpenList): MdList {
   return {
     ordered,
+    ...(ordered && start !== 1 ? { start } : {}),
     items: items.map(({ raw, children }) =>
       children === undefined ? { text: raw } : { text: raw, children: closeList(children) },
     ),
@@ -128,7 +132,9 @@ class Reader {
         const parent = top?.items[top.items.length - 1]
         const open = parent?.children
         if (open === undefined) {
-          const created = { ordered: /\d/.test(marker as string), indent, items: [item] }
+          const ordered = /\d/.test(marker as string)
+          const start = Number.parseInt(marker as string, 10)
+          const created = { ordered, start, indent, items: [item] }
           if (parent !== undefined) parent.children = created
           stack.push(created)
         } else {
@@ -171,7 +177,7 @@ class Reader {
 
 /** The text of an `md` node as blocks. */
 export function parseMd(value: string): MdBlock[] {
-  const reader = new Reader(value.split('\n'))
+  const reader = new Reader(value.split(/\r\n|\r|\n/))
   reader.run()
   return reader.blocks
 }

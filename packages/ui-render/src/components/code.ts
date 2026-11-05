@@ -12,25 +12,26 @@ export interface CodeOptions {
   lang: string
   lines: boolean
   /** Line numbers to highlight, from 1, across the whole text. */
-  mark: readonly number[]
+  mark: ReadonlySet<number>
   maxLines: number
 }
 
 function row(line: string, number: number, options: CodeOptions): HTMLElement {
-  const marked = options.mark.includes(number)
+  const marked = options.mark.has(number)
   return el(
     marked ? 'mark' : 'span',
     { class: marked ? 'vui-code-line vui-code-marked' : 'vui-code-line' },
     [
       options.lines ? el('span', { class: 'vui-code-no', 'aria-hidden': 'true' }, number) : null,
-      el('span', { class: 'vui-code-text' }, line),
+      // Text, or a selection of a row with no newline of its own loses the blank line.
+      el('span', { class: 'vui-code-text' }, line === '' ? '\n' : line),
     ],
   )
 }
 
 /** `lines` from line `first`. One text node when no line needs telling apart. */
 function pre(lines: string[], first: number, options: CodeOptions, context: NodeContext) {
-  const plain = !options.lines && options.mark.length === 0
+  const plain = !options.lines && options.mark.size === 0
   const content = plain
     ? lines.join('\n')
     : lines.map((line, index) => {
@@ -63,11 +64,19 @@ function select(first: HTMLElement, last: HTMLElement): void {
   }
 }
 
-function execCopy(): boolean {
+/** Writes `value` itself: the selection would flatten blank lines in rows and at the fold. */
+function execCopy(value: string): boolean {
+  const write = (event: ClipboardEvent) => {
+    event.clipboardData?.setData('text/plain', value)
+    event.preventDefault()
+  }
+  document.addEventListener('copy', write)
   try {
     return document.execCommand('copy')
   } catch {
     return false
+  } finally {
+    document.removeEventListener('copy', write)
   }
 }
 
@@ -92,7 +101,7 @@ function copyButton(
       return
     }
     select(...reveal())
-    if (execCopy()) copied()
+    if (execCopy(value)) copied()
     else say('Select text to copy')
   }
   const button = el(
@@ -139,7 +148,7 @@ export const code: Component = {
       text: text(node, 'text'),
       lang: text(node, 'lang'),
       lines: node.lines === true,
-      mark: nodeList(node, 'mark').filter((line) => typeof line === 'number'),
+      mark: new Set(nodeList(node, 'mark').filter((line) => typeof line === 'number')),
       maxLines: maxLines !== undefined && maxLines > 0 ? maxLines : DEFAULT_MAX_LINES,
     }
     return codeBlock(context, options, 'code')
@@ -151,6 +160,6 @@ export const fenceOptions = (value: string, lang: string | undefined): CodeOptio
   text: value,
   lang: lang ?? '',
   lines: false,
-  mark: [],
+  mark: new Set(),
   maxLines: DEFAULT_MAX_LINES,
 })

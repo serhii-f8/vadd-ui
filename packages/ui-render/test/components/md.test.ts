@@ -68,6 +68,19 @@ describe('md blocks', () => {
     expect(box.querySelectorAll('ol > li')).toHaveLength(2)
   })
 
+  it('starts an ordered list on its first number', () => {
+    const { box } = show([md('1. a\n\n```\nx\n```\n\n2. b')])
+    const lists = box.querySelectorAll('ol')
+    expect(lists[0]?.hasAttribute('start')).toBe(false)
+    expect(lists[1]?.getAttribute('start')).toBe('2')
+  })
+
+  it('reads CRLF text', () => {
+    const { box } = show([md('### a\r\n\r\n- b\r\n- c')])
+    expect(box.querySelector('h3')?.textContent).toBe('a')
+    expect(box.querySelectorAll('li')).toHaveLength(2)
+  })
+
   it('renders a quote of paragraphs', () => {
     const { box } = show([md('> a\n>\n> b')])
     expect(box.querySelectorAll('blockquote > p')).toHaveLength(2)

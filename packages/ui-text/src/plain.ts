@@ -69,7 +69,7 @@ function serialize(block: Block): string {
       return inline(block.text).trim()
     case 'list':
       return block.items
-        .map((item, index) => entry(item, block.ordered ? `${index + 1}.` : '-'))
+        .map((item, index) => entry(item, block.ordered ? `${(block.start ?? 1) + index}.` : '-'))
         .join('\n')
     case 'table':
       return table(block)

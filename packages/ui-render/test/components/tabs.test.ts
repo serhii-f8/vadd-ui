@@ -104,6 +104,17 @@ describe('tabs', () => {
     expect(selected(box)).toEqual([true, false, false])
   })
 
+  it.each(['altKey', 'ctrlKey', 'metaKey'])(
+    'leaves %s with an arrow to the browser',
+    (modifier) => {
+      const { box } = show([tabsNode()])
+      const tab = tabsOf(box)[0] as HTMLElement
+      const event = { key: 'ArrowRight', bubbles: true, cancelable: true, [modifier]: true }
+      expect(tab.dispatchEvent(new KeyboardEvent('keydown', event))).toBe(true)
+      expect(selected(box)).toEqual([true, false, false])
+    },
+  )
+
   it('renders nothing for an empty list', () => {
     const { box } = show([{ type: 'tabs', tabs: [] }])
     expect(box.querySelector('[role="tablist"]')).toBeNull()

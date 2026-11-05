@@ -32,9 +32,9 @@ describe('md node (§6.2)', () => {
     both('##### A', '\\##### A', '##### A')
   })
 
-  it('renders lists, renumbering ordered ones', () => {
+  it('renders lists', () => {
     both('- a\n- **b**\n* c\n+ d', '- a\n- **b**\n- c\n- d', '- a\n- b\n- c\n- d')
-    both('3. a\n4. b', '1. a\n2. b')
+    both('3. a\n5. b', '3. a\n4. b')
     both('1. a\n\n2. b', '1. a\n2. b')
   })
 
@@ -108,5 +108,11 @@ describe('md node (§6.2)', () => {
 
   it('gives empty text no output', () => {
     expect(renderMarkdown(documentOf('   \n\n'))).toBe('')
+  })
+
+  it('keeps the number a list starts on, in both outputs', () => {
+    const document = documentOf('1. one\n\n```\nx\n```\n\n2. two\n3. three')
+    expect(renderMarkdown(document)).toContain('2. two\n3. three')
+    expect(renderPlain(document)).toContain('2. two\n3. three')
   })
 })

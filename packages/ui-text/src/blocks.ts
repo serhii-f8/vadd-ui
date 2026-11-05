@@ -16,7 +16,7 @@ export interface Entry {
 export type Block =
   | { kind: 'heading'; level: number; text: Inline }
   | { kind: 'para'; text: Inline; muted?: true }
-  | { kind: 'list'; ordered: boolean; items: Entry[] }
+  | { kind: 'list'; ordered: boolean; items: Entry[]; start?: number }
   | { kind: 'table'; header: Inline[]; aligns: Align[]; rows: Inline[][] }
   | { kind: 'code'; text: string; lang?: string }
   | { kind: 'quote'; blocks: Block[] }
@@ -91,4 +91,5 @@ export function codeBlock(value: string, lang?: string): Block {
 export const para = (tokens: Inline): Block => ({ kind: 'para', text: tokens })
 export const muted = (tokens: Inline): Block => ({ kind: 'para', text: tokens, muted: true })
 
-export const list = (items: Entry[], ordered = false): Block => ({ kind: 'list', ordered, items })
+export const list = (items: Entry[], ordered = false, start?: number): Block =>
+  start === undefined ? { kind: 'list', ordered, items } : { kind: 'list', ordered, items, start }

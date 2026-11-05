@@ -68,6 +68,7 @@ export const tabs: Component = {
       )
     })
     const keydown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return
       const index = buttons.indexOf(event.target as HTMLButtonElement)
       const next = moved(event.key, index, buttons.length)
       if (next === undefined) return

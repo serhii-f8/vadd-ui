@@ -120,7 +120,9 @@ function listBody(block: Extract<Block, { kind: 'list' }>, alternate: boolean): 
   const bullet = alternate ? '*' : '-'
   const closer = alternate ? ')' : '.'
   return block.items
-    .map((item, index) => entry(item, block.ordered ? `${index + 1}${closer}` : bullet))
+    .map((item, index) =>
+      entry(item, block.ordered ? `${(block.start ?? 1) + index}${closer}` : bullet),
+    )
     .join('\n')
 }
 

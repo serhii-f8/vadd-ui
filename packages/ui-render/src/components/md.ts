@@ -6,14 +6,14 @@ import { text } from './fields.js'
 
 const FIRST_MD_HEADING = 3
 
-function listElement({ ordered, items }: MdList, context: NodeContext): HTMLElement {
+function listElement({ ordered, start, items }: MdList, context: NodeContext): HTMLElement {
   const entries = items.map((item) =>
     el('li', {}, [
       ...context.inline(item.text),
       item.children === undefined ? null : listElement(item.children, context),
     ]),
   )
-  return el(ordered ? 'ol' : 'ul', {}, entries)
+  return el(ordered ? 'ol' : 'ul', { start }, entries)
 }
 
 function blockElement(block: MdBlock, index: number, context: NodeContext): HTMLElement {

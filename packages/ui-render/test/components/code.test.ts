@@ -84,6 +84,19 @@ describe('code body', () => {
     expect(box.querySelectorAll('.vui-code-no')).toHaveLength(2)
   })
 
+  it('keeps a blank line in what a reader selects', () => {
+    const { box } = show([code('a\n\nb', { lines: true })])
+    expect(box.querySelectorAll('.vui-code-text')[1]?.textContent).toBe('\n')
+  })
+
+  it('takes a long mark list in its stride', () => {
+    const mark = Array.from({ length: 50_000 }, (_, index) => index + 1)
+    const text = Array.from({ length: 5_000 }, () => '').join('\n')
+    const { box } = show([code(text, { mark, maxLines: 5_000 })])
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+    expect(box.querySelectorAll('mark')).toHaveLength(4_999)
+  })
+
   it('renders empty text', () => {
     const { box } = show([code('', { lines: true })])
     expect(box.querySelectorAll('.vui-code-no')).toHaveLength(1)
@@ -182,6 +195,36 @@ describe('copy (§9.3)', () => {
     await flush()
     expect(copyOf(box).textContent).toBe('Select text to copy')
     expect(document.getSelection()?.toString()).toContain('hello')
+  })
+
+  it('puts the exact text on the clipboard through the copy event', async () => {
+    vi.useFakeTimers()
+    stubClipboard(undefined)
+    const text = 'a\n\n  b\n\n\nc\n'
+    const setData = vi.fn()
+    document.execCommand = (() => {
+      const event = new Event('copy', { bubbles: true, cancelable: true })
+      Object.assign(event, { clipboardData: { setData } })
+      document.body.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      return true
+    }) as never
+    const { box } = show([code(text, { lines: true })])
+    copyOf(box).click()
+    await flush()
+    expect(setData).toHaveBeenCalledWith('text/plain', text)
+  })
+
+  it('leaves later copy events alone', async () => {
+    vi.useFakeTimers()
+    stubClipboard(undefined)
+    stubExec(true)
+    const { box } = show([code('x')])
+    copyOf(box).click()
+    await flush()
+    const event = new Event('copy', { bubbles: true, cancelable: true })
+    document.body.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
   })
 
   it('stays on the request while the text is selected', async () => {
