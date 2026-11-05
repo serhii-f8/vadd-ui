@@ -1,19 +1,8 @@
-import { type ChartNode, hasOwn, type RefLine } from '@vadd/ui-spec'
+import { CHART_LABELS, type ChartNode, hasOwn, type RefLine } from '@vadd/ui-spec'
 import { type Block, muted, text } from './blocks.js'
 import { type Context, format } from './value.js'
 
 // A chart becomes the one-line caption of §19.5. Its §15.2 `<desc>` plays the same role.
-
-const LABELS: Readonly<Record<ChartNode['kind'], string>> = {
-  line: 'Line chart',
-  area: 'Area chart',
-  bar: 'Bar chart',
-  hbar: 'Horizontal bar chart',
-  stacked: 'Stacked bar chart',
-  donut: 'Donut chart',
-  spark: 'Sparkline',
-  scatter: 'Scatter chart',
-}
 
 const BARS = '▁▂▃▄▅▆▇█'
 const MAX_BARS = 40
@@ -59,7 +48,7 @@ function references(lines: RefLine[], yFormat: string | undefined, context: Cont
 }
 
 export function chartBlocks(node: ChartNode, context: Context): Block[] {
-  const label = hasOwn(LABELS, node.kind) ? LABELS[node.kind] : 'Chart'
+  const label = hasOwn(CHART_LABELS, node.kind) ? CHART_LABELS[node.kind] : 'Chart'
   const refs = references(node.refLines ?? [], node.yFormat, context)
   return [muted([text(`${label}${subject(node, context)}${refs}.`)])]
 }

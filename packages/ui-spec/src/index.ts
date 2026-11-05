@@ -1,3 +1,4 @@
+export { CHART_LABELS } from './chart-labels.js'
 export {
   clip,
   type Diagnostic,

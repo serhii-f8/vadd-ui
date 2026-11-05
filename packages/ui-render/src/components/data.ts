@@ -6,15 +6,14 @@ import {
   STATUS_TONES,
   type Status,
 } from '@vadd/ui-spec'
+import { SPARK_HEIGHT, SPARK_WIDTH, sparkPath } from '../chart/draw.js'
 import type { Component, NodeContext } from '../context.js'
-import { type Child, el } from '../el.js'
+import { type Child, el, svg } from '../el.js'
 import { fillOf, fillShares } from '../fill.js'
 import { statusBadge, toneClass, tonedClass, toneMark, toneOf } from '../inline.js'
 import { field, finite, nodeList, text, whole } from './fields.js'
 
 const MAX_KV_COLS = 3
-const MAX_SPARK = 40
-const FLAT_SPARK = 50
 
 const objects = (list: JsonValue[]) =>
   list.flatMap((item, index) => (isJsonObject(item) ? [{ item, index }] : []))
@@ -68,20 +67,24 @@ function spark(values: JsonValue[], context: NodeContext): HTMLElement | null {
   const first = points[0]
   const last = points[points.length - 1]
   if (first === undefined || last === undefined) return null
-  const stride = Math.ceil(points.length / MAX_SPARK)
-  const sample = points.filter((_, index) => index % stride === 0)
-  const low = Math.min(...sample)
-  const range = Math.max(...sample) - low
-  const columns = sample.map((value) =>
-    el('span', {
-      class: 'vui-spark-col',
-      'data-vui-fill': range === 0 ? FLAT_SPARK : fillOf(value - low, range),
-    }),
-  )
   const number = (value: number) => context.format(value, 'num', context.pointer).text
   const count = `${number(points.length)} point${points.length === 1 ? '' : 's'}`
   const label = `Trend, ${count}, from ${number(first)} to ${number(last)}`
-  return el('span', { class: 'vui-spark', role: 'img', 'aria-label': label }, columns)
+  const line = svg('path', { class: 'vui-chart-line', d: sparkPath(points) })
+  return el(
+    'span',
+    { class: 'vui-spark', role: 'img', 'aria-label': label },
+    svg(
+      'svg',
+      {
+        viewBox: `0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`,
+        preserveAspectRatio: 'none',
+        width: '100%',
+        height: '100%',
+      },
+      line,
+    ),
+  )
 }
 
 function statTile(item: JsonObject, at: string, context: NodeContext): HTMLElement {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { el } from '../src/el.js'
+import { el, svg } from '../src/el.js'
 
 describe('el', () => {
   it('builds an element with attributes and text children', () => {
@@ -122,5 +122,36 @@ describe('el', () => {
 describe('el children', () => {
   it('refuses an object that is no node', () => {
     expect(() => el('p', {}, [{} as never])).toThrow(/child/)
+  })
+})
+
+describe('svg', () => {
+  it('builds in the SVG namespace, with text as text', () => {
+    const node = svg('text', { x: 1, class: 'vui-a', 'text-anchor': 'end' }, '<b>')
+    expect(node.namespaceURI).toBe('http://www.w3.org/2000/svg')
+    expect(node.getAttribute('x')).toBe('1')
+    expect(node.getAttribute('text-anchor')).toBe('end')
+    expect(node.textContent).toBe('<b>')
+  })
+
+  it('nests children and keeps the attribute case SVG needs', () => {
+    const node = svg('svg', { viewBox: '0 0 1 1' }, [svg('path', { d: 'M0 0' }), null])
+    expect(node.getAttribute('viewBox')).toBe('0 0 1 1')
+    expect(node.children).toHaveLength(1)
+  })
+
+  it.each(['script', 'foreignObject', 'a', 'image', 'use', 'animate', 'set'])(
+    'refuses <%s>',
+    (tag) => {
+      expect(() => svg(tag as never)).toThrow()
+    },
+  )
+
+  it.each(['style', 'onload', 'href', 'xlink:href', 'fill', 'stroke'])('refuses %s', (name) => {
+    expect(() => svg('path', { [name]: 'x' })).toThrow()
+  })
+
+  it('refuses a class that is not internal', () => {
+    expect(() => svg('path', { class: 'evil' })).toThrow()
   })
 })
