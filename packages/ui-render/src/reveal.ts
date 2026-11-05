@@ -16,11 +16,11 @@ function decoded(fragment: string): string {
   }
 }
 
-/** Shows the element a `#fragment` link in `link`'s tree points to. */
+/** Shows the element a `#fragment` link in `link`'s tree points to, found as the browser does. */
 export function reveal(link: Element, fragment: string): void {
   // A link that is not attached has an element for its root, which has no such method.
   const tree = link.getRootNode() as Partial<Document>
-  let node = tree.getElementById?.(decoded(fragment))
+  let node = tree.getElementById?.(fragment) ?? tree.getElementById?.(decoded(fragment))
   for (; node; node = node.parentElement) {
     if (node.hidden) openers.get(node)?.()
   }

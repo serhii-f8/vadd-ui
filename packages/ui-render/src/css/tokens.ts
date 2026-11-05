@@ -73,8 +73,9 @@ const paint = (scheme: 'light' | 'dark') =>
 
 /**
  * The page behind a boot-script document: without it a dark OS gets light text on a white
- * canvas (VD-073). Zero specificity, so a host's own rule wins. `stylesheet` leaves it out,
- * because a host that mounts `render` owns its page.
+ * canvas (VD-073). The boot script adds it only to a page that paints nothing, and zero
+ * specificity lets a later host rule win. `stylesheet` leaves it out, because a host that
+ * mounts `render` owns its page.
  */
 export const pageCss = [
   `:where(:root)${paint('light')}`,

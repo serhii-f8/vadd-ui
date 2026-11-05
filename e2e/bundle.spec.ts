@@ -132,6 +132,15 @@ async function paint(page: Page) {
   }))
 }
 
+/** One pixel of `color`, drawn in a blank page so both shots go through the same encoder. */
+async function solidPixel(page: Page, color: string): Promise<Buffer> {
+  const other = await page.context().newPage()
+  await other.setContent(`<style>html{background:${color}}</style>`)
+  const shot = await other.screenshot({ clip: { x: 0, y: 0, width: 1, height: 1 } })
+  await other.close()
+  return shot
+}
+
 const CANVAS = { light: 'rgb(255, 255, 255)', dark: 'rgb(10, 10, 10)' }
 const TEXT = { light: 'rgb(23, 23, 23)', dark: 'rgb(237, 237, 237)' }
 
@@ -170,10 +179,11 @@ for (const [kind, build] of Object.entries(PAGES)) {
         expect(file.paint.width).toBeGreaterThan(width - 40)
         expect(file.paint.grown).toBe(0)
         expect(seen.errors).toEqual([])
-        const local = seen.requests.filter(
-          (url) => !url.endsWith('/page.html') && !url.endsWith('/vui.min.js'),
+        const allowed = [`file://${dir}/`, `http://127.0.0.1:${port}/`]
+        const elsewhere = seen.requests.filter(
+          (url) => !allowed.some((origin) => url.startsWith(origin)),
         )
-        expect(local).toEqual([])
+        expect(elsewhere).toEqual([])
       })
     }
   }
@@ -196,12 +206,17 @@ test.describe('theme on a bare page', () => {
     })
   }
 
-  test('a page background of its own wins', async ({ page }) => {
-    const css = '<html><style>html{background:rgb(1, 2, 3)}</style>'
-    const dir = write('page.html', inlinePage(canonical(REPORT), css))
-    await page.goto(fileUrl(dir, 'page.html'))
-    expect((await paint(page)).canvas).toBe('rgb(1, 2, 3)')
-  })
+  for (const element of ['html', 'body']) {
+    test(`a ${element} background of the page's own wins`, async ({ page }) => {
+      const css = `<html><style>${element}{background:rgb(1, 2, 3)}</style>`
+      const dir = write('page.html', inlinePage(canonical(REPORT), css))
+      await page.emulateMedia({ colorScheme: 'dark' })
+      await page.setViewportSize({ width: 720, height: 3000 })
+      await page.goto(fileUrl(dir, 'page.html'))
+      const shot = await page.screenshot({ clip: { x: 0, y: 2990, width: 1, height: 1 } })
+      expect(shot.equals(await solidPixel(page, 'rgb(1, 2, 3)'))).toBe(true)
+    })
+  }
 })
 
 test.describe('boot', () => {
@@ -326,4 +341,11 @@ test('the bundle runs inline in the Orca shell with no CSP violation', async ({ 
   expect(opened.requests.filter((url) => !url.startsWith('http://orca-host.test/'))).toEqual([])
   const height = await opened.frame.locator('.vui-root').evaluate((root) => root.scrollHeight)
   await expect.poll(() => opened.lastReport()).toBeGreaterThanOrEqual(height)
+  await opened.frame.getByRole('link', { name: 'details' }).click()
+  await expect(opened.frame.locator('#deep')).toBeVisible()
+  const color = () =>
+    opened.frame.locator('.vui-root').evaluate((root) => getComputedStyle(root).color)
+  const dark = await color()
+  await opened.switchTheme('light')
+  await expect.poll(color).not.toBe(dark)
 })

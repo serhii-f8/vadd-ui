@@ -92,6 +92,27 @@ describe('boot', () => {
     expect(roots()[1]?.textContent).toContain('two')
   })
 
+  it('keeps source order when a <head> document precedes body content', () => {
+    embed('{ vui: 1, body: [{ type: "md", text: "first" }] }', document.head)
+    const between = document.createElement('h2')
+    document.body.append(between)
+    const second = embed('{ vui: 1, body: [{ type: "md", text: "second" }] }')
+    boot()
+    const order = [...document.body.children]
+    expect(order[0]?.textContent).toContain('first')
+    expect(order[1]).toBe(between)
+    expect(order[2]).toBe(second)
+    expect(order[3]?.textContent).toContain('second')
+  })
+
+  it('leaves a painted page alone: a root background would stop body propagating', () => {
+    const style = document.createElement('style')
+    style.textContent = 'body{background:rgb(0, 0, 200)}'
+    document.head.append(style)
+    boot()
+    expect(document.querySelector('#vui-style')?.textContent).toBe(stylesheet)
+  })
+
   it('does not mount a <head> document twice', () => {
     embed(GOOD, document.head)
     boot()
@@ -104,7 +125,7 @@ describe('boot', () => {
     boot()
     const card = roots()[0]?.querySelector('.vui-card-error')
     expect(card?.textContent).toContain('Could not read this document')
-    expect(card?.querySelector('.vui-card-detail')?.textContent).not.toBe('')
+    expect(card?.querySelector('.vui-card-detail')?.textContent).toMatch(/\S/)
     expect(card?.querySelector('pre')?.textContent).toBe('{ vui: 1, body: [')
   })
 

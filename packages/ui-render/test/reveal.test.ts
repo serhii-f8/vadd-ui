@@ -62,7 +62,7 @@ describe('a #id link into hidden content (VD-070)', () => {
     expect(shown(deep(box))).toBe(true)
   })
 
-  it('opens a fold whose target is the folded node itself, which needs nothing', () => {
+  it('leaves a closed section shut when the link targets the section, whose title shows', () => {
     const { box } = show([LINK, fold([{ type: 'md', text: 'x' }], { id: 'deep' })])
     jump(box)
     expect(box.querySelector('.vui-fold-toggle')?.getAttribute('aria-expanded')).toBe('false')
@@ -92,6 +92,15 @@ describe('a #id link into hidden content (VD-070)', () => {
     const { box } = show([
       { type: 'md', text: '[jump](#caf%C3%A9)' },
       fold([{ type: 'md', id: 'café', text: 'target' }]),
+    ])
+    jump(box)
+    expect(box.querySelector('.vui-fold-toggle')?.getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('tries the fragment as written first, as the browser does', () => {
+    const { box } = show([
+      { type: 'md', text: '[jump](#a%20b)' },
+      fold([{ type: 'md', id: 'a%20b', text: 'target' }]),
     ])
     jump(box)
     expect(box.querySelector('.vui-fold-toggle')?.getAttribute('aria-expanded')).toBe('true')
