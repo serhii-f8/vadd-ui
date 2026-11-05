@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, type Page, test } from '@playwright/test'
+import type { Render } from '../packages/ui/src/index.js'
 import { openVisual } from './harness/host.js'
 import type { Scheme } from './harness/theme.js'
 
@@ -210,7 +211,7 @@ test.describe('boot', () => {
     const result = await page.evaluate(() => {
       const box = document.createElement('div')
       document.body.append(box)
-      const VUI = (window as unknown as { VUI: Window['VUI'] }).VUI
+      const { VUI } = window as unknown as { VUI: { render: Render; version: string } }
       VUI.render('{ vui: 1, body: [{ type: "md", text: "by hand" }] }', box)
       return { keys: Object.keys(VUI).sort(), version: VUI.version, text: box.textContent }
     })
