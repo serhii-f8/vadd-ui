@@ -585,3 +585,48 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Also not fixed: a plain standalone page has no background from the renderer (§8.3), so on a dark OS its light text sits on the browser's white. The Orca shell paints its own. The standalone and CDN templates of §4.3 and §10.2 should set one; this was seen in the Orca browser pane with a bare test page.
 - Rationale: the four defects hit real input in real hosts. The rest change little for a reader, and all are reversible.
 - Spec sections: §4.3, §6.1, §6.2, §8.3, §8.4, §9.3, §10.2.
+
+## VD-074 — Bars are 101 constant rules, named by `data-vui-fill`
+- Date: 2026-11-05 · Task: 08
+- Context: §7 says the `style` attribute is never set from document values, and a bar's width is a document value. `<meter>` and `<progress>` cover one bar, not segments or spark columns, and need vendor pseudo-elements for each.
+- Decision: every bar, segment and spark column carries `data-vui-fill="N"`, an integer from 0 to 100, and the stylesheet generates 101 rules that set `--vui-fill`. `.vui-fill` reads it as width and `.vui-spark-col` as height. A positive value never rounds to 0 and an unfinished one never to 100. Segments use largest remainder, so they add up to the rounded whole, and a positive segment keeps at least 1. Segments past `max` scale to their sum.
+- Alternatives: `<meter>`/`<progress>`; CSSOM `style.setProperty`, which is still `style` from a document value and which the source constraints ban; SVG, which `el` does not have yet.
+- Rationale: one mechanism for three uses, the loop costs bytes once, and no value reaches CSS: only a whole number the code computed.
+- Spec sections: §6.3, §7, §15.1.
+
+## VD-075 — Table reading moves to `ui-spec`
+- Date: 2026-11-05 · Task: 08
+- Context: VD-055 kept sort and alignment in `ui-text` until a second caller existed. Now one does, and VD-067 set the pattern.
+- Decision: `parseRow`, `sortRows`, `alignOf`, `groupKey` and `badgeOf` are public in `ui-spec`, and `isNumericFormat` replaces `ui-text`'s copy of the numeric set. A row keeps its source `index`, so a cell's JSON Pointer stays true after a sort (task 04's carry-over). `badgeOf` adds what §7 calls "the status value": a `badge` cell holding a status word with no `status` format is a status, unless `tones` matches first. `ui-text` follows, so `ok` in such a cell now prints `✓ ok` there too. An object row left by VD-038 stays an empty row: reading it by key would expand the cells that cap refused, and `ui-text` has no column cut to bound it.
+- Alternatives: copy the helpers, which can drift; reading object rows by key, which a safety test caught reopening VD-028.
+- Rationale: both renderers run one reader, as §7 requires of formats.
+- Spec sections: §3, §6.6, §7.
+
+## VD-076 — Table semantics and controls
+- Date: 2026-11-05 · Task: 08
+- Context: §6.6 and §15.2 leave these open.
+- Decision: the first column of a row is `<th scope="row">`, also in `tfoot`. Each run of a `group` is its own `<tbody>`, because `scope="rowgroup"` means the one it sits in; the column stays in the rows, as in text. A header click sorts ascending, a second flips it, and there is no unsorted third state. Every `th` has `aria-sort`, `none` when not sorted. Glyphs are `▲` and `▼`; the unsorted `↕` shows on hover and focus only. Sort and shown count live in node state, so they outlive `update`, and sorting keeps the shown count. "Show N more" adds `pageSize` rows and has `aria-expanded="false"`, as §15.2 lists it. When the last page lands the button hides, and focus moves to the first new row. Only `tbody` is replaced on repaint, since detaching `thead` drops a header's focus. `title` is a visible `<caption>`; under a fold the toggle shows it and the caption is visually hidden. A `caption` scrolls with a wide table, which is the table's own box doing its job. Group sub-headers and `pageSize` do not interact: only data rows count. A row's `note` goes in the first cell. Bars are left out of `totals` and group rows, since neither is on the column's scale. `row options` survive a column cut (`prepare.cutColumns`), and a `sort` or `group` past the cut is ignored (VD-066).
+- Rationale: valid table markup, and focus never lands on the body.
+- Spec sections: §6.6, §9.3, §13.4, §15.2.
+
+## VD-077 — Cell details
+- Date: 2026-11-05 · Task: 08
+- Context: §7 says `bar` scales to the column maximum "or 1.0 for `pct`", and says little else.
+- Decision: `pct100` scales to 100, its own 1.0. The column maximum reads all rows, not the page, so bars do not shift when paging. A negative value draws no fill. A bar's track is `aria-hidden`, because the text beside it says the same. A `badge` with a `tones` match carries VD-051's mark and the text. A value with no tone is a muted pill. `code` is a button holding `<code>`, copying the full value (`title`, when the display is cut) through the §9.3 chain, now in `copy.ts`. Feedback is `aria-label` plus a check mark, for 1.5 s. `null` shows the em dash in every cell type. `code` and `path` do not wrap in a table unless `wrap: true`, so a wide table scrolls instead of growing tall. Table text sets `overflow-wrap: normal`, or the root's `anywhere` would crush columns to fit.
+- Rationale: simplest reading of §7 that stays honest to a reader.
+- Spec sections: §7, §8.4.
+
+## VD-078 — `stats.spark` draws columns, ahead of task 09's chart
+- Date: 2026-11-05 · Task: 08
+- Context: §6.3 lists `spark` on `stats` as core, and the `spark` chart arrives in task 09. Calling a missing component would show a placeholder inside every tile.
+- Decision: a tile draws up to 40 columns through VD-074, sampled at the same stride as the text sparkline, with a flat series at mid height. It is `role="img"` with `aria-label` "Trend, N points, from A to B", always in `num`, since a `status` format would misread these numbers. Task 09 may swap it for the SVG chart.
+- Alternatives: leave `spark` to task 09, which ships a core field dropped.
+- Rationale: about ten lines, on a mechanism that already exists.
+- Spec sections: §6.3, §6.4, §15.2.
+
+## VD-079 — Smaller calls in `kv`, `stats`, `list` and `progress`
+- Date: 2026-11-05 · Task: 08
+- Context: the spec leaves these open.
+- Decision: `kv` and `stats` are `<dl>`s with a `div` per entry. `kv` collapses with the same 480 px container rule as `grid`, and takes the same host requirement (VD-073). `stats` tiles use `auto-fit` columns of at least 9 em. A tile's `tone` follows VD-068. A status item in a `ul` drops its bullet, since the badge is its marker; in an `ol` it keeps the number. `progress` prints the text renderer's `V of M (P%)`. Its `aria-valuenow` is clamped to the range, and with `max` not positive it has no value and an empty fill. Each segment appears in a legend with a swatch, VD-051's mark where one exists, a label and a value, so no segment rests on color.
+- Rationale: one string in both renderers, and no status rests on color (§15.2).
+- Spec sections: §6.3, §15.2.
