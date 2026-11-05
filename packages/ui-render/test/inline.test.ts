@@ -89,9 +89,9 @@ describe('renderValue', () => {
   })
 
   it('shows the full value as a title', () => {
-    expect(value({ text: 'x…', title: 'xyz' }).querySelector('[title]')?.getAttribute('title')).toBe(
-      'xyz',
-    )
+    expect(
+      value({ text: 'x…', title: 'xyz' }).querySelector('[title]')?.getAttribute('title'),
+    ).toBe('xyz')
   })
 
   it('emphasizes the path base', () => {

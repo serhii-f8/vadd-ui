@@ -92,14 +92,12 @@ describe('el', () => {
     expect(node.hasAttribute('href')).toBe(false)
   })
 
-  it.each([
-    'https://a.test/',
-    'http://a.test/x?y=1',
-    'mailto:a@b.test',
-    '#section',
-  ])('sets the href %s', (href) => {
-    expect(el('a', { href }).getAttribute('href')).toBe(href)
-  })
+  it.each(['https://a.test/', 'http://a.test/x?y=1', 'mailto:a@b.test', '#section'])(
+    'sets the href %s',
+    (href) => {
+      expect(el('a', { href }).getAttribute('href')).toBe(href)
+    },
+  )
 
   it('gives every anchor the §15.1 rel', () => {
     expect(el('a', { href: 'https://a.test/' }).getAttribute('rel')).toBe('noopener noreferrer')
@@ -118,5 +116,11 @@ describe('el', () => {
     node.click()
     expect(clicks).toBe(1)
     expect(node.getAttributeNames()).toEqual([])
+  })
+})
+
+describe('el children', () => {
+  it('refuses an object that is no node', () => {
+    expect(() => el('p', {}, [{} as never])).toThrow(/child/)
   })
 })

@@ -80,7 +80,9 @@ export interface Attributes {
   [name: string]: AttributeValue | Listeners
 }
 
-export type Listeners = { [K in keyof HTMLElementEventMap]?: (event: HTMLElementEventMap[K]) => void }
+export type Listeners = {
+  [K in keyof HTMLElementEventMap]?: (event: HTMLElementEventMap[K]) => void
+}
 
 export type Child = Node | string | number | false | null | undefined
 
@@ -116,7 +118,9 @@ export function el<T extends Tag>(
   }
   for (const child of Array.isArray(children) ? children : [children]) {
     if (child === null || child === undefined || child === false) continue
-    element.append(typeof child === 'object' ? child : String(child))
+    if (typeof child !== 'object') element.append(String(child))
+    else if (child instanceof Node) element.append(child)
+    else throw new Error('el: child is not a node')
   }
   return element
 }

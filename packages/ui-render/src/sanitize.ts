@@ -1,8 +1,8 @@
 import {
   type Diagnostic,
-  joinPointer,
   type JsonObject,
   type JsonValue,
+  joinPointer,
   MAX_NESTING,
   setOwn,
 } from '@vadd/ui-spec'

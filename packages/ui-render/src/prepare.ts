@@ -1,7 +1,7 @@
 import {
+  clip,
   type Diagnostic,
   type DiagnosticCode,
-  clip,
   hasOwn,
   inspect,
   isJsonObject,
@@ -12,8 +12,8 @@ import {
   LIMITS,
   type LocatedIssue,
   type ParseError,
-  parse,
   type PathMap,
+  parse,
   type VuiDocument,
 } from '@vadd/ui-spec'
 import { sanitize } from './sanitize.js'

@@ -2,7 +2,8 @@ import { LIMITS } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
 import { prepare } from '../src/prepare.js'
 
-const body = (input: unknown) => prepare(input as never).document?.body as Record<string, never>[]
+const body = (input: unknown) =>
+  prepare(input as never).document?.body as unknown as Record<string, never>[]
 const repeat = <T>(count: number, make: (index: number) => T) =>
   Array.from({ length: count }, (_, index) => make(index))
 
@@ -143,7 +144,7 @@ describe('prepare: §13.4 truncation', () => {
 describe('prepare: lenient fields', () => {
   it('drops an invalid optional field', () => {
     const { document, diagnostics } = prepare({ type: 'md', text: 'x', tone: 'neon' } as never)
-    expect((document?.body?.[0] as { tone?: string }).tone).toBeUndefined()
+    expect(document?.body?.[0]).not.toHaveProperty('tone')
     expect(diagnostics.find((item) => item.code === 'bad-enum')?.severity).toBe('warn')
   })
 

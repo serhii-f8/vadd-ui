@@ -33,7 +33,8 @@ const channel = (value: number) => {
   const unit = value / 255
   return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4
 }
-const rgb = (hex: string) => [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16))
+const rgb = (hex: string) =>
+  [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16))
 const luminance = ([r = 0, g = 0, b = 0]: number[]) =>
   0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
 const contrast = (a: number[], b: number[]) => {

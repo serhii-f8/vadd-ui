@@ -15,9 +15,7 @@ const TONES = {
 }
 
 const toneCss = Object.entries(TONES)
-  .map(
-    ([name, [tone, text]]) => `.vui-tone-${name}{--vui-tone:${tone};--vui-tone-text:${text}}`,
-  )
+  .map(([name, [tone, text]]) => `.vui-tone-${name}{--vui-tone:${tone};--vui-tone-text:${text}}`)
   .join('')
 
 export const baseCss = `
