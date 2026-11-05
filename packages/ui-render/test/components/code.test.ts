@@ -90,11 +90,14 @@ describe('code body', () => {
   })
 
   it('takes a long mark list in its stride', () => {
-    const mark = Array.from({ length: 50_000 }, (_, index) => index + 1)
-    const text = Array.from({ length: 5_000 }, () => '').join('\n')
-    const { box } = show([code(text, { mark, maxLines: 5_000 })])
+    // Marks that miss make a linear lookup scan them all, and few lines keep the DOM's own cost
+    // far from the budget, so this fails for that lookup and not for a busy machine.
+    const lines = 1_500
+    const mark = Array.from({ length: 500_000 }, (_, index) => index + lines - 1)
+    const text = Array.from({ length: lines }, () => '').join('\n')
+    const { box } = show([code(text, { mark, maxLines: lines })])
     expect(box.querySelector('.vui-card-error')).toBeNull()
-    expect(box.querySelectorAll('mark')).toHaveLength(4_999)
+    expect(box.querySelectorAll('mark')).toHaveLength(1)
   })
 
   it('renders empty text', () => {
