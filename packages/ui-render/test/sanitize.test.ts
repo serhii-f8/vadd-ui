@@ -107,3 +107,11 @@ describe('sanitize', () => {
     expect(value(undefined)).toBeNull()
   })
 })
+
+describe('sanitize: binary views', () => {
+  it('replaces a typed array without listing its keys', () => {
+    const { value: copy, diagnostics } = sanitize({ a: new Uint8Array(3e7) })
+    expect(copy).toEqual({ a: null })
+    expect(diagnostics[0]?.path).toBe('/a')
+  })
+})

@@ -47,6 +47,9 @@ describe('determinism (§9.3)', () => {
 
 describe('corpus', () => {
   it.each(corpus.map((item) => [item.name, item] as const))('never throws: %s', (_, item) => {
-    expect(() => render(inputOf(item), target())).not.toThrow()
+    const box = target()
+    expect(() => render(inputOf(item), box)).not.toThrow()
+    // `mount` catches everything, so isolation shows only in what was drawn.
+    expect(box.textContent).not.toContain('could not be rendered')
   })
 })

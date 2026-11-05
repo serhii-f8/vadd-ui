@@ -84,6 +84,11 @@ class Copier {
   }
 
   private nested(source: object, path: string, depth: number): JsonValue {
+    if (ArrayBuffer.isView(source)) {
+      // Listing the keys of a typed array costs more than the value budget can stop.
+      this.warn(path, 'binary data replaced by null')
+      return null
+    }
     if (this.open.has(source)) {
       this.warn(path, 'circular reference replaced by null')
       return null

@@ -11,11 +11,13 @@ export interface ErrorCard {
   message: string
   /** The node's `id`, so `#id` links still land here. */
   id?: string
+  /** The node's grid span, so its neighbors keep their places. */
+  span?: number
 }
 
-export function errorCard({ type, message, id }: ErrorCard): HTMLElement {
+export function errorCard({ type, message, id, span }: ErrorCard): HTMLElement {
   const name = type === undefined ? 'this node' : clip(type, MAX_NAME)
-  return el('div', { class: 'vui-card vui-card-error', id }, [
+  return el('div', { class: 'vui-card vui-card-error', id, 'data-vui-span': span }, [
     el('p', { class: 'vui-card-title' }, `Could not render ${name}`),
     el('p', { class: 'vui-card-detail' }, message),
   ])

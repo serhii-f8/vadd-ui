@@ -6,6 +6,7 @@ import {
   type Formatted,
   formatValue,
   hasOwn,
+  inlineToPlain,
   isJsonObject,
   type JsonObject,
   type JsonValue,
@@ -137,9 +138,15 @@ function isTone(value: string | undefined): value is Tone {
   return (TONES as readonly (string | undefined)[]).includes(value)
 }
 
+/** Unknown types are not validated (VD-033), so nothing here can be trusted to be a span. */
+function spanOf(node: JsonObject): number | undefined {
+  const span = hasOwn(node, 'span') ? node.span : undefined
+  return typeof span === 'number' ? span : undefined
+}
+
 function frame(node: JsonObject, id: string | undefined, content: Child[]): HTMLElement {
   const tone = stringField(node, 'tone')
-  const span = hasOwn(node, 'span') ? (node.span as number) : undefined
+  const span = spanOf(node)
   const type = stringField(node, 'type')
   const attributes = {
     id,
@@ -165,7 +172,8 @@ function chrome(
     const remembered = context.state.get(FOLD)
     return [
       ...foldable({
-        label: context.inline(title as string),
+        // Plain text: a link inside the toggle button would be invalid and would also fold.
+        label: inlineToPlain(parseInline(title as string)),
         body: [...content, noteLine],
         open: typeof remembered === 'boolean' ? remembered : node.fold === 'open',
         onToggle: (opened) => context.state.set(FOLD, opened),
@@ -190,10 +198,12 @@ function failedCard(
   const free = id !== undefined && !build.ids.has(id)
   if (free) build.ids.add(id as string)
   const type = stringField(object, 'type')
+  const span = spanOf(object)
   return errorCard({
     message,
     ...(type === undefined ? {} : { type }),
     ...(free ? { id: id as string } : {}),
+    ...(span === undefined ? {} : { span }),
   })
 }
 
@@ -215,28 +225,22 @@ function buildComponent(
   const inner = hasOwn(node, 'title') ? level + 1 : level
   const context = createContext(build, pointer, level, memory, folds, inner)
   const { watchdog } = build
-  let element: HTMLElement
   watchdog.enter()
+  let element: HTMLElement
   try {
     const body = component.render(node, context)
     element = frame(node, id, chrome(node, body, context, level, component.ownsTitle === true))
   } catch (error) {
     watchdog.leave()
-    if (id !== undefined) build.ids.delete(id)
-    if (error instanceof BudgetExceeded) {
-      return failedCard(build, node, pointer, 'render-budget', overBudget(type))
-    }
-    return failedCard(build, node, pointer, 'render-failed', `${type} failed while rendering`)
+    throw error
   }
-  if (watchdog.leave() > BUDGET_MS) {
-    if (id !== undefined) build.ids.delete(id)
-    return failedCard(build, node, pointer, 'render-budget', overBudget(type))
-  }
+  if (watchdog.leave() > BUDGET_MS) throw new BudgetExceeded()
   return element
 }
 
-function overBudget(type: string): string {
-  return `${type} took longer than ${BUDGET_MS} ms`
+/** Takes back the ids claimed since `size`, so a discarded subtree leaves none behind. */
+function releaseIds(build: Build, size: number): void {
+  for (const id of [...build.ids].slice(size)) build.ids.delete(id)
 }
 
 /** One node, whatever happens inside it (§9.3). */
@@ -254,7 +258,21 @@ export function buildNode(
   if (type === undefined || !isJsonObject(node)) {
     return failedCard(build, node, pointer, 'bad-type', 'expected a node')
   }
-  return buildComponent(build, node, type, pointer, level)
+  const claimed = build.ids.size
+  try {
+    return buildComponent(build, node, type, pointer, level)
+  } catch (error) {
+    releaseIds(build, claimed)
+    return error instanceof BudgetExceeded
+      ? failedCard(
+          build,
+          node,
+          pointer,
+          'render-budget',
+          `${type} took longer than ${BUDGET_MS} ms`,
+        )
+      : failedCard(build, node, pointer, 'render-failed', `${type} failed while rendering`)
+  }
 }
 
 /** Title and subtitle (§5.2). */

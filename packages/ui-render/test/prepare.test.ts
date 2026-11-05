@@ -1,6 +1,6 @@
 import { LIMITS } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
-import { prepare } from '../src/prepare.js'
+import { MAX_TEXT_BYTES, prepare } from '../src/prepare.js'
 
 const body = (input: unknown) =>
   prepare(input as never).document?.body as unknown as Record<string, never>[]
@@ -191,5 +191,48 @@ describe('prepare: failed nodes', () => {
   it('walks a pointer with escaped segments safely', () => {
     const { failed } = prepare({ type: 'chart', kind: 'line', series: { 'a/b~c': 'bad' } } as never)
     expect(failed.size).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('prepare: review findings', () => {
+  it('stays linear on many issues under a long key', () => {
+    const series = { ['k'.repeat(1_999)]: Array.from({ length: 50_000 }, () => 'x') }
+    const started = performance.now()
+    prepare({ type: 'chart', kind: 'line', series } as never)
+    expect(performance.now() - started).toBeLessThan(300)
+  })
+
+  it('refuses text far past the limit, as a document error', () => {
+    const { document, failure, diagnostics } = prepare(`"${'x'.repeat(MAX_TEXT_BYTES)}"`)
+    expect(document).toBeUndefined()
+    expect(failure?.raw.length).toBeLessThanOrEqual(LIMITS.longString)
+    expect(diagnostics[0]).toMatchObject({ severity: 'error', code: 'limit-input-size' })
+  })
+
+  it('bounds the raw text of a parse failure with one long line', () => {
+    const { failure } = prepare(`{${'x'.repeat(LIMITS.inputBytes)}`)
+    expect(failure?.raw.length).toBeLessThanOrEqual(LIMITS.longString)
+  })
+
+  it('forgets an error in an object key that was cut', () => {
+    const series: Record<string, unknown> = {}
+    for (let index = 0; index < LIMITS.chartSeries; index += 1) series[`s${index}`] = [1]
+    series.last = ['bad']
+    const { failed } = prepare({ type: 'chart', kind: 'line', x: ['a'], series } as never)
+    expect(failed.size).toBe(0)
+  })
+
+  it('drops an over-long key whose value is a string', () => {
+    const key = 'k'.repeat(LIMITS.string + 1)
+    const { document } = prepare({ type: 'chart', kind: 'line', series: { [key]: 'v' } } as never)
+    expect(JSON.stringify(document)).not.toContain(key)
+  })
+
+  it('counts only real nodes against the node limit', () => {
+    const ignored = Array.from({ length: 500 }, () => ({ type: 'md', text: 'x' }))
+    const real = Array.from({ length: LIMITS.nodes + 1 }, () => ({ type: 'md', text: 'x' }))
+    const first = { type: 'md', text: 'x', children: ignored }
+    const { document } = prepare([first, ...real.slice(1)] as never)
+    expect(document?.body).toHaveLength(LIMITS.nodes)
   })
 })

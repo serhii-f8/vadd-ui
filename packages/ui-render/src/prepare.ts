@@ -22,6 +22,10 @@ import { sanitize } from './sanitize.js'
 // shown: limits truncate, invalid fields go, and only what cannot be drawn fails a node.
 
 const MAX_RAW_LINES = 40
+/** Past this, text is refused instead of truncated: §13.4 limits apply only once it is parsed. */
+export const MAX_TEXT_BYTES = 4 * LIMITS.inputBytes
+// The types whose shape holds nodes. `children` elsewhere is an ignored unknown field.
+const CHILD_TYPES: ReadonlySet<JsonValue> = new Set(['stack', 'grid', 'section', 'card'])
 const DROPPABLE: ReadonlySet<DiagnosticCode> = new Set(['bad-type', 'bad-enum', 'bad-range'])
 const LONG_TEXT_TYPES: ReadonlySet<JsonValue> = new Set(['md', 'code', 'log'])
 
@@ -104,7 +108,7 @@ function cutString(root: JsonObject, pointer: string): void {
   if (target === undefined) return
   const [parent, key] = target
   const value = childOf(parent, key)
-  if (typeof value !== 'string') {
+  if (key.length > LIMITS.string || typeof value !== 'string') {
     // The over-long string is the key itself (VD-039).
     cut(root, pointer)
     return
@@ -118,6 +122,8 @@ function cutString(root: JsonObject, pointer: string): void {
 function truncate(root: JsonObject, issues: LocatedIssue[]): void {
   // Backwards: a cut in an array must not move what a later issue points at.
   for (const { code, pointer } of [...issues].reverse()) {
+    // Before `locate`, whose cost is the pointer's length: cells can each report a long one.
+    if (!isLimitCode(code)) continue
     const target = locate(root, pointer)
     const list = target && childOf(target[0], target[1])
     switch (code) {
@@ -160,8 +166,10 @@ function collectNodes(root: JsonObject, budget: number): Set<string> {
       nodes.add(nodePointer)
       const node = list[index]
       if (!isJsonObject(node)) continue
-      visit(node.children, joinPointer(nodePointer, 'children'))
-      if (Array.isArray(node.tabs)) {
+      if (CHILD_TYPES.has(node.type ?? null)) {
+        visit(node.children, joinPointer(nodePointer, 'children'))
+      }
+      if (node.type === 'tabs' && Array.isArray(node.tabs)) {
         const tabsPointer = joinPointer(nodePointer, 'tabs')
         node.tabs.forEach((tab, tabIndex) => {
           if (isJsonObject(tab)) {
@@ -181,7 +189,7 @@ function survives(root: JsonObject, pointer: string): boolean {
   let value: JsonValue | undefined = root
   for (const segment of segmentsOf(pointer)) {
     const next = childOf(value, segment)
-    if (next === undefined) return Array.isArray(value) === false
+    if (next === undefined) return false
     value = next
   }
   return true
@@ -234,12 +242,24 @@ function parseFailed(error: ParseError, text: string): Prepared {
     code: code === 'too-deep' ? 'limit-depth' : 'parse-error',
     message: clip(located, 120),
   }
-  const raw = text.split('\n', MAX_RAW_LINES).join('\n')
-  return { diagnostics: [diagnostic], failed: new Map(), failure: { message: located, raw } }
+  return {
+    diagnostics: [diagnostic],
+    failed: new Map(),
+    failure: { message: located, raw: rawOf(text) },
+  }
 }
 
-function oversize(text: string): Diagnostic[] {
-  const bytes = new TextEncoder().encode(text).length
+function rawOf(text: string): string {
+  return clip(text.split('\n', MAX_RAW_LINES).join('\n'), LIMITS.longString)
+}
+
+function refused(text: string, bytes: number): Prepared {
+  const message = `input is ${bytes} bytes, too large to read; the limit is ${LIMITS.inputBytes}`
+  const diagnostic: Diagnostic = { severity: 'error', path: '', code: 'limit-input-size', message }
+  return { diagnostics: [diagnostic], failed: new Map(), failure: { message, raw: rawOf(text) } }
+}
+
+function oversize(bytes: number): Diagnostic[] {
   if (bytes <= LIMITS.inputBytes) return []
   const message = `input is ${bytes} bytes; the limit is ${LIMITS.inputBytes}`
   return [{ severity: 'warn', path: '', code: 'limit-input-size', message }]
@@ -263,8 +283,10 @@ function examine(input: JsonValue, early: Diagnostic[]): Prepared {
 /** Input to a document `build` can draw. Total. The result never shares with the input. */
 export function prepare(input: string | VuiDocument): Prepared {
   if (typeof input === 'string') {
+    const bytes = new TextEncoder().encode(input).length
+    if (bytes > MAX_TEXT_BYTES) return refused(input, bytes)
     const parsed = parse(input)
-    return parsed.ok ? examine(parsed.value, oversize(input)) : parseFailed(parsed.error, input)
+    return parsed.ok ? examine(parsed.value, oversize(bytes)) : parseFailed(parsed.error, input)
   }
   const { value, diagnostics } = sanitize(input)
   return examine(value, diagnostics)

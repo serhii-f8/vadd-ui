@@ -213,3 +213,71 @@ describe('watchdog', () => {
     timer.mockRestore()
   })
 })
+
+describe('review findings', () => {
+  const healthy = { type: 'md', text: 'healthy' }
+
+  it('keeps a bad span on an unknown node away from its siblings', () => {
+    const box = target()
+    createRenderer(testRegistry)(doc([{ type: 'nope', span: { toString: 1 } }, healthy]), box)
+    expect(box.textContent).toContain('healthy')
+    expect(box.textContent).not.toContain('could not be rendered')
+  })
+
+  it.each([[{ a: 1 }], ['<x>'], [null]])('writes no span from %j', (span) => {
+    const box = target()
+    createRenderer(testRegistry)(doc([{ type: 'nope', span }]), box)
+    expect(box.querySelector('[data-vui-span]')).toBeNull()
+  })
+
+  it('frees the ids of a failed subtree', () => {
+    const registry: Registry = new Map([
+      ...testRegistry,
+      [
+        'callout',
+        {
+          render: (node, ctx) => {
+            ctx.children(node.children as never, `${ctx.pointer}/children`)
+            throw new Error('after children')
+          },
+        },
+      ],
+    ])
+    const box = target()
+    const failing = { type: 'callout', text: 'x', children: [{ type: 'md', text: 'y', id: 'x' }] }
+    createRenderer(registry)(doc([failing, { type: 'md', text: 'z', id: 'x' }]), box)
+    expect(box.querySelector('#x')?.textContent).toBe('z')
+  })
+
+  it('keeps the grid span of a failed node', () => {
+    const box = target()
+    createRenderer(testRegistry)(doc([{ type: 'md', span: 3 }]), box)
+    expect(box.querySelector('.vui-card-error')?.getAttribute('data-vui-span')).toBe('3')
+  })
+
+  it('hands components a locale that is safe to use', () => {
+    let seen = ''
+    const registry: Registry = new Map([
+      [
+        'md',
+        {
+          render: (_, ctx) => {
+            seen = ctx.locale
+            return el('p', {}, 'a'.localeCompare('b', ctx.locale))
+          },
+        },
+      ],
+    ])
+    const box = target()
+    const input = { locale: 'not a locale!!', body: [{ type: 'md', text: 'x' }] }
+    createRenderer(registry)(input as unknown as VuiDocument, box)
+    expect(seen).toBe('en-US')
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+  })
+
+  it('stays inert on a target that is no element', () => {
+    const fragment = document.createDocumentFragment() as unknown as HTMLElement
+    const handle = createRenderer(testRegistry)(doc([healthy]), fragment)
+    expect(handle.diagnostics[0]?.code).toBe('render-failed')
+  })
+})

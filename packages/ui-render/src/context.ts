@@ -22,7 +22,7 @@ export interface NodeContext {
   child(node: JsonValue, pointer: string): HTMLElement
   /** The nodes of a list at `pointer`. */
   children(nodes: JsonValue[], pointer: string): HTMLElement[]
-  /** A fold whose open state lives under `name` in `state`. */
+  /** A fold whose open state lives under `name` in `state`. `label` sits in a button: no links. */
   fold(name: string, label: Child | Child[], body: Child | Child[], open: boolean): HTMLElement[]
   /** The VD-008 checkpoint. Call it in loops over document data. */
   checkpoint(): void

@@ -375,3 +375,13 @@ describe('formatting', () => {
     expect(issues).toHaveLength(1)
   })
 })
+
+describe('fold title (§15.2)', () => {
+  it('nests no link in the toggle, keeping the text and marks plain', () => {
+    const box = target()
+    show(doc([md('t', { title: 'see **[x](https://a.test/)** now', fold: 'closed' })]), box)
+    const toggle = box.querySelector('.vui-fold-toggle') as HTMLElement
+    expect(toggle.querySelector('a')).toBeNull()
+    expect(toggle.textContent).toContain('see x now')
+  })
+})

@@ -9,7 +9,7 @@ export {
   type SchemaCode,
   type Severity,
 } from './diagnostics.js'
-export { type FormatContext, type Formatted, formatValue } from './format.js'
+export { type FormatContext, type Formatted, formatValue, isLocale } from './format.js'
 export {
   checkFormat,
   checkValue,

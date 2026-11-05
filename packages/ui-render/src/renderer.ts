@@ -1,4 +1,4 @@
-import type { Diagnostic, JsonObject, VuiDocument } from '@vadd/ui-spec'
+import { type Diagnostic, isLocale, type JsonObject, type VuiDocument } from '@vadd/ui-spec'
 import { type Build, buildHeader, buildNode } from './build.js'
 import { documentErrorCard } from './cards.js'
 import type { Registry } from './context.js'
@@ -43,7 +43,9 @@ function nowOf(document: JsonObject, now: Date | undefined): string | number | u
 }
 
 function formatContext(document: JsonObject, now: Date | undefined): Build['format'] {
-  const locale = typeof document.locale === 'string' ? document.locale : DEFAULT_LOCALE
+  // A bad locale is a `warn` the CLI still writes, and `Intl` calls in components would throw.
+  const { locale: wanted } = document
+  const locale = typeof wanted === 'string' && isLocale(wanted) ? wanted : DEFAULT_LOCALE
   const time = nowOf(document, now)
   return time === undefined ? { locale } : { locale, now: time }
 }
@@ -118,7 +120,7 @@ export function createRenderer(registry: Registry, clock?: Clock): Render {
     const memory: Build['memory'] = new Map()
     const cleanups: (() => void)[] = []
     let destroyed = false
-    const inert = typeof target?.replaceChildren !== 'function'
+    const inert = typeof target?.replaceChildren !== 'function' || !target.classList
     const ownsClass = !inert && !target.classList.contains(ROOT_CLASS)
 
     const mount = (doc: string | VuiDocument): Diagnostic[] => {
