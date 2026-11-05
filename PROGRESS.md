@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T09:34:30Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T11:53:01Z · Mode: manual
 
 ## Summary
-Done 6 / 22 · In progress: none · Blocked: none · Next: 07 — Layout and text components
+Done 7 / 22 · In progress: none · Blocked: none · Next: 08 — Data components
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -34,7 +34,7 @@ Recorded 2026-11-04 during bootstrap.
 | 04 | ui-spec: value formats, inline text, status tokens | §5.5, §7, §16 | 03 | done | removed | ctx_81dd35dc6907 | [design](docs/superpowers/specs/2026-11-04-spec-formats-design.md) | [plan](docs/superpowers/plans/2026-11-04-spec-formats.md) | bcc143c | 2026-11-04 |
 | 05 | ui-text: markdown and text renderer | §4.5, §16 | 04 | done | removed | ctx_7a145f940999 | [design](docs/superpowers/specs/2026-11-04-ui-text-design.md) | [plan](docs/superpowers/plans/2026-11-04-ui-text.md) | 8cf1641 | 2026-11-04 |
 | 06 | ui-render core | §3, §4.2, §8.1, §8.4, §9.1, §9.3, §13.4, §15.1, §15.2, §16 | 04 | done | removed | ctx_c2e643a2dd6e | [design](docs/superpowers/specs/2026-11-05-render-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-render-core.md) | b65c54d | 2026-11-05 |
-| 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | todo | | | | | | |
+| 07 | Layout and text components | §6.1, §6.2, §8.4, §15.2 | 06 | done | removed | ctx_1d7a5b7dd91d | [design](docs/superpowers/specs/2026-11-05-layout-text-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-layout-text-components.md) | dc4b4d6 | 2026-11-05 |
 | 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | todo | | | | | | |
 | 09 | Charts | §6.4, §9.4, §15.2 | 08 | todo | | | | | | |
 | 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | todo | | | | | | |
@@ -114,3 +114,14 @@ none
 - Review: fresh reviewer found no Critical issues, 4 Important and 9 minor, each reproduced. Fixes and declines are in VD-066.
 - Incidents: a transient `EAI_AGAIN` stopped the worker once, and `send` resumed it. A held cross-session message from a claude-mem observer (pid 6844) opened a prompt in the worker's terminal; the coordinator did not answer it, and the worker finished and reported anyway. The coordinator's note to the worker stayed undelivered, as the worker had already reported.
 - Follow-ups: task 07 decides what `tone` draws on a node, and components must apply their own defaults, since `maxLines` can be absent after a drop. Tasks 08 and 22 guard `sort`, `group`, row options and flow edges left dangling by a cut. Task 11 owns a dark standalone page (§8.3) and should add pixel coverage with no host tokens. Task 16 may drop vendoring only if the harness still runs Orca's real bootstrap. Task 21: §17.4's Chromium 110 floor may predate `color-mix()`, which §8.1 mandates (from memory, untested). CI: baselines come from this WSL machine, so a runner with other fonts needs one regeneration with `--update-snapshots=all`.
+
+### 07 — Layout and text components
+- Built: `stack`, `grid`, `section`, `card`, `tabs`, `divider`, `md`, `callout`, `code`, with the §9.3 copy chain, and frame-level `tone`. `parseMd` moved to `ui-spec` as a public export, so both renderers share one reader.
+- Decisions: VD-067 to VD-073, no DEVIATION. VD-068: `tone` draws a 3 px bar plus a mark and hidden word. VD-069: `grid` collapses by its own width through `@container`, and spans clamp to `cols`. VD-070: every tab is in the Tab order, as §15.2 reads, with arrows as well. VD-073 changes VD-054: an ordered list keeps its first number, so `ui-text` output changed for lists not starting at 1.
+- Evidence (coordinator rerun on `main` at dc4b4d6): `pnpm gate` exit 0. Vitest 52 files, 5,213 tests. Playwright 145 tests. Banned-API check clean on 53 files. Schema up to date; runtime deps, versions and targets pass. `check-bundle-size: no bundle yet`. Coverage: lines 99.95% (2360/2361), statements 99.48%, branches 98.44%. Spec hash unchanged.
+- Coordinator probes: `ui-render` entry through esbuild, min and es2020, is 73.5 KiB and 25.2 KiB gzip, with no boot script (§9.5 limits 120 and 38 KiB); `ui-spec` is 40.1 KiB of that. Mutants on 14c10af: `maxLines` default to 40 failed 2 tests; inverted `aria-selected` failed 7; grid breakpoint to 300 px failed 7 e2e tests. Inspected the worker's dark Orca pane screenshot: all nine components read correctly.
+- Worker evidence, not rerun: grid measured at 479 and 480 px; copy in Orca's sandboxed frame in Playwright; 20-node mixed document median 0.8 ms in headless Chromium, before the review fixes; 54 new baselines plus 30 changed, because real `md` and `stack` replaced the fixtures.
+- Gaps: the Orca pane capture is from ff9525f, before the review fixes. The copy path has not been tried in a real Orca chat, only in Orca's shell under Playwright.
+- Review: fresh reviewer found no Critical issues and 4 Important, all fixed test-first: copy lost blank lines while saying `Copied`, CRLF broke `md`, ordered lists always restarted at 1, and `grid` collapsed to 0 px in a shrink-to-fit target. Declined minors are in VD-073.
+- Incident: a held cross-session prompt from a claude-mem observer opened in the worker's terminal again. It was left unanswered, and the worker finished regardless.
+- Follow-ups: tasks 08 to 10: watch bundle size, since 12.8 KiB gzip remains for 15 components and the boot script, and `check-bundle-size` stays idle until task 11. Tasks 16 to 18: hosts must give the target a width (VD-073). Task 11: `#id` links into hidden tabs and closed folds go nowhere (VD-070); the §4.3 and §10.2 templates must set a background. Task 16: try copy in a real Orca chat.
