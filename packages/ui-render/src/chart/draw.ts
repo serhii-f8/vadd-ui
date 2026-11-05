@@ -15,6 +15,7 @@ const END = 10
 const GUTTER = 8
 const AXIS = 6
 const MAX_LABEL = 16
+const MAX_TICK = 14
 const MAX_DRAWN = 1000
 const FULL = 100
 
@@ -41,14 +42,15 @@ const linePath = (points: string[]) =>
 /** A spark's path in a `SPARK_WIDTH` by `SPARK_HEIGHT` box. */
 export function sparkPath(values: readonly number[]): string {
   const low = values.reduce((least, value) => Math.min(least, value))
-  const range = values.reduce((most, value) => Math.max(most, value)) - low
+  const high = values.reduce((most, value) => Math.max(most, value))
   const last = values.length - 1
   const points = lttb(
     values.map((_, index) => index),
     values,
     MAX_DRAWN,
   ).map((index) => {
-    const share = range === 0 ? 0.5 : ((values[index] as number) - low) / range
+    const share =
+      low === high ? 0.5 : ((values[index] as number) / 2 - low / 2) / (high / 2 - low / 2)
     const x = last === 0 ? 0.5 : index / last
     return `${round(x * SPARK_WIDTH)} ${round(SPARK_HEIGHT - 1 - share * (SPARK_HEIGHT - 2))}`
   })
@@ -78,7 +80,7 @@ function donut(model: Model, width: number): Drawing {
           pathLength: FULL,
           transform: `rotate(-90 ${cx} ${cy})`,
           'stroke-width': thickness,
-          'stroke-dasharray': `${round(share - (many ? 0.5 : 0))} ${FULL}`,
+          'stroke-dasharray': `${Math.max(round(share - (many ? 0.5 : 0)), 0.2)} ${FULL}`,
           'stroke-dashoffset': round(-start),
           'data-vui-series': (index % MAX_SLICES) + 1,
         }),
@@ -101,7 +103,7 @@ function cartesian(model: Model, width: number): Drawing {
   const swapped = kind === 'hbar'
   const stacked = kind === 'stacked'
   const bars = swapped || stacked || kind === 'bar'
-  const tickTexts = ticks.map(model.tick)
+  const tickTexts = ticks.map((tick) => clip(model.tick(tick), MAX_TICK))
   const widest = (list: string[]) =>
     list.reduce((most, item) => Math.max(most, item.length), 0) * CHAR
 
@@ -185,7 +187,7 @@ function cartesian(model: Model, width: number): Drawing {
       textMark(
         swapped ? b : a1,
         swapped ? a0 - 4 : b - 4,
-        'end',
+        swapped && b < (b0 + b1) / 2 ? 'start' : 'end',
         `vui-chart-ref-label ${toneClass(tone)}`,
         clip(label, 2 * MAX_LABEL),
       ),
@@ -196,7 +198,7 @@ function cartesian(model: Model, width: number): Drawing {
   if (totals !== undefined) {
     shown.forEach((index, order) => {
       if (!placed[order]) return
-      const y = across(up[index] as number) - 4
+      const y = across(model.tops[index] as number) - 4
       nodes.push(textMark(along(index), y, 'middle', 'vui-chart-total', model.value(totals[index])))
     })
   }

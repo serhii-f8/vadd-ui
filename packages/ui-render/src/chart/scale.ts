@@ -4,8 +4,6 @@ const MAX_TICKS = 6
 const STEPS = [1, 2, 5, 10, 20, 50]
 const FAR = 1e300
 
-const tidy = (value: number) => Number(value.toPrecision(12))
-
 /** 1-2-5 ticks that cover `low` to `high`: at most 6, at least 2, always finite. */
 export function niceTicks(low: number, high: number): number[] {
   const from = Math.max(low, -FAR)
@@ -19,9 +17,20 @@ export function niceTicks(low: number, high: number): number[] {
     const step = unit * factor
     const first = Math.floor(from / step)
     const count = Math.ceil(to / step) - first + 1
+    const places = Math.min(Math.max(-Math.floor(Math.log10(step)), 0), 100)
     if (count <= MAX_TICKS && count >= 2) {
-      const ticks = Array.from({ length: count }, (_, index) => tidy((first + index) * step))
-      if (ticks.every(Number.isFinite)) return ticks
+      // Rounded to the step's own decimals: `3 * 0.1` is not 0.3.
+      const ticks = Array.from({ length: count }, (_, index) =>
+        Number(((first + index) * step).toFixed(places)),
+      )
+      const usable =
+        (ticks[0] as number) <= from &&
+        (ticks[count - 1] as number) >= to &&
+        ticks.every(
+          (tick, index) =>
+            Number.isFinite(tick) && (index === 0 || tick > (ticks[index - 1] as number)),
+        )
+      if (usable) return ticks
     }
   }
   return [from, to]

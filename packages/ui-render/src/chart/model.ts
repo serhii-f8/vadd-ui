@@ -38,13 +38,15 @@ export interface Model {
   series: Series[]
   /** Sums per category, for a `stacked` chart that asked for them. */
   totals: number[] | undefined
+  /** The top of each stack. */
+  tops: number[]
   ticks: number[]
   height: number
   refLines: RefLine[]
   /** The smallest and largest value, when there is one. */
   range: [number, number] | undefined
   label(index: number): string
-  /** `yFormat`, or a plain number. */
+  /** `yFormat`, or a plain number that keeps small values apart. */
   value(value: Value): string
   /** `value`, with room for the decimals of the ticks. */
   tick(value: number): string
@@ -91,13 +93,26 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
   let series = readSeries(node)
   let x = nodeList(node, 'x')
   const count = series.reduce((most, { values }) => Math.max(most, values.length), 0)
+  let low = Number.POSITIVE_INFINITY
+  let high = Number.NEGATIVE_INFINITY
+  const see = (value: number) => {
+    low = Math.min(low, value)
+    high = Math.max(high, value)
+  }
+  for (const { values } of series) {
+    for (const value of values) if (value !== undefined) see(value)
+    context.checkpoint()
+  }
+  const range: Model['range'] = low <= high ? [low, high] : undefined
   const first = series[0]
   if (kind === 'donut' && first !== undefined && count > MAX_SLICES) {
     // A ring cannot show more, and the sum keeps the shares honest.
-    const { values } = first
-    const rest = values.slice(MAX_SLICES - 1).reduce<number>((sum, value = 0) => sum + value, 0)
-    x = [...x.slice(0, MAX_SLICES - 1), 'Other']
-    series = [{ name: first.name, values: [...values.slice(0, MAX_SLICES - 1), rest] }]
+    const head = first.values.slice(0, MAX_SLICES - 1)
+    const rest = first.values
+      .slice(MAX_SLICES - 1)
+      .reduce<number>((sum, value = 0) => sum + Math.max(value, 0), 0)
+    x = [...head.map((_, index) => x[index] ?? index + 1), 'Other']
+    series = [{ name: first.name, values: [...head, rest] }]
   }
   const size = Math.min(count, kind === 'donut' ? MAX_SLICES : count)
   const positions = positionsOf(bars, x, size)
@@ -110,24 +125,14 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
           return [{ y, label: text(line, 'label'), tone: toneOf(field(line, 'tone')) ?? 'default' }]
         })
 
-  let low = Number.POSITIVE_INFINITY
-  let high = Number.NEGATIVE_INFINITY
-  const see = (value: number) => {
-    low = Math.min(low, value)
-    high = Math.max(high, value)
-  }
   const up = new Array<number>(size).fill(0)
   const down = new Array<number>(size).fill(0)
   for (const { values } of series) {
-    values.forEach((value, index) => {
-      if (value === undefined) return
-      see(value)
+    values.forEach((value = 0, index) => {
       const pile = value < 0 ? down : up
       pile[index] = (pile[index] as number) + value
     })
-    context.checkpoint()
   }
-  const range: Model['range'] = low <= high ? [low, high] : undefined
   for (const { y } of refLines) see(y)
   if (bars || kind === 'area') see(0)
   if (stacked) for (const sum of [...up, ...down]) see(sum)
@@ -144,6 +149,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
   const xFormat = field(node, 'xFormat')
   const step = (ticks[1] as number) - (ticks[0] as number)
   const decimals = Math.max(-Math.floor(Math.log10(step)), 0)
+  const places = `num:${decimals}`
   const yAt = `${context.pointer}/yFormat`
   const format = (value: Value, name: JsonValue | undefined, fallback: string) =>
     context.format(value ?? null, typeof name === 'string' ? name : fallback, yAt).text
@@ -161,6 +167,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
       stacked && node.stackTotal === true
         ? up.map((sum, index) => sum + (down[index] as number))
         : undefined,
+    tops: up,
     ticks,
     height: HEIGHTS[String(node.height)] ?? 200,
     refLines,
@@ -170,7 +177,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
       const name = typeof xFormat === 'string' ? xFormat : undefined
       return context.format(label, name, `${context.pointer}/x/${index}`).text
     },
-    value: (value) => format(value, yFormat, 'num'),
-    tick: (value) => format(value, yFormat, `num:${decimals}`),
+    value: (value) => format(value, yFormat, decimals > 2 ? places : 'num'),
+    tick: (value) => format(value, yFormat, places),
   }
 }

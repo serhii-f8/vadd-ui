@@ -52,6 +52,22 @@ describe('chart accessibility', () => {
     expect(texts(box, 'desc')[0]).toContain('range 5 ms–1m 30s')
   })
 
+  it('keeps both ends whole when a shared tail is not a unit', () => {
+    const { box } = chart({ kind: 'bar', yFormat: 'dur', x: ['a', 'b'], series: { s: [65, 125] } })
+    expect(texts(box, 'desc')[0]).toContain('range 1m 05s–2m 05s')
+  })
+
+  it('does not round small values away with no yFormat', () => {
+    const { box } = chart({ kind: 'line', x: ['a', 'b'], series: { s: [0.001, 0.002] } })
+    expect(texts(box, 'desc')[0]).toContain('range 0.0010–0.0020')
+    expect(texts(box, 'tbody td')).toEqual(['0.0010', '0.0020'])
+  })
+
+  it('keeps auto decimals for ordinary values', () => {
+    const { box } = chart({ kind: 'line', x: ['a', 'b'], series: { s: [1.25, 2.5] } })
+    expect(texts(box, 'tbody td')).toEqual(['1.25', '2.5'])
+  })
+
   it('leaves the range out with no data', () => {
     const { box } = chart({ kind: 'bar', x: [], series: {} })
     expect(texts(box, 'desc')).toEqual(['Bar chart, 0 series, 0 points'])
@@ -330,6 +346,59 @@ describe('chart drawing', () => {
     expect(texts(box, 'desc')[0]).toContain('20 points')
   })
 
+  it('keeps a sliver a sliver', () => {
+    const { box } = chart({ kind: 'donut', x: ['a', 'b'], series: { s: [1000, 1] } })
+    for (const slice of all(box, 'circle')) {
+      const dash = Number(slice.getAttribute('stroke-dasharray')?.split(' ')[0])
+      expect(dash).toBeGreaterThan(0)
+    }
+  })
+
+  it('names the fold Other when x is short, and sums only what it can draw', () => {
+    const values = Array.from({ length: 14 }, (_, index) => (index === 13 ? -5 : index + 1))
+    const { box } = chart({ kind: 'donut', x: ['a', 'b', 'c'], series: { s: values } })
+    const labels = texts(box, 'tbody th')
+    expect(labels[0]).toBe('a')
+    expect(labels[11]).toBe('Other')
+    expect(texts(box, 'tbody tr:last-child td')).toEqual(['25'])
+  })
+
+  it('takes the range of a fold from the document', () => {
+    const x = Array.from({ length: 20 }, (_, index) => `c${index}`)
+    const { box } = chart({ kind: 'donut', x, series: { s: x.map((_, index) => index + 1) } })
+    expect(texts(box, 'desc')[0]).toContain('range 1–20')
+  })
+
+  it('puts stack totals on their stacks past 1,000 points', () => {
+    const values = Array.from({ length: 3000 }, (_, index) => 100 + (index % 7))
+    const { box } = chart({
+      kind: 'stacked',
+      stackTotal: true,
+      x: values.map(String),
+      series: { s: values },
+    })
+    const ys = all(box, '.vui-chart-total').map((n) => Number(n.getAttribute('y')))
+    expect(ys.length).toBeGreaterThan(0)
+    expect(Math.max(...ys)).toBeLessThan(100)
+  })
+
+  it('keeps an hbar refLine label in the box near the start', () => {
+    const { box } = chart({
+      kind: 'hbar',
+      x: ['a'],
+      series: { s: [100] },
+      refLines: [{ y: 1, label: 'Budget', tone: 'ok' }],
+    })
+    expect(q(box, '.vui-chart-ref-label')?.getAttribute('text-anchor')).toBe('start')
+  })
+
+  it('clips an unbounded tick so the plot keeps its room', () => {
+    const { box } = chart({ kind: 'line', x: ['a', 'b'], series: { s: [1e40, 3e40] } })
+    expect(
+      Math.max(...texts(box, '.vui-chart-tick').map((tick) => tick?.length ?? 0)),
+    ).toBeLessThan(15)
+  })
+
   it('shows a word for an empty chart', () => {
     const { box } = chart({ kind: 'line', x: [], series: {} })
     expect(texts(box, 'svg text')).toEqual(['No data'])
@@ -535,7 +604,13 @@ describe('chart robustness', () => {
   })
 
   it('writes no NaN into a path', () => {
-    for (const series of [{ s: [1e308, 1e308] }, { s: [5e-324, 1e-323] }, { s: [0, 0] }]) {
+    const flat = 1700000000001
+    for (const series of [
+      { s: [1e308, 1e308] },
+      { s: [5e-324, 1e-323] },
+      { s: [0, 0] },
+      { s: [flat, flat + 3] },
+    ]) {
       for (const kind of ['bar', 'stacked', 'line', 'area', 'hbar']) {
         const { box } = chart({ kind, x: ['a', 'b'], series })
         for (const path of all(box, 'path[d]')) {
@@ -543,6 +618,11 @@ describe('chart robustness', () => {
         }
       }
     }
+  })
+
+  it('keeps a spark finite at the edge of a double', () => {
+    const { box } = chart({ kind: 'spark', values: [-1.7e308, 1.7e308] })
+    expect(d(box, '.vui-chart-line')).toBe('M0 23L100 1')
   })
 
   it('takes a chart at the point cap', () => {

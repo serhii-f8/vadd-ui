@@ -25,9 +25,10 @@ function describe(model: Model, label: string, context: NodeContext): string {
   const low = model.value(range[0])
   const high = model.value(range[1])
   if (low === high) return `${summary}, range ${low}`
-  const unit = (value: string) => /\D*$/.exec(value)?.[0] ?? ''
-  const shared = unit(low) === unit(high)
-  return `${summary}, range ${shared ? low.slice(0, low.length - unit(low).length) : low}–${high}`
+  const tail = (/\D*$/.exec(low) as RegExpExecArray)[0]
+  const head = low.slice(0, low.length - tail.length)
+  const shared = /\D*$/.exec(high)?.[0] === tail && !/\p{L}/u.test(head)
+  return `${summary}, range ${shared ? head : low}–${high}`
 }
 
 function dataTable(model: Model, caption: string, context: NodeContext): HTMLElement {

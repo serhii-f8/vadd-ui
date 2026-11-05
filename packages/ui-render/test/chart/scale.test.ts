@@ -33,6 +33,37 @@ describe('niceTicks', () => {
     expect(niceTicks(0, 0.3)).toEqual([0, 0.1, 0.2, 0.3])
   })
 
+  it.each([
+    [1700000000001, 1700000000004],
+    [1700000000001, 1700000000001.0002],
+    [0.1 + 0.2, 0.3000000000000001],
+    [-1e15, -1e15 + 2],
+  ])('keeps ticks distinct and covering over %d to %d', (low, high) => {
+    const ticks = niceTicks(low, high)
+    expect(new Set(ticks).size).toBe(ticks.length)
+    expect(ticks[0]).toBeLessThanOrEqual(low)
+    expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(high)
+  })
+
+  it('holds for a sweep of ranges', () => {
+    let seed = 12345
+    const next = () => {
+      seed = (seed * 48271) % 2147483647
+      return seed / 2147483647
+    }
+    for (let round = 0; round < 20_000; round += 1) {
+      const center = (next() - 0.5) * 10 ** Math.floor(next() * 30 - 15)
+      const low = center
+      const high = center + next() * 10 ** Math.floor(next() * 30 - 15)
+      const ticks = niceTicks(low, high)
+      if (low === high) continue
+      expect(ticks.length).toBeLessThanOrEqual(6)
+      expect(new Set(ticks).size).toBe(ticks.length)
+      expect(ticks[0]).toBeLessThanOrEqual(low)
+      expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(high)
+    }
+  })
+
   it('widens a flat domain', () => {
     expect(niceTicks(0, 0)).toEqual([0, 1])
     const ticks = niceTicks(5, 5)
