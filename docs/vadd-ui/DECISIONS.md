@@ -687,3 +687,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Rationale: a chart must not misstate data, even on rare input.
 - Spec sections: §6.4, §9.3, §9.4, §15.2.
 
+## VD-087 — The chart budget test reads the fastest of 7 runs
+- Date: 2026-11-05 · Task: 09
+- Context: a 5 × 1,000 chart renders in about 4 ms alone, but a median read 18.5 ms under a full `pnpm gate`, where tests run side by side, against the §9.5 limit of 25 ms. Two tests have already flaked this way (VD-080).
+- Decision: the test asserts the fastest of 7 runs and prints the median too. The render itself is far from the limit, and contention is not the code's cost.
+- Alternatives: a median, which flakes under load; a higher limit, which hides a real regression.
+- Rationale: a budget test should fail on the code, not on the machine.
+- Spec sections: §9.5, §16.
+
