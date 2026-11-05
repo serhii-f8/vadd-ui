@@ -3,9 +3,11 @@ export {
   cleanText,
   type DiffEntry,
   diffEntries,
+  isIsoTime,
   itemsFromPaths,
   planCounts,
   tailLines,
+  treeSource,
 } from './dev-view.js'
 export {
   clip,
