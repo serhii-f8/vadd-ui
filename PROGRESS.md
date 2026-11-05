@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T16:12:05Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T16:50:31Z · Mode: manual
 
 ## Summary
-Done 10 / 22 · In progress: none · Blocked: none · Next: 11 — @vadd/ui bundle and boot script
+Done 11 / 22 · In progress: none · Blocked: none · Next: 12 — CLI core
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -38,7 +38,7 @@ Recorded 2026-11-04 during bootstrap.
 | 08 | Data components | §6.3, §6.6, §7, §8.4, §15.2 | 07 | done | removed | ctx_075e7f415cf0 | [design](docs/superpowers/specs/2026-11-05-data-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-data-components.md) | 2e55ec8 | 2026-11-05 |
 | 09 | Charts | §6.4, §9.4, §15.2 | 08 | done | removed | ctx_c8b1959577eb | [design](docs/superpowers/specs/2026-11-05-charts-design.md) | [plan](docs/superpowers/plans/2026-11-05-charts.md) | f14dde8 | 2026-11-05 |
 | 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | done | removed | ctx_b15f10f3a930 | [design](docs/superpowers/specs/2026-11-05-dev-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-dev-components.md) | 2c3edaf | 2026-11-05 |
-| 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | todo | | | | | | |
+| 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | done | removed | ctx_82df097ce3f9 | [design](docs/superpowers/specs/2026-11-05-ui-bundle-design.md) | [plan](docs/superpowers/plans/2026-11-05-ui-bundle.md) | 4bead43 | 2026-11-05 |
 | 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | todo | | | | | | |
 | 13 | Viewer server | §4.1, §15.3 | 11 | todo | | | | | | |
 | 14 | Viewer feed app | §4.1 | 13 | todo | | | | | | |
@@ -155,3 +155,16 @@ none
 - Worker evidence, not rerun: 20 dev nodes at 1.1 ms against 15 ms; a document near the input cap at 14.9 ms; tinted lines at or above 4.5:1 in both schemes; 66 baselines over 11 scenes inspected; Orca pane capture at head, not viewed by the coordinator.
 - Review: fresh reviewer found no Critical issues, 5 Important and 9 minor, all fixed or declined with the reviewer (VD-095).
 - Follow-ups: task 11: 1.14 KiB gzip for the boot script; property mangling is in reserve; check the two redundant fallbacks (VD-096); `#id` links into hidden tabs and folds (VD-070). Task 12: `ui-text` `tree` fallback and date-only `timeline` (VD-096). Task 17: tell agents to send the tail of long output (VD-096). Task 20: VD-088; repeated `Output` button names for axe-core (VD-095). Orca's full-page screenshot tiled the first viewport on the long test page, so the worker used a viewport capture.
+
+### 11 — @vadd/ui bundle and boot script
+- Built: `dist/vui.min.js` (IIFE) and `dist/index.js` (ESM, inert on import), both from `scripts/build-bundle.mjs` inside `pnpm build`; the §9.2 boot; `pageCss` for bare pages; `#id` links that open hidden tabs and folds, in `ui-render`. `check-bundle-size` is live, and also fails on `</script` or `<!--`. `check-forbidden-apis` now reads both built files.
+- Decisions: VD-097 to VD-102. VD-098 is a DEVIATION: a document outside `<body>` mounts at the start of `<body>`, because §9.2's "sibling" gives a blank page on §10.2's own template, which has no `<body>` tag. VD-100 closes VD-070. VD-096's two fallbacks stay: a bad `maxLines` is dropped after normalize, so they run on real documents.
+- Evidence (coordinator rerun on `main` at 4bead43): `pnpm gate` exit 0. Vitest 62 files, 5,667 tests. Playwright 359 tests. Banned-API check clean on 70 source files and 2 built files. `check-bundle-size: 109.8 KiB minified, 37.5 KiB gzip`; exact 112,400 bytes and 37.45 KiB gzip, so 0.55 KiB gzip of margin. Coverage: lines 99.9% (3190/3193), statements 99.48%, branches 98.19%. Spec hash unchanged; no dependencies added.
+- Coordinator probes: on a copy of the built file, a 41.7 KiB gzip bundle failed `check-bundle-size`, `</script>` failed it, and an injected `eval` failed `check-forbidden-apis` with the gate's arguments. Separate Chromium run over `file://`, dark and light, outside the test suite: a §10.2-shaped page and a page mixing broken, good and empty documents rendered in source order, with one `#vui-style`, `window.VUI` keys exactly `render` and `version`, correct canvas and text colors, no console errors, no off-origin requests, no page-width growth, and a `<script>` and `<img onerror>` payload inert. An `#id` link into a hidden tab selected the tab and showed the target. The fold path of that link was not exercised by the coordinator; it rests on the worker's e2e and Orca pane. VD-098's reading of §10.2 checked against the spec text.
+- Worker evidence, not rerun: 12 `file://` and static-server cases at three widths in both schemes, byte-equal across URL schemes; a listener census; four bundle mutants; Orca shell CSP with the bundle inline. Screenshots and Orca pane captures predate the review fixes and were not recaptured, though e2e reran those paths.
+- Review: fresh reviewer found no Critical issues and 2 Important, both fixed with regression tests: `pageCss` blocked a host's `body` background, and a `<head>` document reordered the page. Declined minors are in VD-102.
+- Test changed: `charts.spec` "hovering shows the point" failed about 2 runs in 35, once in a gate. It now moves the pointer off the chart first. The cause is inferred from the failing state, not observed, and no long repeat run followed the fix, so watch it.
+- Process: the coordinator's merge ran before its first read of the report, because a parallel read was denied by a permission check and the merge command was not held for it. The report and decisions were then read through the Read tool, and nothing was recorded before this review ended. Nothing needed undoing.
+- Not tested: Firefox and WebKit (§17.4). The Playwright config runs Chromium only; task 21's host matrix should take this.
+- Corrections to worker notes: `ui-react` is task 18, not task 19. `vui show` is task 15, and the viewport meta belongs to the HTML it and task 16 write, not to task 13.
+- Follow-ups: every later change to `ui-render` or `ui-spec` draws on 0.55 KiB gzip. VD-089's reserve is unspent: property mangling and a `ui-spec` cut. Tasks 12 and 17 still have the VD-096 items. Tasks 15 and 16: viewport meta (VD-098). Task 18: in a shadow root the reveal runs but the browser does not jump (VD-100). Task 20: VD-088. Opening a page at `#id` does not reveal a hidden target (VD-100).
