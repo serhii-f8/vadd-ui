@@ -31,12 +31,14 @@ export default defineConfig({
         'packages/ui-spec/src/**/*.ts',
         'packages/ui-text/src/**/*.ts',
         'packages/ui-render/src/**/*.ts',
+        'packages/ui/src/**/*.ts',
       ],
       reporter: ['text-summary'],
       thresholds: {
         'packages/ui-spec/src/**/*.ts': { lines: 95 },
         'packages/ui-text/src/**/*.ts': { lines: 95 },
         'packages/ui-render/src/**/*.ts': { lines: 95 },
+        'packages/ui/src/**/*.ts': { lines: 95 },
       },
     },
     projects: [

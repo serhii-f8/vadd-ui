@@ -17,6 +17,8 @@ export interface Visual {
   input: unknown
   now?: string
   diagnostics?: 'hidden' | 'badge' | 'panel'
+  /** A whole visual body, for a test of the real bundle. */
+  html?: string
 }
 
 function scriptSafe(json: string): string {
@@ -39,7 +41,7 @@ function visualHtml(visual: Visual): string {
 export function hostPage(visual: Visual, scheme: Scheme, width: number): string {
   const theme = THEMES[scheme]
   const srcdoc = buildNativeChatVisualDocument({
-    html: visualHtml(visual),
+    html: visual.html ?? visualHtml(visual),
     channel: CHANNEL,
     theme,
   })
