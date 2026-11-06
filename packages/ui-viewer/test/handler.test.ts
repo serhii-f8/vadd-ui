@@ -3,8 +3,7 @@ import { connect } from 'node:net'
 import { version } from '@vadd/ui'
 import { LIMITS, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { placeholderFeed } from '../src/feed.js'
-import { BEARER, HASH, openStream, READ, request, type Served, serve } from './helpers.js'
+import { BEARER, FEED, HASH, openStream, READ, request, type Served, serve } from './helpers.js'
 
 const DOC = { vui: 1, title: 'Report', body: ['hello'] }
 
@@ -29,7 +28,7 @@ describe('pages', () => {
     expect(reply.headers['content-security-policy']).toBe(
       "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'",
     )
-    expect(reply.text).toBe(placeholderFeed.html)
+    expect(reply.text).toBe(FEED.html)
   })
 
   it('serves the feed script (VD-006)', async () => {
@@ -37,10 +36,10 @@ describe('pages', () => {
     const reply = await get('/app.js')
     expect(reply.status).toBe(200)
     expect(reply.headers['content-type']).toBe('text/javascript; charset=utf-8')
-    expect(reply.text).toBe(placeholderFeed.script)
+    expect(reply.text).toBe(FEED.script)
   })
 
-  it('takes the feed from its option, the seam for task 14', async () => {
+  it('takes the feed from its option, the seam a host uses', async () => {
     const { get } = await start({ feed: { html: '<p>real', script: 'real()' } })
     expect((await get('/')).text).toBe('<p>real')
     expect((await get('/app.js')).text).toBe('real()')

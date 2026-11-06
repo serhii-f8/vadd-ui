@@ -3,6 +3,7 @@ import { createServer, request as httpRequest, type IncomingMessage, type Server
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { type FeedAssets, feedHtml } from '../src/feed.js'
 import { createViewerHandler, type ViewerHandler } from '../src/handler.js'
 import { DocStore } from '../src/store.js'
 
@@ -10,6 +11,9 @@ export const READ = 'r'.repeat(32)
 export const WRITE = 'w'.repeat(32)
 export const HASH = '0123456789abcdef'
 export const BEARER = { authorization: `Bearer ${WRITE}` }
+
+/** Tests run from source, where the built `app.js` does not exist. */
+export const FEED: FeedAssets = { html: feedHtml, script: 'feed()' }
 
 /** A port that was free a moment ago, for tests that must name one. */
 export async function freePort(): Promise<number> {
@@ -136,6 +140,7 @@ export async function serve(overrides: Overrides = {}): Promise<Served> {
     writeToken: WRITE,
     port: () => port,
     workspaceHash: HASH,
+    feed: FEED,
     ...overrides,
   })
   const server: Server = createServer(handler)

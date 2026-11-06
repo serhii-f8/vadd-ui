@@ -1,0 +1,12 @@
+{
+  // The browser app (VD-019). `doc-header.ts` is the one file it shares with the server.
+  "extends": "../../tsconfig.browser.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "noEmit": true
+  },
+  "include": ["src/app", "src/doc-header.ts"]
+}

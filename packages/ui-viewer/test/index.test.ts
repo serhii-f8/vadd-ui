@@ -9,6 +9,7 @@ describe('@vadd/ui-viewer', () => {
   it('exports the mountable handler and the store it needs (VD-004)', () => {
     expect(viewer.createViewerHandler).toBeTypeOf('function')
     expect(viewer.DocStore).toBeTypeOf('function')
-    expect(viewer.placeholderFeed.html).toContain('app.js')
+    expect(viewer.feedHtml).toContain('app.js')
+    expect(viewer.readFeed).toBeTypeOf('function')
   })
 })

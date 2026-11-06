@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
 
@@ -41,7 +41,11 @@ export default defineConfig({
         'packages/ui-cli/src/**/*.ts',
       ],
       // Lines of wiring, run for real by `bin.test.ts` and `process.test.ts`.
-      exclude: ['packages/ui-cli/src/bin.ts', 'packages/ui-viewer/src/viewer.ts'],
+      exclude: [
+        'packages/ui-cli/src/bin.ts',
+        'packages/ui-viewer/src/viewer.ts',
+        'packages/ui-viewer/src/app/main.ts',
+      ],
       reporter: ['text-summary'],
       thresholds: {
         'packages/ui-spec/src/**/*.ts': { lines: 95 },
@@ -63,6 +67,8 @@ export default defineConfig({
             'skills/*/test/**/*.test.ts',
             'scripts/test/**/*.test.ts',
           ],
+          // The feed app is browser code, in a package that is otherwise Node.
+          exclude: [...configDefaults.exclude, 'packages/ui-viewer/test/app/**'],
           environment: 'node',
         },
       },
@@ -71,7 +77,10 @@ export default defineConfig({
         oxc: { define },
         test: {
           name: 'jsdom',
-          include: ['packages/{ui-render,ui,ui-react}/test/**/*.test.{ts,tsx}'],
+          include: [
+            'packages/{ui-render,ui,ui-react}/test/**/*.test.{ts,tsx}',
+            'packages/ui-viewer/test/app/**/*.test.ts',
+          ],
           environment: 'jsdom',
         },
       },
