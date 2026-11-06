@@ -1080,10 +1080,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-136 — What "≤ 1,800 tokens" is measured with
 - Date: 2026-11-06 · Task: 17
 - Context: §14.2 caps `SKILL.md` at 1,800 tokens and §14.3 wants Anthropic's counting API, or a pinned offline tokenizer when no key exists. No key exists here, and Anthropic's tokenizer is not public. Anthropic's glossary, read on 2026-11-06, says Claude 4.7 and later give about 30% more tokens than earlier models, on which a token is about 3.5 English characters. So a plain `cl100k_base` count would under-report on the models that read this file.
-- Decision: the whole file, frontmatter included, gets the larger of two estimates: `cl100k_base` tokens × 1.3 (`js-tiktoken` 1.0.21, pinned exact, dev only, in `skills/vadd-ui`) and characters × 1.3 / 3.5. The first sees how dense JSON is; the second rests on the published figures alone. The gate is ≤ 1,710, the budget less §14.3's 5%, and `skill.test.ts` fails above it, shown on an over-budget text.
+- Decision: the whole file, frontmatter included, gets the larger of two estimates: `cl100k_base` tokens × 1.3 (`js-tiktoken` 1.0.21, pinned exact, dev only, in `skills/vadd-ui`) and characters × 1.3 / 3.5. The first sees how dense JSON is; the second rests on the published figures alone. The gate is ≤ 1,710, a local choice of 5% under the budget, taking the size of §14.3's regression allowance but not its meaning. `skill.test.ts` fails above it, shown on an over-budget text. Measured on 2026-11-06: estimate 1,706, from 1,312 `cl100k_base` tokens (× 1.3 = 1,706) and 4,572 characters (× 1.3 / 3.5 = 1,699). That leaves 4 tokens of slack, so any addition to the skill needs a cut.
 - Relation to real tokens: this is an estimate, not a count. Nothing here measured a real model. The ×1.3 on `cl100k_base` assumes earlier Claude models tokenize about like `cl100k_base`, which is unproven, and 3.5 is a figure for English prose, so it reads low on JSON. The 5% is the only margin beyond the published factor, so a real count could land above 1,800 if `cl100k_base` under-reports earlier models by more than that.
 - Follow-up: task 19 owns §14 and its API path. It should run `SKILL.md` through the counting API when a key exists, and move this gate to a real count. `js-tiktoken` is available for its offline path.
-- Rationale: the budget stays a test now, and the number errs high rather than flattering the skill.
+- Rationale: the budget stays a test now, and it uses the larger of two estimates instead of the plain count. The plain `cl100k_base` count, 1,312, is well under budget; the 1.3 factor is what makes it tight.
 - Spec sections: §12.1, §14.2, §14.3.
 
 ## VD-137 — The skill's wording and its additions to §12
@@ -1097,7 +1097,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-138 — One example is the cheat-sheet; the fallback is the one environment read
 - Date: 2026-11-06 · Task: 17
 - Context: §12.1 wants a component cheat-sheet, and every example must validate. §12.2.1 forbids branching on Orca mode, while §12.2.6 reads `ORCA_CHAT_SCRATCH_DIR`. §10.2's template holds a `{ … document … }` placeholder, which is not a document.
-- Decision: one `vui show` heredoc shows 11 types in one valid document, and a list names the rest, so a per-component list is not needed. The list of statuses, tones and formats must equal `STATUSES`, `TONES` and `FORMAT_NAMES` exactly. §12.2.6 is not a host choice: it answers a missing CLI, and `vui show` is not there to decide. The test allows the variable in that one sentence. The template in the skill holds a small real document where §10.2 has the placeholder; its first two lines match §10.2 byte for byte.
+- Decision: one `vui show` heredoc shows 9 types in one valid document, and a list names the rest, so a per-component list is not needed. The list of statuses, tones and formats must equal `STATUSES`, `TONES` and `FORMAT_NAMES` exactly. §12.2.6 is not a host choice: it answers a missing CLI, and `vui show` is not there to decide. The test allows the variable in that one sentence. The template in the skill holds a small real document where §10.2 has the placeholder; its first two lines match §10.2 byte for byte.
 - Rationale: the same document teaches and proves, and costs the fewest tokens.
 - Spec sections: §10.2, §12.1, §12.2.
 
@@ -1107,3 +1107,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: §12.1's text stands, since the spec comes first. Baseline runs are task 21's agent eval (§16, 40 prompts); this task does one live check that Claude Code finds and follows the installed skill, in a temporary project. The worker preamble also rules out helper agents unless the task asks.
 - Rationale: a few samples here would not prove what the eval proves, and §16 already owns it.
 - Spec sections: §12.1, §16.
+
+## VD-140 — Review rulings, and a Viewer gap for a later task
+- Date: 2026-11-06 · Task: 17
+- Context: the review found two test gaps and one real gap for the reader.
+- Decision: host neutrality now also holds every conditional sentence to a closed list of conditions on `vui`'s outcome, because a ban list of words misses a branch written in other words. The §12.4 clause now carries its subject, since `The built-in skill takes precedence` passed before. `cli-contract.test.ts` reads output prefixes and exits 1 to 5 from the CLI itself.
+- Not fixed here, for the coordinator: `vui: open <url>` prints once per Viewer start (VD-125), and a Viewer outlives a session (§4.1). So a new session in the same workspace, or a closed tab, prints only `vui: shown` with no connected page and no pane. The skill then says the visual is on screen and tells the agent not to repeat the data, and the user has neither the data nor a link. The sentence is §12.2.5 word for word, so the fix belongs in the CLI: print `vui: open` whenever `clients === 0` and no pane opened. That changes §11.2's "first show", so it needs its own decision and task. No skill change is needed once it lands.
+- Rejected for budget (4 tokens of slack): the rest of §4.2's name rule in the skill (first character, `.html` ending, no `..`, ≤ 128, device names, title ≤ 120) and `<!--` escaping in the CDN template. Both apply only to the hand-written fallback, and the first fails visibly at `parseDirectiveLine` and the second as a "Could not read this document" card.
+- Spec sections: §4.1, §4.2, §10.1, §11.2, §12.2, §12.4.

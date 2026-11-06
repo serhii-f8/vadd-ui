@@ -85,7 +85,11 @@ export const CLAUSES: readonly Clause[] = [
     id: '12.4 orca skill',
     spec: 'Orca injects its own `orca-chat-visuals` skill, which tells the agent to write full HTML pages.',
   },
-  { id: '12.4 precedence', spec: 'takes precedence for any content the catalog covers' },
+  {
+    id: '12.4 precedence',
+    spec: 'takes precedence for any content the catalog covers',
+    skill: 'This skill takes precedence for any content the catalog covers',
+  },
   {
     id: '12.4 raw html',
     spec: 'raw HTML via `orca-chat-visuals` is only for visuals outside the catalog (for example custom illustrations or mockups)',

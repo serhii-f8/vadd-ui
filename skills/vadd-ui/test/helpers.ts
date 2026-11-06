@@ -59,7 +59,7 @@ export function labelled(body: string, label: string): string[] {
 }
 
 export const TOKEN_BUDGET = 1800
-/** §14.3 lets a budget regress 5%, so the gate leaves that much room below the budget. */
+/** VD-136: a local margin, since the estimate is not a count. Sized like §14.3's 5%. */
 export const TOKEN_GATE = Math.floor(TOKEN_BUDGET * 0.95)
 /** Anthropic glossary, read 2026-11-06: Claude 4.7 and later give about 30% more tokens. */
 const NEW_TOKENIZER_FACTOR = 1.3

@@ -211,19 +211,49 @@ const HOST_SENTENCES = [
 ].map((id) => wording(CLAUSES.find((clause) => clause.id === id) ?? { id }))
 
 const HOST_TERMS =
-  /\b(wsl|ssh|orca|tmux|localhost|container|devcontainer|windows|linux|macos|uname|hostname|printenv)\b|127\.0\.0\.1|_DISTRO|[A-Z]+_[A-Z_]+|\$[A-Z]|--host|--dir|--no-open|vui viewer|vui doctor/i
+  /\b(wsl|ssh|orca|tmux|localhost|container|devcontainer|windows|linux|macos|uname|hostname|printenv|remote|terminal|transcript|pane|browser|chat|display)\b|\/proc|127\.0\.0\.1|_DISTRO|[A-Z]+_[A-Z_]+|\$[A-Z]|--host|--dir|--no-open|vui viewer|vui doctor|vui render/gi
+
+const CONDITIONAL =
+  /^(if|when|while|unless|in|on|over|under|without|with|outside|inside|for|otherwise|where|from)\b/i
+
+/** Closed on purpose: each reads what `vui` returned, or that it is missing, never a place. */
+const CONDITIONS = [
+  /^On exit \d/,
+  /^On a second failure or exit 4/,
+  /^If stdout is a /,
+  /^If it starts with `vui: shown`/,
+  /^If a `vui: open <url>` line follows/,
+  /^If `vui` is not installed/,
+  /^Otherwise answer in markdown/,
+  /^For a component not in the cheat-sheet/,
+  /^Inside the template/,
+]
+
+function prose(text: string): string[] {
+  return text
+    .replace(/^```[\s\S]*?^```$/gm, ' ')
+    .split('\n')
+    .filter((line) => !line.startsWith('#'))
+    .map((line) => normalize(line.replace(/^(\d+\.|-) /, '')))
+    .flatMap((line) => line.split(/(?<=[.;])\s+/))
+}
 
 /** The sentences the spec requires are allowed; anything else about a host is a branch. */
-function hostTerms(text: string): string[] {
+function hostBranches(text: string): string[] {
   let rest = normalize(text)
   for (const sentence of HOST_SENTENCES) rest = rest.replaceAll(sentence, ' ')
-  rest = rest.replaceAll('::orca-visual', ' ').replaceAll("Orca's built-in skill", ' ')
-  return [...rest.matchAll(new RegExp(HOST_TERMS, 'gi'))].map((match) => match[0])
+  rest = rest.replaceAll('::orca-visual', ' ')
+  const terms = [...rest.matchAll(HOST_TERMS)].map((match) => match[0])
+  const conditions = prose(text).filter(
+    (sentence) =>
+      CONDITIONAL.test(sentence) && !CONDITIONS.some((condition) => condition.test(sentence)),
+  )
+  return [...terms, ...conditions]
 }
 
 describe('host neutrality', () => {
   it('never branches on WSL, SSH or Orca mode', () => {
-    expect(hostTerms(body)).toEqual([])
+    expect(hostBranches(body)).toEqual([])
   })
 
   it.each([
@@ -234,8 +264,18 @@ describe('host neutrality', () => {
     'Pass `--host viewer` when unsure.',
     'Check `WSL_DISTRO_NAME` first.',
     'Use `$ORCA_CHAT_SCRATCH_DIR` to pick the folder.',
+    'On a remote machine, forward the port.',
+    'In terminal mode, tell the user the address; in the transcript, say nothing.',
+    'In the chat UI paste the line; in a browser pane say nothing.',
+    'Without a display, use `vui render --format md` instead.',
+    'If `/proc/version` says Microsoft, open the page by hand.',
+    'When the page is closed, say so.',
   ])('catches %s', (sentence) => {
-    expect(hostTerms(`${body}\n${sentence}`).length).toBeGreaterThan(0)
+    expect(hostBranches(`${body}\n${sentence}`).length).toBeGreaterThan(0)
+  })
+
+  it('uses only the commands that need no host choice', () => {
+    expect(vuiCommands(body).sort()).toEqual(['catalog', 'show'])
   })
 
   it('reads the scratch variable only to find a fallback for a missing CLI', () => {
