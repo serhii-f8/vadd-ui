@@ -3,5 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@vadd/ui-cli": "workspace:*",
+    "@vadd/ui-spec": "workspace:*",
+    "js-tiktoken": "1.0.21"
+  }
 }
