@@ -1,6 +1,6 @@
+import { inlineHtml } from '@vadd/ui-viewer'
 import { describe, expect, it } from 'vitest'
 import { findDocuments, locate } from '../src/extract.js'
-import { inlineHtml } from '@vadd/ui-viewer'
 
 const DOC = '<script type="application/vui+json">{"a":1}</script>'
 const texts = (html: string) => findDocuments(html).map((item) => item.text)

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import { readBundle } from '@vadd/ui-viewer'
+import { describe, expect, it } from 'vitest'
 import { readSchema } from '../src/assets.js'
 
 // The built files, which `pnpm gate` makes before it runs tests.
