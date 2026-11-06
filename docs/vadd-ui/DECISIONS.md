@@ -974,3 +974,58 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - For task 15: each tab holds one stream, and HTTP/1.1 allows six connections per host, so a seventh feed tab waits on "Connecting…" and can stall reads in the others. Opening one pane per Viewer, as §4.1 has it, stays clear of this.
 - Rationale: the fixes close AA gaps and an honesty gap in the status; the declined items are rare, cosmetic or free on loopback.
 - Spec sections: §4.1, §9.3, §15.2.
+
+## VD-123 — Host routing and `show`'s flags
+- Date: 2026-11-06 · Task: 15
+- Context: §4.0 names three hosts and task 16 builds two. §11.1 lists `--name` and `--no-open` without saying what they do on the Viewer, and §11.2 has no line for an untitled document.
+- Decision: `selectHost` is §4.0 in full, and `show.ts` holds a partial adapter table that task 16 fills. Until then an explicit `--host orca-chat` or `--host file` exits 4, and `auto` that selected `orca-chat` goes on to the Viewer, which is §4.0's next step. `--host file` needs `--dir` and `--dir` needs `file`, exit 2. Validation runs before any host is touched, so exits 1 to 3 start nothing. `--title` replaces the title before the size check; a title over `LIMITS.string` is refused by the Viewer with a 422, which exits 3. `--name` is §11.5's file name, so the Viewer host accepts and ignores it. `--no-open` reads as "without Orca": no pane, and the URL line if it is due. An untitled document prints `vui: shown untitled (#3) in viewer`. `meta.cwd` and `meta.branch` go only through the Viewer adapter, so `render` output and task 16's files hold no local path. They replace a document's claim as VD-109 does, and a branch that cannot be read removes the key. The branch is read from `.git` without running git, as `workspaceOf` does, and a detached head gives 12 hex characters. A POST goes to `127.0.0.1`, not `localhost`, since the Viewer binds no `::1` (VD-128).
+- Not done: `/docs/<id>.html`, "for saving or sharing", embeds `meta.cwd`, so a shared file shows a local path. §4.1's header needs it stored, and the feed is local.
+- Rationale: the seam costs one table, and task 16 changes no routing.
+- Spec sections: §4.0, §4.1, §5.2, §11.1, §11.2, §11.5.
+
+## VD-124 — `viewer.lock`, and how a Viewer starts
+- Date: 2026-11-06 · Task: 15
+- Context: VD-117 left the two-starts race to this task. Two Viewers on one state directory would number documents separately and overwrite each other's files, so converging afterwards is too late: only one may ever start.
+- Decision: `viewer.lock` is created with `wx` and holds the pid. Its holder starts the Viewer; everyone else polls `liveViewer` every 25 ms for up to 10 s. A lock is stale when its pid is dead, or after 15 s, since a pid can be reused. The holder checks again after taking it. The file is transient and adds to §4.1's list of contents only while a start runs. The CLI spawns `@vadd/ui-viewer/viewer.js` as resolved from the package, so `app.js` stays beside `feed.js` (VD-119), detached, with stdout and stderr appended to `viewer.log` (0600). Readiness is the VD-118 line in what this start wrote, then `liveViewer`. A child that exits fails at once with the log's last line, and 10 s without readiness kills it. An unusable state directory exits 5 (§11.4), and every other start failure exits 4 with the cause. A connection refused on POST goes round `ensureViewer` once. `stop` signals only a pid `/health` has proved: SIGTERM, 3 s, SIGKILL, then the file goes if it remains. Stopping nothing is exit 0. `open` starts a Viewer if needed; `url` does not, and exits 4.
+- Not done: two processes taking over one stale lock in the same instant can both start. It needs a holder crashing mid-start and then two shows within a millisecond, and Node has no `flock`. A Viewer stopped with `SIGSTOP` fails `/health`, so the next show starts a second one on the same directory, and `stop` cannot prove the old pid to kill it.
+- Rationale: 5 simultaneous real `vui show` calls give one `Viewer listening` line and 5 distinct numbers, on 5 runs of 5.
+- Spec sections: §4.1, §11.4.
+
+## VD-125 — One pane, and VD-114 confirmed
+- Date: 2026-11-06 · Task: 15
+- Context: a page takes a moment to connect, so a second show right after the first sees `clients: 0` and §4.1 read literally opens a second pane, which §16.1 and VD-122 forbid. VD-114 asked this task to check §16.1's "the open page reconnects" against a real restart.
+- Decision: `viewer.json` also holds `browserPageId` and `urlShown`, both written by the CLI through `updateViewerInfo`, which writes only if the file still names that pid. On `clients: 0` a show takes the lock without waiting; if it is held, another show is doing this. With a known pane it runs `tab list`: a tab at this Viewer's URL is kept, so `clients: 0` with a loading pane opens nothing. A tab at the killed Viewer's URL is moved with `goto`. Anything else, or a failed list, runs `tab create`. A tab the reader took to another URL is left alone. A failed call is one stderr warning and the URL line, and delivery stands (§17.3). The URL line prints when no pane exists, nobody is connected and `urlShown` is unset, so once per start.
+- **VD-114, real run on 2026-11-06, Orca 1.4.248, WSL mirrored:** after `kill -9` the old page reports "This Viewer has stopped", and the old URL stays dead (§15.3). The next `vui show` took 2.07 s, kept the same `browserPageId`, moved it to the new URL, and the page came up `live` with all 9 documents; the next show saw `clients: 1`; `tab list` still showed one tab. This meets §16.1 more faithfully than VD-114's "a fresh pane": the open pane comes back, and tokens still rotate, because the CLI that can read `viewer.json` tells it where to go. It works because `viewer.json` survives a kill.
+- Not done: after `vui viewer stop` or an idle exit the file is gone, so the pane id is too, and the next show opens a new pane beside the dead one. A dead page stops its traffic (VD-120), so VD-122's limit is not at risk. A system browser has no `goto`, so there the old page stays stopped and the new URL line is the way back: task 21's outside-Orca cells should read §16.1 that way.
+- Rationale: no new state file, and §15.3 keeps its meaning.
+- Spec sections: §4.1, §15.3, §16.1, §17.3.
+
+## VD-126 — Custom endpoint
+- Date: 2026-11-06 · Task: 15
+- Context: §4.1 and §4.4 give `VUI_VIEWER_URL` and `VUI_VIEWER_TOKEN` one sentence each, and all routes sit under the token prefix.
+- Decision: `VUI_VIEWER_URL` is the base with any prefix, so POST goes to `<base>/api/docs`. The bearer header is sent only when the token is set. `/health` is read at the origin, as §4.1 has it. A URL that is not http or https exits 4. No Viewer starts and no state is written. No pane opens, since a page id has no `viewer.json` to live in and the VADD dashboard is its own surface; `clients: 0` prints the reply's URL each time, for the same reason. `viewer start` and `stop` exit 2, since there is no process, and `status`, `url` and `open` use the endpoint.
+- Rationale: the smallest reading that lets task 18's server take the place of the Viewer.
+- Spec sections: §4.1, §4.4.
+
+## VD-127 — Doctor
+- Date: 2026-11-06 · Task: 15
+- Context: §11.1 lists what `doctor` reports, not its statuses or exit code, and the Windows check needs a port when no Viewer runs.
+- Decision: each check is `ok`, `info`, `warn` or `fail`, one line each, with `fix:` under anything that has one. Any `fail` exits 4. Orca being absent is `info`, since the URL line works. A Viewer that is not running is `info`, and `doctor` does not start one: the Windows check aims at a throwaway loopback server instead, so it runs either way. No PowerShell found is `warn`, because it proves nothing. The check is the same under NAT and mirrored; `wslinfo --networking-mode` only picks the fix: `localhostForwarding` under NAT, the Hyper-V firewall rule under mirrored, both when unknown. `/mnt/c/Windows/...` is tried after `PATH`, for `powershell.exe` and `explorer.exe`, because this machine keeps Windows off `PATH`. `explorer.exe` exits 1 on success, so a launch counts. SSH opens nothing and prints the URL (§4.0).
+- Tested: the NAT cell cannot run here, so it is tested with fakes only. `vui viewer open` has not been run against a real browser, since it would open one on the user's desktop; it has fakes and task 21's release check. Native Windows paths (`.cmd` through `cmd.exe`, `start`) are fakes too.
+- Rationale: `doctor` must answer on a machine where nothing has run yet.
+- Spec sections: §4.1, §11.1, §16.1.
+
+## VD-128 — Windows reaches `localhost` slowly on mirrored networking
+- Date: 2026-11-06 · Task: 15
+- Context: the first real `doctor` run reported a failure after 20 s. By hand, the same command printed `200`, in 21.3 s, twice, while PowerShell itself starts in 0.4 s. `Invoke-WebRequest http://localhost` tries `::1` first, nothing listens there since §15.3 binds `127.0.0.1` only, and the connection takes about 21 s to give up before it falls back.
+- Decision: the §11.1 command stays as written, the timeout is 45 s, and the line says how long it took. `doctor` takes about 21 s here. Chromium does not suffer: the Orca pane falls back at once, as the measured delivery shows.
+- Alternatives: binding `::1` too, which §15.3 forbids; probing `127.0.0.1`, which would pass where `localhost` fails, and that is what the check exists to find.
+- Rationale: the reachability answer is right, and a slow answer beats a wrong one.
+- Spec sections: §4.1, §11.1, §15.3.
+
+## VD-129 — What "≤ 1 s" measures — DEVIATION on the first pane
+- Date: 2026-11-06 · Task: 15
+- Context: §16.1 asks that a document appears in the pane within 1 s, and `orca tab create` alone takes 0.9 to 1.9 s here.
+- Decision: the budget holds for an open pane, which is the case the CLI controls. Measured on a real Orca pane, WSL mirrored, with the two clocks synchronized to 2 ms and a `MutationObserver` in the feed: 66 to 85 ms from the CLI's spawn to visible, seven shows. The first show of a Viewer, with no pane yet, read its document 1,068 ms after the CLI started: the CLI and the Viewer take about 170 ms and the rest is Orca creating the pane. That one is over budget, and only Orca can change it. Task 21 should report both numbers per cell.
+- Rationale: nothing in the CLI can shorten a call to another process, and the spec's first-run path goes through that call.
+- Spec sections: §9.5, §16.1, §17.3.

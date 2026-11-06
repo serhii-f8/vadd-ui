@@ -17,6 +17,16 @@ interface Rig {
   tabs: string
 }
 
+const rigs: Rig[] = []
+
+// A hook, so a failed test leaves no detached Viewer behind.
+test.afterEach(async () => {
+  for (const place of rigs.splice(0)) {
+    await vui(place, ['viewer', 'stop'])
+    rmSync(place.cwd, { recursive: true, force: true })
+  }
+})
+
 function rig(): Rig {
   const dir = mkdtempSync(join(tmpdir(), 'vui-e2e-show-'))
   const calls = join(dir, 'calls')
@@ -43,7 +53,9 @@ console.log(JSON.stringify({ ok: true, result }))
     XDG_STATE_HOME: join(dir, 'state'),
     ORCA_CLI_COMMAND: stub,
   }
-  return { cwd: dir, env, calls, tabs }
+  const place = { cwd: dir, env, calls, tabs }
+  rigs.push(place)
+  return place
 }
 
 function vui(place: Rig, argv: string[], stdin = ''): Promise<string> {
@@ -87,8 +99,6 @@ test('a show reaches an open page within the budget, and only the first opens a 
   expect(elapsed).toBeLessThan(BUDGET_MS)
   expect(second.clients).toBe(1)
   expect(calls(place).filter((line) => line.startsWith('tab create'))).toHaveLength(1)
-  await vui(place, ['viewer', 'stop'])
-  rmSync(place.cwd, { recursive: true, force: true })
 })
 
 test('a killed Viewer restarts, and its pane comes back on the new URL', async ({ page }) => {
@@ -112,6 +122,4 @@ test('a killed Viewer restarts, and its pane comes back on the new URL', async (
   await expect(page.getByText('Before the kill').first()).toBeVisible()
   await expect(page.getByText('After the kill').first()).toBeVisible()
   await expect(page.getByText('Live')).toBeVisible()
-  await vui(place, ['viewer', 'stop'])
-  rmSync(place.cwd, { recursive: true, force: true })
 })
