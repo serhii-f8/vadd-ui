@@ -17,9 +17,9 @@ export {
   readViewerInfo,
   type StartOptions,
   startViewer,
+  updateViewerInfo,
   type ViewerInfo,
   ViewerRunningError,
-  updateViewerInfo,
   ViewerStartError,
 } from './server.js'
 export {

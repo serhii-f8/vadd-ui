@@ -49,6 +49,15 @@ describe('realSystem', () => {
     expect(child.pid).toBeGreaterThan(0)
   })
 
+  it('signals a process', async () => {
+    const fd = openSync(join(tempDir(), 'log'), 'a')
+    const hang = ['-e', 'setInterval(() => {}, 1000)']
+    const child = realSystem.spawnViewer(hang, fd, tempDir())
+    closeSync(fd)
+    realSystem.kill(child.pid, 'SIGKILL')
+    await child.exited
+  })
+
   it('reads files, and nothing for a missing one', () => {
     const path = tempFile('a.txt', 'text')
     expect(realSystem.exists(path)).toBe(true)

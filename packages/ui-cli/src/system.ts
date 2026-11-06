@@ -36,6 +36,7 @@ export interface System {
   ) => Promise<ExecResult>
   /** Node on `argv`, in its own process group, with all output in `logFd`. */
   spawnViewer: (argv: readonly string[], logFd: number, cwd: string) => SpawnedViewer
+  kill: (pid: number, signal: NodeJS.Signals) => void
   sleep: (ms: number) => Promise<void>
   exists: (path: string) => boolean
   read: (path: string) => string | undefined
@@ -121,6 +122,7 @@ export const realSystem: System = {
   cwd: () => process.cwd(),
   exec,
   spawnViewer,
+  kill: (pid, signal) => void process.kill(pid, signal),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   exists: existsSync,
   read,

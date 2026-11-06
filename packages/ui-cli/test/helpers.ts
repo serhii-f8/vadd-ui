@@ -1,10 +1,11 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
+import { type RunningViewer, startViewer } from '@vadd/ui-viewer'
 import type { Io } from '../src/io.js'
 import { run } from '../src/run.js'
-import type { ExecResult, SpawnedViewer, System } from '../src/system.js'
+import type { ExecResult, System } from '../src/system.js'
 
 export const NOW = new Date('2026-11-05T10:00:00.000Z')
 export const BUNDLE = '/*bundle*/'
@@ -32,6 +33,7 @@ export interface FakeSystem {
   files?: Record<string, string>
   exec?: (file: string, args: readonly string[]) => Partial<ExecResult>
   spawnViewer?: System['spawnViewer']
+  kill?: System['kill']
 }
 
 /** `exec` fails as a missing command, unless a test says what it does. */
@@ -57,13 +59,63 @@ export function fakeSystem(options: FakeSystem = {}): System {
       }
     },
     spawnViewer: options.spawnViewer ?? spawnViewer,
+    kill: options.kill ?? (() => undefined),
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
     exists: (path) => Object.hasOwn(files, path),
     read: (path) => files[path],
   }
 }
 
-export type { SpawnedViewer }
+/** A real Viewer in this process, standing in for the detached one. */
+export class ViewerFarm {
+  readonly viewers: RunningViewer[] = []
+  spawns = 0
+
+  constructor(readonly env: NodeJS.ProcessEnv) {}
+
+  spawnViewer: System['spawnViewer'] = (argv) => {
+    this.spawns++
+    const workspace = argv[argv.indexOf('--workspace') + 1] as string
+    const options = { workspace, env: this.env, ports: [0], feed: { html: 'h', script: 's' } }
+    let finish: () => void
+    const exited = new Promise<void>((done) => {
+      finish = done
+    })
+    startViewer(options).then(
+      (viewer) => {
+        this.viewers.push(viewer)
+        const line = `vui: Viewer listening on port ${viewer.port}\n`
+        appendFileSync(join(viewer.stateDir, 'viewer.log'), line)
+        void viewer.closed.then(finish)
+      },
+      () => finish(),
+    )
+    return { pid: 4242, exited, kill: () => undefined }
+  }
+
+  /** Dies at once, as `kill -9` does: `viewer.json` stays behind. */
+  async crash(viewer: RunningViewer): Promise<void> {
+    const dir = viewer.stateDir
+    const file = readFileSync(join(dir, 'viewer.json'))
+    await viewer.close()
+    writeFileSync(join(dir, 'viewer.json'), file)
+  }
+
+  async stopAll(): Promise<void> {
+    await Promise.all(this.viewers.map((viewer) => viewer.close()))
+  }
+
+  system(options: FakeSystem = {}): System {
+    return fakeSystem({
+      env: this.env,
+      spawnViewer: this.spawnViewer,
+      kill: (_pid, signal) => {
+        if (signal === 'SIGTERM') void Promise.all(this.viewers.map((one) => one.close()))
+      },
+      ...options,
+    })
+  }
+}
 
 function stdinOf(options: Options): Io['stdin'] {
   const source = options.stdin ?? ''
