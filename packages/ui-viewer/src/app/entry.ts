@@ -119,14 +119,19 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
     onGrow()
   }
 
-  const show = (opened: boolean): void => {
+  let opened = open
+
+  const show = (): void => {
     body.hidden = !opened
     toggle.textContent = opened ? 'Fold' : 'Unfold'
     toggle.setAttribute('aria-expanded', String(opened))
     if (opened) void draw()
   }
 
-  toggle.addEventListener('click', () => show(body.hidden))
+  toggle.addEventListener('click', () => {
+    opened = !opened
+    show()
+  })
   copy.addEventListener('click', async () => {
     const copied = await read().then(copyText, () => false)
     copy.textContent = copied ? 'Copied' : 'Copy failed'
@@ -135,6 +140,6 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
     }, COPY_RESULT_MS)
   })
 
-  show(open)
+  show()
   return entry
 }

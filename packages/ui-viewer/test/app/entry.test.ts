@@ -32,7 +32,7 @@ function setup(overrides: Partial<DocHeader> = {}, options: Partial<EntryOptions
   return { entry, body, load, onGrow, track, openLink, button }
 }
 
-const settle = () => vi.waitFor(() => Promise.resolve())
+const settle = () => new Promise((done) => setTimeout(done))
 
 afterEach(() => {
   document.body.replaceChildren()
@@ -127,7 +127,9 @@ describe('body', () => {
     load.mockRejectedValueOnce(new Error('404')).mockResolvedValueOnce(DOC)
     const { entry, body, button } = setup({}, { load })
     await settle()
-    expect(entry.querySelector('.feed-note')?.textContent).toBe('This document could not be loaded.')
+    expect(entry.querySelector('.feed-note')?.textContent).toBe(
+      'This document could not be loaded.',
+    )
     button('Fold')?.click()
     button('Unfold')?.click()
     await settle()

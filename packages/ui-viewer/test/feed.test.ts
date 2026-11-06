@@ -16,7 +16,9 @@ describe('feedHtml', () => {
   })
 
   it('lays out at the device width (VD-098)', () => {
-    expect(feedHtml).toContain('<meta name="viewport" content="width=device-width,initial-scale=1">')
+    expect(feedHtml).toContain(
+      '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    )
   })
 
   it('offers both schemes, so a dark OS gets a dark canvas before the script runs', () => {

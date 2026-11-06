@@ -146,7 +146,8 @@ export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
   }
 
   function connect(): void {
-    const opened = (generation += 1)
+    generation += 1
+    const opened = generation
     const stream = open(EVENTS)
     source = stream
     stream.addEventListener('hello', () => {
