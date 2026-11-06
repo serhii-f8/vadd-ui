@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./viewer.js": {
+      "types": "./dist/viewer.d.ts",
+      "default": "./dist/viewer.js"
     }
   },
   "files": [
