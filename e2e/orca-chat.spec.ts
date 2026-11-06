@@ -57,8 +57,8 @@ const DOC = {
         { key: 'ms', label: 'ms', format: 'number' },
       ],
       rows: [
-        { q: 'list', ms: 41 },
-        { q: 'search', ms: 88 },
+        ['list', 41],
+        ['search', 88],
       ],
     },
     { type: 'md', title: 'Folded', fold: 'closed', text: 'Revealed.' },
@@ -166,7 +166,7 @@ test.describe('the pinned contract', () => {
     let accepted = 0
     for (let run = 0; run < 20_000; run += 1) {
       const length = next(7)
-      let line = next(2) === 0 ? '::orca-visual{' : ''
+      let line = ['', '::orca-visual{', '::orca-visual{file="a.html" '][next(3)]
       for (let index = 0; index < length; index += 1) line += pieces[next(pieces.length)]
       if (next(2) === 0) line += '}'
       const parsed = parseNativeChatVisualDirectiveLine(line)
@@ -232,7 +232,8 @@ test.describe('a generated file in the Orca shell', () => {
   for (const scheme of SCHEMES) {
     for (const width of WIDTHS) {
       test(`${scheme} at ${width}`, async ({ page }) => {
-        const { file } = chatShow(DOC)
+        const { file, stderr } = chatShow(DOC)
+        expect(stderr).toBe('')
         const opened = await checkInShell(page, readFileSync(file, 'utf8'), scheme, width)
         expect(foreign(opened.requests)).toEqual([])
         await page.screenshot({ path: test.info().outputPath(`chat-${scheme}-${width}.png`) })
