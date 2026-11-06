@@ -281,6 +281,14 @@ describe('--host orca-chat', () => {
 
 describe('auto with a folder it cannot use', () => {
   it.each([
+    [
+      'writable but not searchable',
+      () => {
+        const dir = tempDir()
+        chmodSync(dir, 0o200)
+        return dir
+      },
+    ],
     ['missing', () => join(tempDir(), 'gone')],
     [
       'read-only',
@@ -321,6 +329,18 @@ describe('--host file', () => {
     expect(exit).toBe(0)
     const path = join(dir, only(dir))
     expect(stdout).toBe(`vui: wrote ${path} (${Buffer.byteLength(visual(dir))} bytes)\n`)
+  })
+
+  it('keeps a hostile --dir to one line', async () => {
+    const parent = tempDir()
+    const dir = join(parent, 'a\nb')
+    mkdirSync(dir)
+    const { stdout } = await vui(['show', '--host', 'file', '--dir', dir], {
+      stdin: DOC,
+      system: system(),
+    })
+    expect(stdout.split('\n')).toHaveLength(2)
+    expect(stdout).toContain('a\\u000ab')
   })
 
   it('reports JSON with no directive', async () => {
@@ -494,6 +514,14 @@ describe('the file', () => {
     expect(readdirSync(dir)).toEqual([])
   })
 
+  it('takes a --title at the field limit', async () => {
+    const { exit } = await vui(
+      ['show', '--host', 'file', '--dir', tempDir(), '--title', 't'.repeat(2_000)],
+      { stdin: DOC, system: system() },
+    )
+    expect(exit).toBe(0)
+  })
+
   it('refuses a --title over the field limit before any host', async () => {
     const dir = tempDir()
     const { exit, stderr } = await vui(
@@ -576,6 +604,7 @@ describe('the post to a running Viewer', () => {
     const calls: string[] = []
     const sys = running.system({
       cwd: workspace,
+      files: { '/bin/orca-ide': '' },
       exec: (_file, args) => {
         calls.push(args.join(' '))
         return { ok: true, stdout: '{"ok":true,"result":{}}' }
@@ -626,6 +655,57 @@ describe('the post to a running Viewer', () => {
     const { exit: code, json } = await vuiJson(['show', '--host', 'orca-chat'], options)
     expect(code).toBe(0)
     expect(json).toMatchObject({ viewer: { state: 'failed' } })
+  })
+
+  it.each([
+    [201, 'null'],
+    [422, 'null'],
+    [201, '[]'],
+    [201, '"text"'],
+    [201, '<html>'],
+  ])('warns on a %i with the body %s', async (status, body) => {
+    const url = await endpoint([], (_, response) => {
+      response.writeHead(status, { 'Content-Type': 'application/json' })
+      response.end(body)
+    })
+    const dir = tempDir()
+    const { exit, stdout, stderr } = await vui(['show', '--host', 'orca-chat'], {
+      stdin: DOC,
+      system: system({ ORCA_CHAT_SCRATCH_DIR: dir, VUI_VIEWER_URL: url }),
+    })
+    expect(exit).toBe(0)
+    expect(stdout).toBe(`::orca-visual{file="${only(dir)}" title="Test run — auth module"}\n`)
+    expect(stderr).toContain('vui: warning:')
+  })
+
+  it('writes the file before it posts', async () => {
+    const dir = tempDir()
+    const seen: number[] = []
+    const url = await endpoint([], (_, response) => {
+      seen.push(readdirSync(dir).length)
+      response.writeHead(201, { 'Content-Type': 'application/json' })
+      response.end('{"seq":1,"id":"d"}')
+    })
+    await vui(['show', '--host', 'orca-chat'], {
+      stdin: DOC,
+      system: system({ ORCA_CHAT_SCRATCH_DIR: dir, VUI_VIEWER_URL: url }),
+    })
+    expect(seen).toEqual([1])
+  })
+
+  it('stays silent when the working directory is gone, as no Viewer can be proved', async () => {
+    const dir = tempDir()
+    const gone = system({ ORCA_CHAT_SCRATCH_DIR: dir })
+    gone.cwd = () => {
+      throw Object.assign(new Error('gone'), { code: 'ENOENT' })
+    }
+    const { exit, stderr } = await vui(['show', '--host', 'orca-chat'], {
+      stdin: DOC,
+      system: gone,
+    })
+    expect(exit).toBe(0)
+    expect(stderr).toBe('')
+    expect(readdirSync(dir)).toHaveLength(1)
   })
 
   it('warns when the endpoint does not answer', async () => {

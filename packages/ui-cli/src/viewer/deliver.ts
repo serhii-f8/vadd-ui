@@ -1,7 +1,7 @@
 import type { Diagnostic, VuiDocument } from '@vadd/ui-spec'
 import { readViewerInfo, updateViewerInfo } from '@vadd/ui-viewer'
 import { branchOf } from '../git.js'
-import { CliError, EXIT, noHost, type Outcome } from '../outcome.js'
+import { EXIT, noHost, type Outcome } from '../outcome.js'
 import { exitCodeOf, type Overrides, stamped } from '../pipeline.js'
 import { formatDiagnostics, safe } from '../print.js'
 import type { System } from '../system.js'
@@ -130,7 +130,8 @@ function takeUrlLine(viewer: Running, posted: Delivered, pane: Pane): boolean {
 async function runningTarget(system: System): Promise<Target | undefined> {
   const custom = customEndpoint(system.env)
   if (custom !== undefined) return custom
-  const viewer = await findViewer(system)
+  // What cannot be located proves no Viewer, so it is "not running" and not a failure.
+  const viewer = await findViewer(system).catch(() => undefined)
   return viewer === undefined ? undefined : localTarget(viewer)
 }
 
@@ -152,8 +153,7 @@ export async function mirrorToViewer(document: VuiDocument, system: System): Pro
     const reason = posted.kind === 'refused' ? 'it refused the document' : 'it does not answer'
     return { state: 'failed', reason }
   } catch (error) {
-    if (error instanceof CliError) return { state: 'failed', reason: error.message }
-    throw error
+    return { state: 'failed', reason: error instanceof Error ? error.message : String(error) }
   }
 }
 

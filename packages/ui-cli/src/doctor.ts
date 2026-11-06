@@ -1,4 +1,4 @@
-import { accessSync, constants, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
@@ -6,6 +6,7 @@ import { version } from '@vadd/ui'
 import { type ViewerInfo, type ViewerState, viewerState } from '@vadd/ui-viewer'
 import { detectEnvironment, type Environment, networkingMode } from './environment.js'
 import { resolveOrca } from './host/orca.js'
+import { isWritableDirectory } from './host/select.js'
 import type { Io } from './io.js'
 import { CliError, EXIT, type Outcome } from './outcome.js'
 import { safe } from './print.js'
@@ -64,12 +65,7 @@ function orcaChatCheck({ env }: System): Check {
   const name = 'orca-chat'
   const { ORCA_CHAT_SCRATCH_DIR: dir } = env
   if (!dir) return { name, status: 'info', detail: 'not set; the Viewer is the host' }
-  try {
-    accessSync(dir, constants.W_OK)
-    if (statSync(dir).isDirectory()) return { name, status: 'ok', detail: dir }
-  } catch {
-    // Reported below, with the case of a file.
-  }
+  if (isWritableDirectory(dir)) return { name, status: 'ok', detail: dir }
   const fix = 'Make ORCA_CHAT_SCRATCH_DIR a writable directory, or unset it.'
   return { name, status: 'fail', detail: `${dir} is not a writable directory`, fix }
 }

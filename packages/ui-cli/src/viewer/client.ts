@@ -71,7 +71,8 @@ async function send(target: Target, body: string): Promise<Response | undefined>
 
 async function bodyOf(reply: Response): Promise<Record<string, unknown>> {
   try {
-    return (await reply.json()) as Record<string, unknown>
+    const body: unknown = await reply.json()
+    return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
   } catch {
     return {}
   }
