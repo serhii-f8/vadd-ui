@@ -8,12 +8,8 @@ const LOAD_FAILED = 'This document could not be loaded.'
 const COPY_LABEL = 'Copy spec'
 const COPY_RESULT_MS = 2000
 
-/**
- * The entry prints the title, so a document's own would be a second copy. The margin keeps a
- * `#id` target clear of the sticky bar.
- */
-const DOCUMENT_CSS =
-  '.vui-title{display:none}.vui-header:not(:has(.vui-subtitle)){display:none}[id]{scroll-margin-top:64px}'
+/** The entry prints the title, so a document's own would be a second copy. */
+const DOCUMENT_CSS = '.vui-title{display:none}.vui-header:not(:has(.vui-subtitle)){display:none}'
 
 export interface EntryOptions {
   /** Otherwise it starts folded and reads its document on the first open. */
@@ -58,7 +54,11 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
   const headingId = `entry-${seq}`
   const body = el('div', { class: 'feed-body' })
   const toggle = el('button', { type: 'button', class: 'feed-button' })
-  const copy = el('button', { type: 'button', class: 'feed-button' }, COPY_LABEL)
+  const copy = el(
+    'button',
+    { type: 'button', class: 'feed-button', 'aria-live': 'polite' },
+    COPY_LABEL,
+  )
   const standalone = el(
     'a',
     {
@@ -88,6 +88,14 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
   let text: Promise<string> | undefined
   let drawn = false
   let note: HTMLElement | undefined
+  /** Only what arrives by itself moves a following page: a reader's click must not. */
+  let pins = open
+  let copyTimer: ReturnType<typeof setTimeout> | undefined
+
+  const clearNote = (): void => {
+    note?.remove()
+    note = undefined
+  }
 
   /** One read at a time, and a failure is forgotten so the next attempt reads again. */
   const read = (): Promise<string> => {
@@ -101,8 +109,7 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
   const draw = async (): Promise<void> => {
     if (drawn) return
     drawn = true
-    note?.remove()
-    note = undefined
+    clearNote()
     try {
       const document = await read()
       const shadow = body.attachShadow({ mode: 'open' })
@@ -113,10 +120,11 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
       render(document, root, { linkHandler: openLink })
     } catch {
       drawn = false
-      note = el('p', { class: 'feed-note' }, LOAD_FAILED)
+      note = el('p', { class: 'feed-note', role: 'alert' }, LOAD_FAILED)
       entry.append(note)
     }
-    onGrow()
+    if (pins) onGrow()
+    pins = false
   }
 
   let opened = open
@@ -126,6 +134,7 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
     toggle.textContent = opened ? 'Fold' : 'Unfold'
     toggle.setAttribute('aria-expanded', String(opened))
     if (opened) void draw()
+    else clearNote()
   }
 
   toggle.addEventListener('click', () => {
@@ -135,7 +144,8 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
   copy.addEventListener('click', async () => {
     const copied = await read().then(copyText, () => false)
     copy.textContent = copied ? 'Copied' : 'Copy failed'
-    setTimeout(() => {
+    clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => {
       copy.textContent = COPY_LABEL
     }, COPY_RESULT_MS)
   })

@@ -44,16 +44,17 @@ export function startFeed(win: Window): void {
   page.head.append(el('style', {}, stylesheet + feedCss))
   page.body.className = 'vui-root feed'
   theme.track(page.body)
-  page.body.append(
-    el(
-      'div',
-      { class: 'feed-bar' },
-      el('h1', { class: 'feed-name' }, 'vadd-ui Viewer'),
-      status,
-      toggle,
-    ),
-    list,
-  )
+  const name = el('h1', { class: 'feed-name' }, 'vadd-ui Viewer')
+  const bar = el('div', { class: 'feed-bar' }, name, status, toggle)
+  page.body.append(bar, list)
+
+  // A wrapped bar is taller, and the browser has to keep focus and `#id` targets out from under it.
+  const measure = (): void => {
+    const height = `${bar.offsetHeight}px`
+    page.documentElement.style.setProperty('--feed-bar', height)
+  }
+  measure()
+  win.addEventListener('resize', measure)
 
   const load = async (id: string): Promise<string> => {
     const reply = await win.fetch(`api/docs/${encodeURIComponent(id)}`)
@@ -81,8 +82,11 @@ export function startFeed(win: Window): void {
     fetch: (url) => win.fetch(url),
     onDocs: addAll,
     onStatus: (state) => {
+      // A live region reads every write, and retries repeat `reconnecting`.
+      if (status.dataset.state === state) return
       status.textContent = STATUS_TEXT[state]
       status.dataset.state = state
+      measure()
     },
   })
 }

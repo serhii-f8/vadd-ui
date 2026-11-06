@@ -111,15 +111,28 @@ describe('body', () => {
   it('leaves the title to the entry, so it does not print twice', async () => {
     const { body } = setup()
     await settle()
-    expect(body.shadowRoot?.querySelector('style')?.textContent).toContain(
-      '.vui-title{display:none}',
-    )
+    const css = body.shadowRoot?.querySelector('style')?.textContent
+    expect(css).toContain('.vui-title{display:none}')
+    expect(css).toContain('.vui-header:not(:has(.vui-subtitle)){display:none}')
   })
 
   it('reports growth, once the document is in', async () => {
     const { onGrow } = setup()
     await settle()
     expect(onGrow).toHaveBeenCalledTimes(1)
+  })
+
+  it('tells assistive technology about a failed load (§15.2)', async () => {
+    const { entry } = setup({}, { load: () => Promise.reject(new Error('404')) })
+    await settle()
+    expect(entry.querySelector('.feed-note')?.getAttribute('role')).toBe('alert')
+  })
+
+  it('drops the failure note when folded', async () => {
+    const { entry, button } = setup({}, { load: () => Promise.reject(new Error('404')) })
+    await settle()
+    button('Fold')?.click()
+    expect(entry.querySelector('.feed-note')).toBeNull()
   })
 
   it('says so when a load fails, and tries again on the next open', async () => {
@@ -159,6 +172,25 @@ describe('fold', () => {
     expect(load).toHaveBeenCalledTimes(1)
   })
 
+  it('shows a drawn document again with no second draw', async () => {
+    const { entry, body, button } = setup()
+    await settle()
+    const root = body.shadowRoot?.querySelector('.vui-root')
+    button('Fold')?.click()
+    button('Unfold')?.click()
+    await settle()
+    expect(entry.querySelector('.feed-note')).toBeNull()
+    expect(body.shadowRoot?.querySelector('.vui-root')).toBe(root)
+  })
+
+  it('leaves the page alone when the reader opens an old entry', async () => {
+    const { onGrow, body, button } = setup({}, { open: false })
+    button('Unfold')?.click()
+    await settle()
+    expect(body.shadowRoot?.textContent).toContain('hello')
+    expect(onGrow).not.toHaveBeenCalled()
+  })
+
   it('does not load twice when opened again before the first load ends', async () => {
     const { load, button } = setup({}, { open: false })
     button('Unfold')?.click()
@@ -194,10 +226,15 @@ describe('copy spec', () => {
       clipboard: { writeText: () => Promise.reject(new Error('denied')) },
     })
     const setData = vi.fn()
-    document.execCommand = vi.fn(() => {
+    const copyEvent = () => {
       const event = new Event('copy', { cancelable: true })
       Object.assign(event, { clipboardData: { setData } })
       document.dispatchEvent(event)
+      return event
+    }
+    let fired: Event | undefined
+    document.execCommand = vi.fn(() => {
+      fired = copyEvent()
       return true
     })
     const { button } = setup()
@@ -205,6 +242,9 @@ describe('copy spec', () => {
     button('Copy spec')?.click()
     await vi.waitFor(() => expect(button('Copied')).toBeDefined())
     expect(setData).toHaveBeenCalledWith('text/plain', DOC)
+    expect(fired?.defaultPrevented).toBe(true)
+    // A reader's own copy later must not be replaced by this document.
+    expect(copyEvent().defaultPrevented).toBe(false)
   })
 
   it('says so when both ways fail', async () => {
@@ -231,6 +271,25 @@ describe('copy spec', () => {
     const { button } = setup({}, { open: false, load: () => Promise.reject(new Error('gone')) })
     button('Copy spec')?.click()
     await vi.waitFor(() => expect(button('Copy failed')).toBeDefined())
+  })
+
+  it('is a polite live region, like the copy button of a code block (§15.2)', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: async () => undefined } })
+    const { button } = setup()
+    await settle()
+    expect(button('Copy spec')?.getAttribute('aria-live')).toBe('polite')
+  })
+
+  it('holds a repeated result for its full time', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('navigator', { clipboard: { writeText: async () => undefined } })
+    const { button } = setup()
+    await vi.advanceTimersByTimeAsync(0)
+    button('Copy spec')?.click()
+    await vi.advanceTimersByTimeAsync(1500)
+    button('Copied')?.click()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(button('Copied')).toBeDefined()
   })
 
   it('goes back to its label', async () => {

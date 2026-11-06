@@ -204,12 +204,21 @@ describe('losing the stream', () => {
     expect(statuses).not.toContain('gone')
   })
 
-  it('ignores a second error from a source it already gave up on', async () => {
-    const { last, sources } = setup()
+  it('ignores everything a replaced source still sends', async () => {
+    const { last, sources, urls, seqs, statuses } = setup()
     const first = last()
     first.emit('error')
-    first.emit('error')
     await vi.advanceTimersByTimeAsync(1000)
+    expect(sources).toHaveLength(2)
+    const asked = urls.length
+    const told = statuses.length
+    first.emit('hello')
+    first.emit('doc', JSON.stringify(header(1)))
+    first.emit('error')
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(urls).toHaveLength(asked)
+    expect(statuses).toHaveLength(told)
+    expect(seqs()).toEqual([])
     expect(sources).toHaveLength(2)
   })
 })
@@ -278,6 +287,74 @@ describe('a failing fill', () => {
   })
 })
 
+describe('a Viewer that stops answering', () => {
+  const hang = () => new Promise<Reply>(() => undefined)
+
+  it('gives up on a read that never ends, and reconnects', async () => {
+    const { replies, last, sources, statuses } = setup()
+    replies.push(hang())
+    last().emit('hello')
+    await vi.advanceTimersByTimeAsync(9_999)
+    expect(statuses.at(-1)).toBe('connecting')
+    await vi.advanceTimersByTimeAsync(1)
+    expect(statuses.at(-1)).toBe('reconnecting')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(sources).toHaveLength(2)
+  })
+
+  it('reconnects after a probe that never ends', async () => {
+    const { replies, last, sources } = setup()
+    replies.push(hang())
+    last().emit('error')
+    await vi.advanceTimersByTimeAsync(10_000 + 1000)
+    expect(sources).toHaveLength(2)
+  })
+
+  it('checks a live connection, since a heartbeat is invisible to EventSource', async () => {
+    const { last, urls, statuses } = setup()
+    last().emit('hello')
+    await settle()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(urls.at(-1)).toBe('api/docs?after=0&limit=1')
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(urls).toHaveLength(3)
+    expect(statuses.at(-1)).toBe('live')
+  })
+
+  it('stops saying live when a check gets no answer', async () => {
+    const { replies, last, statuses } = setup()
+    last().emit('hello')
+    await settle()
+    replies.push(hang())
+    await vi.advanceTimersByTimeAsync(40_000)
+    expect(statuses.at(-1)).toBe('reconnecting')
+    expect(last().closed).toBe(true)
+  })
+
+  it('is gone when a check gets 404', async () => {
+    const { replies, last, statuses } = setup()
+    last().emit('hello')
+    await settle()
+    replies.push({ status: 404 })
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(statuses.at(-1)).toBe('gone')
+  })
+
+  it('drops a check that answers after the connection was lost', async () => {
+    const { replies, last, sources } = setup()
+    last().emit('hello')
+    await settle()
+    let release: (reply: Reply) => void = () => undefined
+    replies.push(new Promise<Reply>((resolve) => (release = resolve)))
+    await vi.advanceTimersByTimeAsync(30_000)
+    last().emit('error')
+    await settle()
+    release({ status: 404 })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(sources).toHaveLength(2)
+  })
+})
+
 describe('a gone Viewer (VD-114)', () => {
   it('stops for good when the probe after a lost stream gets 404', async () => {
     const { replies, last, sources, statuses } = setup()
@@ -301,10 +378,13 @@ describe('a gone Viewer (VD-114)', () => {
   })
 
   it('probes with after=<lastSeq> and a page of one', async () => {
-    const { last, urls } = setup()
+    const { replies, last, urls } = setup()
+    replies.push(docs(4))
+    last().emit('hello')
+    await settle()
     last().emit('error')
     await settle()
-    expect(urls).toEqual(['api/docs?after=0&limit=1'])
+    expect(urls.at(-1)).toBe('api/docs?after=4&limit=1')
   })
 })
 

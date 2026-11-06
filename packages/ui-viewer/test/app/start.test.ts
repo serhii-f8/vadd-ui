@@ -105,12 +105,34 @@ describe('startFeed', () => {
     expect(statusText()).toBe('Live')
   })
 
-  it('says a stopped Viewer is gone (VD-114)', async () => {
+  it('says a stopped Viewer is gone, in the style for it (VD-114)', async () => {
     replies.set('api/docs', { status: 404, text: 'not found\n' })
     startFeed(window)
     FakeSource.last.emit('error')
     await settle()
     expect(statusText()).toBe('This Viewer has stopped. Run vui show to open a new feed.')
+    const status = document.querySelector('[role="status"]') as HTMLElement
+    expect(status.dataset.state).toBe('gone')
+  })
+
+  it('announces a state once, so each retry is not read aloud again', async () => {
+    startFeed(window)
+    const status = document.querySelector('[role="status"]') as HTMLElement
+    FakeSource.last.emit('error')
+    await settle()
+    const child = status.firstChild
+    await new Promise((done) => setTimeout(done, 1100))
+    FakeSource.last.emit('error')
+    await settle()
+    expect(status.firstChild).toBe(child)
+  })
+
+  it('tells the page how tall the bar is, for scrolling and focus', () => {
+    startFeed(window)
+    const bar = document.querySelector('.feed-bar') as HTMLElement
+    Object.defineProperty(bar, 'offsetHeight', { value: 113 })
+    window.dispatchEvent(new Event('resize'))
+    expect(document.documentElement.style.getPropertyValue('--feed-bar')).toBe('113px')
   })
 
   it('shows an empty state until the first entry', async () => {

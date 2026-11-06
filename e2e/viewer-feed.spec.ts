@@ -127,6 +127,92 @@ test('the page follows new documents, until the reader scrolls up', async ({ pag
   await expect.poll(() => atBottom(page)).toBe(true)
 })
 
+test('a document cannot paint over the bar', async ({ page }) => {
+  await page.setViewportSize({ width: 720, height: 400 })
+  const columns = ['a', 'b', 'c', 'd', 'e']
+  await post({
+    title: 'Wide',
+    body: [
+      {
+        type: 'table',
+        columns,
+        pageSize: 50,
+        rows: Array.from({ length: 40 }, (_, index) => columns.map(() => `row${index}`)),
+      },
+    ],
+  })
+  await page.goto(viewer.base)
+  await expect(entry(page, 'Wide').getByText('row39').first()).toBeVisible()
+  await scrollTo(page, 150)
+  const hit = await page.evaluate(() => {
+    const bar = document.querySelector('.feed-bar') as HTMLElement
+    const { left, top, height } = bar.getBoundingClientRect()
+    return document.elementFromPoint(left + 40, top + height / 2)?.closest('.feed-bar') !== null
+  })
+  expect(hit).toBe(true)
+})
+
+test('keyboard focus never lands under the bar (§15.2)', async ({ page }) => {
+  await page.setViewportSize({ width: 720, height: 300 })
+  await post(tall('Upper'))
+  await post({ title: 'Lower', body: ['[next](https://example.com/)', ...tall('x').body] })
+  await page.goto(viewer.base)
+  const link = entry(page, 'Lower').getByRole('link', { name: 'next' })
+  await expect(link).toBeVisible()
+  // The buttons sit under the bar, still inside the viewport, and the link just below it.
+  const copy = entry(page, 'Lower').getByRole('button', { name: 'Copy spec' })
+  const top = (await copy.boundingBox())?.y ?? 0
+  await scrollTo(page, (await page.evaluate(() => window.scrollY)) + top - 20)
+  await link.evaluate((element) => (element as HTMLElement).focus({ preventScroll: true }))
+  await page.keyboard.press('Shift+Tab')
+  await expect(copy).toBeFocused()
+  const bar = await page.locator('.feed-bar').boundingBox()
+  expect((await copy.boundingBox())?.y).toBeGreaterThanOrEqual((bar?.y ?? 0) + (bar?.height ?? 0))
+})
+
+test('a #id target stays clear of a bar that wrapped', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 500 })
+  await post({
+    title: 'Links',
+    body: [
+      '[jump](#far)',
+      ...Array.from({ length: 30 }, (_, index) => ({ type: 'callout', text: `Filler ${index}` })),
+      { type: 'callout', id: 'far', text: 'Far away' },
+      ...Array.from({ length: 30 }, (_, index) => ({ type: 'callout', text: `After ${index}` })),
+    ],
+  })
+  await page.goto(viewer.base)
+  await expect(entry(page, 'Links').getByText('Far away')).toBeAttached()
+  await page.evaluate(() => {
+    const status = document.querySelector('.feed-status') as HTMLElement
+    status.textContent = 'This Viewer has stopped. Run vui show to open a new feed.'
+    window.dispatchEvent(new Event('resize'))
+    window.scrollTo(0, 0)
+  })
+  await entry(page, 'Links').getByRole('link', { name: 'jump' }).click()
+  const box = await entry(page, 'Links').getByText('Far away').boundingBox()
+  const bar = await page.locator('.feed-bar').boundingBox()
+  expect(box?.y).toBeGreaterThanOrEqual((bar?.y ?? 0) + (bar?.height ?? 0))
+})
+
+test('copy spec falls back when the clipboard API refuses', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.addInitScript(() => {
+    const original = navigator.clipboard.writeText.bind(navigator.clipboard)
+    let calls = 0
+    navigator.clipboard.writeText = (text) => {
+      calls += 1
+      return calls === 1 ? Promise.reject(new Error('denied')) : original(text)
+    }
+  })
+  const id = await post(RICH)
+  await page.goto(viewer.base)
+  await entry(page, 'Rich report').getByRole('button', { name: 'Copy spec' }).click()
+  await expect(entry(page, 'Rich report').getByRole('button', { name: 'Copied' })).toBeVisible()
+  const copied = await page.evaluate(() => navigator.clipboard.readText())
+  expect(copied).toBe(await (await fetch(`${viewer.base}api/docs/${id}`)).text())
+})
+
 test('a dropped stream reconnects with backoff and fills the gap', async ({ page }) => {
   const proxy = await dropProxy(viewer)
   await post({ title: 'Before', body: ['x'] })

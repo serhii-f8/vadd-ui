@@ -56,10 +56,11 @@ describe('createTheme', () => {
   })
 
   it('keeps a manual choice when the OS scheme changes', () => {
-    const { media, theme, root } = setup(false)
+    const { media, theme, root } = setup(true)
     theme.toggle()
     media.flip(false)
-    expect(root.dataset.vuiTheme).toBe('dark')
+    media.flip(true)
+    expect(root.dataset.vuiTheme).toBe('light')
   })
 
   it('gives a root tracked later the current theme', () => {

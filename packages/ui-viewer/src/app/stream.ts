@@ -4,6 +4,11 @@ const EVENTS = 'api/events'
 const PAGE = 500
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000]
 const GONE = 404
+const OK = 200
+/** Past this a read has failed, or a stopped Viewer would stop the feed with it. */
+const READ_MS = 10_000
+/** `EventSource` cannot see the heartbeat (VD-113), so a live connection has to ask. */
+const CHECK_MS = 30_000
 
 export type Status = 'connecting' | 'live' | 'reconnecting' | 'gone'
 
@@ -45,6 +50,13 @@ function parseHeader(data: string): DocHeader | undefined {
   } catch {
     return undefined
   }
+}
+
+function timed<T>(work: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timed out')), READ_MS)
+    work.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
 }
 
 /**
@@ -91,18 +103,30 @@ export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
     timer = setTimeout(connect, delay)
   }
 
-  /** A closed `EventSource` hides its status, so a read says whether this token still works. */
+  /** `undefined` for no answer. An `EventSource` hides its status, so this is what shows it. */
+  const probe = (): Promise<number | undefined> =>
+    timed(fetch(`api/docs?after=${lastSeq}&limit=1`)).then(
+      (reply) => reply.status,
+      () => undefined,
+    )
+
   const lost = async (): Promise<void> => {
     halt()
     onStatus('reconnecting')
     const mine = generation
-    const status = await fetch(`api/docs?after=${lastSeq}&limit=1`).then(
-      (reply) => reply.status,
-      () => undefined,
-    )
+    const status = await probe()
     if (mine !== generation) return
     if (status === GONE) gone()
     else retry()
+  }
+
+  const check = async (): Promise<void> => {
+    const mine = generation
+    const status = await probe()
+    if (mine !== generation) return
+    if (status === GONE) gone()
+    else if (status === OK) timer = setTimeout(check, CHECK_MS)
+    else void lost()
   }
 
   /** One read. `undefined` when the fill has to end, with that already dealt with. */
@@ -110,9 +134,9 @@ export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
     let status: number | undefined
     let page: DocHeader[] | undefined
     try {
-      const reply = await fetch(`api/docs?after=${lastSeq}&limit=${PAGE}`)
+      const reply = await timed(fetch(`api/docs?after=${lastSeq}&limit=${PAGE}`))
       status = reply.status
-      if (reply.ok) page = pageOf(await reply.json())
+      if (reply.ok) page = pageOf(await timed(reply.json()))
     } catch {
       // A failed read and an unreadable reply end the same way, below.
     }
@@ -136,6 +160,7 @@ export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
     filling = false
     attempts = 0
     onStatus('live')
+    timer = setTimeout(check, CHECK_MS)
   }
 
   const onDoc = (data: string): void => {
