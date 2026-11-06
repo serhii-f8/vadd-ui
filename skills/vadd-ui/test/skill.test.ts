@@ -52,6 +52,16 @@ describe('§12.1 structure', () => {
     expect(readdirSync(new URL('..', import.meta.url))).not.toContain('reference')
   })
 
+  it('keeps the §12.1 parts in order', () => {
+    expect([...body.matchAll(/^## (.+)$/gm)].map((match) => match[1])).toEqual([
+      'Procedure',
+      'Cheat-sheet',
+      'Rules',
+      'CDN template',
+      'Precedence',
+    ])
+  })
+
   it('stands alone, so that copying the one file is enough', () => {
     expect(body).not.toMatch(/\]\(\.{0,2}\/|reference\//)
   })
@@ -101,6 +111,13 @@ describe('examples', () => {
       const { ok, diagnostics } = validateText(document)
       expect(diagnostics).toEqual([])
       expect(ok).toBe(true)
+    },
+  )
+
+  it.each(['delta: -3', "format: 'pct'", "status: 'ok', ms:", "status: 'fail', output:"])(
+    'teaches %s',
+    (field) => {
+      expect(heredocs(skill).join('\n')).toContain(field)
     },
   )
 

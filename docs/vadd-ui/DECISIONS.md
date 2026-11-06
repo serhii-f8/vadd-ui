@@ -1076,3 +1076,34 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: the proof is the vendored shell, in Chromium: real `vui show` files through Orca's own `buildNativeChatVisualDocument`, in a real sandboxed iframe, at 360, 720 and 1100 px, light and dark, and lines read by Orca's own parser. `render --cdn` runs through it with the CDN URL routed to the local bundle, so jsDelivr itself is not exercised, and `@vadd/ui@1` is not on npm yet. Unverified for task 21: the real transcript's file read and mounting, the directive during streaming, Electron's frame registration, and macOS and Windows WebViews.
 - Rationale: stated so that a passing suite is not read as a checked chat.
 - Spec sections: §4.2, §16, §16.1.
+
+## VD-136 — What "≤ 1,800 tokens" is measured with
+- Date: 2026-11-06 · Task: 17
+- Context: §14.2 caps `SKILL.md` at 1,800 tokens and §14.3 wants Anthropic's counting API, or a pinned offline tokenizer when no key exists. No key exists here, and Anthropic's tokenizer is not public. Anthropic's glossary, read on 2026-11-06, says Claude 4.7 and later give about 30% more tokens than earlier models, on which a token is about 3.5 English characters. So a plain `cl100k_base` count would under-report on the models that read this file.
+- Decision: the whole file, frontmatter included, gets the larger of two estimates: `cl100k_base` tokens × 1.3 (`js-tiktoken` 1.0.21, pinned exact, dev only, in `skills/vadd-ui`) and characters × 1.3 / 3.5. The first sees how dense JSON is; the second rests on the published figures alone. The gate is ≤ 1,710, the budget less §14.3's 5%, and `skill.test.ts` fails above it, shown on an over-budget text.
+- Relation to real tokens: this is an estimate, not a count. Nothing here measured a real model. The ×1.3 on `cl100k_base` assumes earlier Claude models tokenize about like `cl100k_base`, which is unproven, and 3.5 is a figure for English prose, so it reads low on JSON. The 5% is the only margin beyond the published factor, so a real count could land above 1,800 if `cl100k_base` under-reports earlier models by more than that.
+- Follow-up: task 19 owns §14 and its API path. It should run `SKILL.md` through the counting API when a key exists, and move this gate to a real count. `js-tiktoken` is available for its offline path.
+- Rationale: the budget stays a test now, and the number errs high rather than flattering the skill.
+- Spec sections: §12.1, §14.2, §14.3.
+
+## VD-137 — The skill's wording and its additions to §12
+- Date: 2026-11-06 · Task: 17
+- Context: §12.2 and §12.3 are already written as instructions, and §12.2 leaves some real cases open. The budget leaves little room.
+- Decision: spec sentences stay word for word, so a test can hold them exactly; only a sentence about the skill changes ("Never branch on…"), and `(section N)` references go. Added, each with a clause in the test: "paste it verbatim" (§11.2); the `vui: open <url>` line goes to the user, who may never see tool output (§11.2, VD-125); exit 3 cuts the data and retries once, exit 5 answers in markdown (§11.4; §12.2.4 names neither); `</` is written `<\/` in the hand-written template (§10.1); file names and titles obey §4.2; the tail of long output (VD-096); explicit `columns` for year-like keys (VD-026).
+- Not said, for budget: stderr warnings, since exit 0 already leads to behavior 5; that a bare array is a document; that input is relaxed JSON, which the example shows. An unquoted `2024:` key is a parse error, so VD-026's reordering needs a quoted key; the rule is worded for both.
+- Rationale: an agent reading exit 3 or `vui: open` with no instruction would stall or drop the only way to the page.
+- Spec sections: §4.2, §10.1, §11.2, §11.4, §12.2, §12.3.
+
+## VD-138 — One example is the cheat-sheet; the fallback is the one environment read
+- Date: 2026-11-06 · Task: 17
+- Context: §12.1 wants a component cheat-sheet, and every example must validate. §12.2.1 forbids branching on Orca mode, while §12.2.6 reads `ORCA_CHAT_SCRATCH_DIR`. §10.2's template holds a `{ … document … }` placeholder, which is not a document.
+- Decision: one `vui show` heredoc shows 11 types in one valid document, and a list names the rest, so a per-component list is not needed. The list of statuses, tones and formats must equal `STATUSES`, `TONES` and `FORMAT_NAMES` exactly. §12.2.6 is not a host choice: it answers a missing CLI, and `vui show` is not there to decide. The test allows the variable in that one sentence. The template in the skill holds a small real document where §10.2 has the placeholder; its first two lines match §10.2 byte for byte.
+- Rationale: the same document teaches and proves, and costs the fewest tokens.
+- Spec sections: §10.2, §12.1, §12.2.
+
+## VD-139 — `writing-skills` baseline runs are left to task 21
+- Date: 2026-11-06 · Task: 17
+- Context: `superpowers:writing-skills` asks for agents run without and with the skill. Its frontmatter advice ("Use when…", no summary of what it does) also conflicts with §12.1's exact text.
+- Decision: §12.1's text stands, since the spec comes first. Baseline runs are task 21's agent eval (§16, 40 prompts); this task does one live check that Claude Code finds and follows the installed skill, in a temporary project. The worker preamble also rules out helper agents unless the task asks.
+- Rationale: a few samples here would not prove what the eval proves, and §16 already owns it.
+- Spec sections: §12.1, §16.
