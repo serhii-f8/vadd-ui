@@ -108,7 +108,11 @@ function takeUrlLine(viewer: Running, posted: Delivered, pane: Pane): boolean {
   if (posted.clients > 0 || pane.state !== 'none') return false
   const { stateDir } = viewer.place
   if (readViewerInfo(stateDir)?.urlShown === true) return false
-  updateViewerInfo(stateDir, viewer.info.pid, { urlShown: true })
+  try {
+    updateViewerInfo(stateDir, viewer.info.pid, { urlShown: true })
+  } catch {
+    // The worst case prints this line again, after a document that is already stored.
+  }
   return true
 }
 

@@ -1,7 +1,8 @@
-import { chmodSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
 import { join } from 'node:path'
+import { stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ExecResult, System } from '../src/system.js'
 import { fakeSystem, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
@@ -129,6 +130,23 @@ describe('vui doctor', () => {
     const { of } = await checks(system)
     expect(of('viewer').status).toBe('ok')
     expect(of('viewer').detail).toMatch(/port \d+/)
+  })
+
+  it('fails a Viewer that does not answer', async () => {
+    const workspace = tempDir()
+    const env = { XDG_STATE_HOME: tempDir() }
+    const dir = stateDirOf(workspaceHash(workspace), env)
+    const sockets: Socket[] = []
+    const server = createNetServer((socket) => sockets.push(socket))
+    await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+    const { port } = server.address() as AddressInfo
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port }))
+    const { of, exit } = await checks(fakeSystem({ cwd: workspace, env }))
+    for (const socket of sockets) socket.destroy()
+    server.close()
+    expect(exit).toBe(4)
+    expect(of('viewer').fix).toContain('vui viewer stop')
   })
 
   it('warns about a Viewer of another version', async () => {

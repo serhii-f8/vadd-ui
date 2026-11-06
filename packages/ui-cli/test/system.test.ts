@@ -30,6 +30,14 @@ describe('realSystem', () => {
     expect(result).toMatchObject({ ok: false, timedOut: true })
   })
 
+  it('kills a command that ignores SIGTERM, so it cannot hold the CLI open', async () => {
+    const stubborn = `process.on('SIGTERM',()=>{});console.log(process.pid);setInterval(()=>{},1000)`
+    const { stdout, timedOut } = await realSystem.exec(NODE, ['-e', stubborn], { timeoutMs: 400 })
+    expect(timedOut).toBe(true)
+    await new Promise((done) => setTimeout(done, 100))
+    expect(() => process.kill(Number(stdout), 0)).toThrow()
+  })
+
   it('spawns a process with its output in the given file', async () => {
     const log = join(tempDir(), 'log')
     const fd = openSync(log, 'a')

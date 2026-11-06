@@ -1,11 +1,12 @@
 import { version } from '@vadd/ui'
+import { viewerState, viewerUrl } from '@vadd/ui-viewer'
 import type { ParsedArgs } from './args.js'
 import { openBrowser } from './host/browser.js'
 import type { Io } from './io.js'
 import { EXIT, noHost, type Outcome, usageError } from './outcome.js'
 import { safe } from './print.js'
 import { customEndpoint, healthOf, type Target } from './viewer/client.js'
-import { ensureViewer, findViewer, stopViewer } from './viewer/lifecycle.js'
+import { ensureViewer, findViewer, placeOf, stopViewer } from './viewer/lifecycle.js'
 
 const ACTIONS: readonly string[] = ['start', 'stop', 'status', 'open', 'url']
 
@@ -61,15 +62,27 @@ function customAction(action: string, target: Target, io: Io): Outcome | Promise
   }
 }
 
+const EXPOSED = '0.0.0.0'
+
+function bindWarnings(bind: unknown, started: boolean, port: number): string[] {
+  if (bind === undefined) return []
+  if (!started) return ['vui: warning: a Viewer is already running, so --bind was ignored']
+  if (bind !== EXPOSED) return []
+  // §15.3: its own warning stays in `viewer.log`, where nobody at this terminal sees it.
+  return [`vui: warning: Viewer bound to ${EXPOSED}:${port}, reachable from other machines`]
+}
+
 async function start(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   const { bind } = parsed.flags
   const options = typeof bind === 'string' ? { bind } : {}
   const { url, started, info } = await ensureViewer(io.system, options)
   const word = started ? 'started' : 'running'
+  const warnings = bindWarnings(bind, started, info.port)
   return {
     exit: EXIT.ok,
     stdout: `vui: viewer ${word} on port ${info.port}\nvui: open ${url}\n`,
-    json: { started, running: true, url, port: info.port, pid: info.pid },
+    stderr: warnings.map((line) => `${line}\n`).join(''),
+    json: { started, running: true, url, port: info.port, pid: info.pid, warnings },
   }
 }
 
@@ -83,16 +96,28 @@ async function stop(io: Io): Promise<Outcome> {
 }
 
 async function status(io: Io): Promise<Outcome> {
-  const found = await findViewer(io.system)
-  if (found === undefined) {
+  const { stateDir, hash } = placeOf(io.system)
+  const found = await viewerState(stateDir, hash)
+  if (found.state === 'none') {
     return { exit: EXIT.ok, stdout: 'vui: no viewer running\n', json: { running: false } }
   }
-  const { port, pid, startedAt, version: running } = found.info
+  const { port, pid, startedAt, version: running, readToken } = found.info
+  if (found.state === 'stalled') {
+    const stdout = `vui: viewer on port ${port} (pid ${pid}) is not answering; run vui viewer stop\n`
+    return { exit: EXIT.ok, stdout, json: { running: false, stalled: true, port, pid } }
+  }
   const stale = running === version ? '' : ` (version ${safe(running)}, this CLI is ${version})`
   return {
     exit: EXIT.ok,
     stdout: `vui: viewer running on port ${port} (pid ${pid})${stale}\n`,
-    json: { running: true, port, pid, startedAt, version: running, url: found.url },
+    json: {
+      running: true,
+      port,
+      pid,
+      startedAt,
+      version: running,
+      url: viewerUrl(port, readToken),
+    },
   }
 }
 

@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { isAlive } from '@vadd/ui-viewer'
 
 const require = createRequire(import.meta.url)
 
@@ -40,6 +41,7 @@ export interface System {
   /** Node on `argv`, in its own process group, with all output in `logFd`. */
   spawnViewer: (argv: readonly string[], logFd: number, cwd: string) => SpawnedViewer
   kill: (pid: number, signal: NodeJS.Signals) => void
+  isAlive: (pid: number) => boolean
   sleep: (ms: number) => Promise<void>
   pathJoin: (directory: string, file: string) => string
   exists: (path: string) => boolean
@@ -79,7 +81,9 @@ function exec(
     }
     // A grandchild can hold the pipes open past the kill, so this does not wait for `close`.
     const timer = setTimeout(() => {
-      child.kill()
+      // SIGKILL and `unref`: a command that ignores SIGTERM must not hold the CLI open.
+      child.kill('SIGKILL')
+      child.unref()
       child.stdout.destroy()
       child.stderr.destroy()
       finish({ code: null, missing: false, timedOut: true })
@@ -128,6 +132,7 @@ export const realSystem: System = {
   exec,
   spawnViewer,
   kill: (pid, signal) => void process.kill(pid, signal),
+  isAlive,
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   pathJoin: join,
   exists: existsSync,

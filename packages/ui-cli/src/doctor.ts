@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { version } from '@vadd/ui'
-import { liveViewer, type ViewerInfo } from '@vadd/ui-viewer'
+import { type ViewerInfo, type ViewerState, viewerState } from '@vadd/ui-viewer'
 import { detectEnvironment, type Environment, networkingMode } from './environment.js'
 import { resolveOrca } from './host/orca.js'
 import type { Io } from './io.js'
@@ -89,8 +89,13 @@ function stateCheck({ stateDir }: Place): Check {
   }
 }
 
-function viewerCheck(live: ViewerInfo | undefined): Check {
+function viewerCheck(found: ViewerState): Check {
   const name = 'viewer'
+  if (found.state === 'stalled') {
+    const detail = `pid ${found.info.pid} holds port ${found.info.port} and is not answering`
+    return { name, status: 'fail', detail, fix: 'Run vui viewer stop.' }
+  }
+  const live = found.info
   if (live === undefined) {
     return { name, status: 'info', detail: 'not running; vui show starts it' }
   }
@@ -178,9 +183,10 @@ async function runChecks(system: System): Promise<Check[]> {
   const environment = detectEnvironment(system)
   const place = placeOf(system)
   const custom = customTarget(system)
-  const live = await liveViewer(place.stateDir, place.hash)
+  const found = await viewerState(place.stateDir, place.hash)
+  const live = found.state === 'live' ? found.info : undefined
   let viewer: Check
-  if (custom === undefined) viewer = viewerCheck(live)
+  if (custom === undefined) viewer = viewerCheck(found)
   else if ('status' in custom) viewer = custom
   else viewer = await customViewerCheck(custom)
   const checks = [

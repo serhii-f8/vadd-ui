@@ -64,6 +64,7 @@ export function fakeSystem(options: FakeSystem = {}): System {
     kill: options.kill ?? (() => undefined),
     pathJoin: options.pathJoin ?? join,
     nodeVersion: '22.0.0',
+    isAlive: () => false,
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
     exists: (path) => Object.hasOwn(files, path),
     read: (path) => files[path],

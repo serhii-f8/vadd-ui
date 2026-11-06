@@ -53,6 +53,24 @@ describe('vui viewer', () => {
     expect(seen[0]).toContain('0.0.0.0')
   })
 
+  it('warns about 0.0.0.0 on the start it asked for (§15.3)', async () => {
+    const { stderr } = await viewer(['start', '--bind', '0.0.0.0'], setup())
+    expect(stderr).toMatch(/^vui: warning: .*0\.0\.0\.0.*other machines\n$/)
+  })
+
+  it('carries that warning in JSON', async () => {
+    const { json } = await viewerJson(['start', '--bind', '0.0.0.0'], setup())
+    expect(json.warnings).toHaveLength(1)
+  })
+
+  it('says --bind did nothing on a running Viewer', async () => {
+    const system = setup()
+    await viewer(['start'], system)
+    const { stderr, exit } = await viewer(['start', '--bind', '0.0.0.0'], system)
+    expect(exit).toBe(0)
+    expect(stderr).toContain('--bind was ignored')
+  })
+
   it('status follows the Viewer', async () => {
     const system = setup()
     expect((await viewer(['status'], system)).stdout).toBe('vui: no viewer running\n')

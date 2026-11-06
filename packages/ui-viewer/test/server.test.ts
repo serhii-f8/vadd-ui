@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { version } from '@vadd/ui'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -18,6 +18,7 @@ import {
   updateViewerInfo,
   ViewerRunningError,
   ViewerStartError,
+  viewerState,
 } from '../src/server.js'
 import { freePort, request, tempDir } from './helpers.js'
 
@@ -391,6 +392,28 @@ describe('liveViewer', () => {
     const dir = tempDir()
     if (text !== undefined) writeFileSync(join(dir, 'viewer.json'), text)
     expect(await liveViewer(dir, 'hash')).toBeUndefined()
+  })
+})
+
+describe('viewerState', () => {
+  it('reads a listener that never answers as stalled, not gone', async () => {
+    const sockets: Socket[] = []
+    const server = createNetServer((socket) => sockets.push(socket))
+    await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+    const { port } = server.address() as AddressInfo
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port }))
+    const state = await viewerState(dir, 'hash')
+    for (const socket of sockets) socket.destroy()
+    server.close()
+    expect(state.state).toBe('stalled')
+    expect(await liveViewer(dir, 'hash')).toBeUndefined()
+  })
+
+  it('reads a port that refuses as gone, whatever holds the pid', async () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port: 9 }))
+    expect((await viewerState(dir, 'hash')).state).toBe('none')
   })
 })
 

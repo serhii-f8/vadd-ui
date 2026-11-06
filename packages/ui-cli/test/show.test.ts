@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
@@ -280,6 +280,29 @@ describe('a Viewer that dies under a show', () => {
   })
 })
 
+describe('a failure after the document is stored', () => {
+  it('is a warning, with no pane, since a retry would store it twice', async () => {
+    const fixture = setup({ orca: {} })
+    await vui(['viewer', 'start'], { system: fixture.system })
+    chmodSync(fixture.dir, 0o500)
+    const { exit, stdout, stderr } = await show(fixture)
+    chmodSync(fixture.dir, 0o700)
+    expect(exit).toBe(0)
+    expect(stdout.split('\n')[0]).toBe('vui: shown "Test run" (#1) in viewer')
+    expect(stderr).toMatch(/^vui: warning: Orca did not open a pane \(state-not-writable\)\n$/)
+  })
+
+  it('still prints the URL without Orca', async () => {
+    const fixture = setup()
+    await vui(['viewer', 'start'], { system: fixture.system })
+    chmodSync(fixture.dir, 0o500)
+    const { exit, stdout } = await show(fixture)
+    chmodSync(fixture.dir, 0o700)
+    expect(exit).toBe(0)
+    expect(stdout).toMatch(/\nvui: open http/)
+  })
+})
+
 describe('the Orca pane', () => {
   it('opens once, records the page and prints no URL', async () => {
     const fixture = setup({ orca: {} })
@@ -369,11 +392,19 @@ describe('the Orca pane', () => {
   it('leaves opening to the show that holds the lock', async () => {
     const fixture = setup({ orca: {} })
     await vui(['viewer', 'start'], { system: fixture.system })
-    writeFileSync(join(fixture.dir, 'viewer.lock'), String(process.pid))
+    writeFileSync(join(fixture.dir, 'pane.lock'), String(process.pid))
     const { stdout, exit } = await show(fixture)
     expect(exit).toBe(0)
     expect(stdout).toBe('vui: shown "Test run" (#1) in viewer\n')
     expect(fixture.calls).toEqual([])
+  })
+
+  it('starts a killed Viewer while another show holds the pane lock', async () => {
+    const fixture = setup({ orca: {} })
+    await show(fixture)
+    await fixture.farm.crash(fixture.farm.viewers[0] as (typeof fixture.farm.viewers)[0])
+    writeFileSync(join(fixture.dir, 'pane.lock'), String(process.pid))
+    expect((await show(fixture)).exit).toBe(0)
   })
 
   it('--no-open skips Orca and prints the URL', async () => {

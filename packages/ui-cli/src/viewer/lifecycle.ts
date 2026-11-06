@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -6,6 +7,7 @@ import {
   readViewerInfo,
   stateDirOf,
   type ViewerInfo,
+  viewerState,
   viewerUrl,
   workspaceHash,
   workspaceOf,
@@ -14,17 +16,22 @@ import { CliError, EXIT, noHost } from '../outcome.js'
 import { type System, viewerEntry } from '../system.js'
 
 const INFO_FILE = 'viewer.json'
-const LOCK_FILE = 'viewer.lock'
+const START_LOCK = 'viewer.lock'
+export const PANE_LOCK = 'pane.lock'
 const LOG_FILE = 'viewer.log'
 /** VD-118. */
 const READY_LINE = 'Viewer listening on port'
 const OWNER_ONLY_FILE = 0o600
 const OWNER_ONLY_DIR = 0o700
+const VIEWER_COMMAND = 'viewer.js'
 const POLL_MS = 25
+const OWNER_BYTES = 8
 const START_TIMEOUT_MS = 10_000
 const STOP_TIMEOUT_MS = 3_000
-/** Longer than any start. A pid can be reused, so a live one does not prove a lock is held. */
-const LOCK_STALE_MS = 15_000
+/** How long a Viewer that takes connections and gives no answer may take to come back. */
+const STALL_WAIT_MS = 5_000
+/** Past three Orca calls of 10 s. A pid can be reused, so a live one does not prove a lock. */
+const LOCK_STALE_MS = 45_000
 
 export interface Place {
   workspace: string
@@ -68,7 +75,7 @@ export function placeOf(system: System): Place {
 
 function isStale(path: string): boolean {
   try {
-    const pid = Number(readFileSync(path, 'utf8'))
+    const pid = Number.parseInt(readFileSync(path, 'utf8'), 10)
     if (pid > 0 && !isAlive(pid)) return true
     return Date.now() - statSync(path).mtimeMs > LOCK_STALE_MS
   } catch {
@@ -76,10 +83,10 @@ function isStale(path: string): boolean {
   }
 }
 
-function acquire(path: string): boolean {
+function acquire(path: string, owner: string): boolean {
   try {
     const fd = openSync(path, 'wx', OWNER_ONLY_FILE)
-    writeSync(fd, String(process.pid))
+    writeSync(fd, owner)
     closeSync(fd)
     return true
   } catch (error) {
@@ -88,18 +95,29 @@ function acquire(path: string): boolean {
   }
 }
 
+/** Only its owner removes a lock, since a holder that lost it would free someone else's. */
+function releaseIfOwned(path: string, owner: string): void {
+  try {
+    if (readFileSync(path, 'utf8') === owner) rmSync(path, { force: true })
+  } catch {
+    // Already gone.
+  }
+}
+
 /**
- * The state directory's one mutex, for starting a Viewer and for opening its pane, each of
- * which must happen once. Gives back the release, or `undefined` while another process holds it.
+ * A mutex in the state directory, one for starting a Viewer and one for opening its pane. Apart,
+ * so a slow Orca cannot hold up a start. Gives back the release, or `undefined` while another
+ * process holds it.
  */
-export function tryLock(stateDir: string): (() => void) | undefined {
-  const path = join(stateDir, LOCK_FILE)
-  if (!acquire(path)) {
+export function tryLock(stateDir: string, name = START_LOCK): (() => void) | undefined {
+  const path = join(stateDir, name)
+  const owner = `${process.pid} ${randomBytes(OWNER_BYTES).toString('hex')}`
+  if (!acquire(path, owner)) {
     if (!isStale(path)) return undefined
     rmSync(path, { force: true })
-    if (!acquire(path)) return undefined
+    if (!acquire(path, owner)) return undefined
   }
-  return () => rmSync(path, { force: true })
+  return () => releaseIfOwned(path, owner)
 }
 
 function running(info: ViewerInfo, place: Place, started = false): Running {
@@ -172,7 +190,11 @@ async function start(system: System, place: Place, options: EnsureOptions): Prom
   throw noHost(`the Viewer did not start in ${timeoutMs} ms`)
 }
 
-/** The running Viewer, or a new one. Only the lock's holder starts one (VD-117). */
+function stalled(pid: number): CliError {
+  return noHost(`the Viewer (pid ${pid}) is not answering; run vui viewer stop`)
+}
+
+/** The running Viewer, or a new one. Only the lock's holder starts one (VD-124). */
 export async function ensureViewer(system: System, options: EnsureOptions = {}): Promise<Running> {
   const place = placeOf(system)
   const { stateDir, hash } = place
@@ -182,9 +204,16 @@ export async function ensureViewer(system: System, options: EnsureOptions = {}):
     throw ioError('the state directory', error)
   }
   const deadline = Date.now() + (options.timeoutMs ?? START_TIMEOUT_MS)
+  const stallDeadline = Date.now() + (options.timeoutMs ?? STALL_WAIT_MS)
   for (;;) {
-    const found = await liveViewer(stateDir, hash)
-    if (found !== undefined) return running(found, place)
+    const found = await viewerState(stateDir, hash)
+    if (found.state === 'live') return running(found.info, place)
+    if (found.state === 'stalled') {
+      // A second Viewer would number documents in the same directory, so this one must clear.
+      if (Date.now() > stallDeadline) throw stalled(found.info.pid)
+      await system.sleep(POLL_MS)
+      continue
+    }
     let release: (() => void) | undefined
     try {
       release = tryLock(stateDir)
@@ -194,9 +223,9 @@ export async function ensureViewer(system: System, options: EnsureOptions = {}):
     if (release !== undefined) {
       try {
         // The last holder may have finished between the check and the lock.
-        const again = await liveViewer(stateDir, hash)
-        if (again !== undefined) return running(again, place)
-        return await start(system, place, options)
+        const again = await viewerState(stateDir, hash)
+        if (again.state === 'live') return running(again.info, place)
+        if (again.state === 'none') return await start(system, place, options)
       } catch (error) {
         if (error instanceof CliError) throw error
         throw ioError('the state directory', error)
@@ -223,32 +252,56 @@ export interface Stopped {
   pid?: number
 }
 
-async function gone(system: System, place: Place, timeoutMs: number): Promise<boolean> {
+/** The pid and not only the port, or a start right after this could share the store. */
+async function gone(
+  system: System,
+  place: Place,
+  pid: number,
+  timeoutMs: number,
+): Promise<boolean> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if ((await liveViewer(place.stateDir, place.hash)) === undefined) return true
+    const live = await liveViewer(place.stateDir, place.hash)
+    if (live === undefined && !system.isAlive(pid)) return true
     await system.sleep(POLL_MS)
   }
   return false
 }
 
-/** Only a pid `/health` has proved gets a signal, since a stale file can name a stranger. */
+/** Where `/proc` exists it can overrule a stale file. Elsewhere the file stands. */
+function isStranger(system: System, pid: number): boolean {
+  const command = system.read(`/proc/${pid}/cmdline`)
+  return command !== undefined && !command.includes(VIEWER_COMMAND)
+}
+
+/**
+ * A signal goes only to a pid `/health` has proved, or one that holds the port and gives no
+ * answer, since a stale file can name a stranger. A stopped process runs no SIGTERM handler.
+ */
 export async function stopViewer(
   system: System,
   options: { timeoutMs?: number } = {},
 ): Promise<Stopped> {
   const place = placeOf(system)
-  const info = join(place.stateDir, INFO_FILE)
-  const live = await liveViewer(place.stateDir, place.hash)
-  if (live === undefined) {
-    rmSync(info, { force: true })
+  const file = join(place.stateDir, INFO_FILE)
+  const { state, info } = await viewerState(place.stateDir, place.hash)
+  if (info === undefined) {
+    rmSync(file, { force: true })
     return { stopped: false }
   }
-  const { pid } = live
-  send(system, pid, 'SIGTERM')
-  if (!(await gone(system, place, options.timeoutMs ?? STOP_TIMEOUT_MS)))
+  const { pid } = info
+  if (state === 'stalled') {
+    if (isStranger(system, pid)) {
+      rmSync(file, { force: true })
+      return { stopped: false }
+    }
     send(system, pid, 'SIGKILL')
+  } else {
+    send(system, pid, 'SIGTERM')
+    const timeoutMs = options.timeoutMs ?? STOP_TIMEOUT_MS
+    if (!(await gone(system, place, pid, timeoutMs))) send(system, pid, 'SIGKILL')
+  }
   // Windows has no SIGTERM handler, and SIGKILL runs none, so the file can remain.
-  if (readViewerInfo(place.stateDir)?.pid === pid) rmSync(info, { force: true })
+  if (readViewerInfo(place.stateDir)?.pid === pid) rmSync(file, { force: true })
   return { stopped: true, pid }
 }

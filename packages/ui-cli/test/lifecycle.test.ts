@@ -8,6 +8,7 @@ import {
   utimesSync,
   writeFileSync,
 } from 'node:fs'
+import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { readViewerInfo, stateDirOf, updateViewerInfo, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -181,6 +182,74 @@ describe('ensureViewer', () => {
   })
 })
 
+/** Takes connections and never answers, as a stopped process's listener does. */
+async function stalledViewer(dir: string): Promise<{ close: () => void }> {
+  const sockets: Socket[] = []
+  const server = createNetServer((socket) => sockets.push(socket))
+  await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+  const { port } = server.address() as AddressInfo
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(
+    join(dir, 'viewer.json'),
+    JSON.stringify({ pid: process.pid, port, readToken: 'r', writeToken: 'w' }),
+  )
+  return {
+    close: () => {
+      for (const socket of sockets) socket.destroy()
+      server.close()
+    },
+  }
+}
+
+describe('a Viewer that does not answer', () => {
+  it('is not replaced: a second Viewer would share its state directory', async () => {
+    const { farm, system, dir } = setup()
+    const stalled = await stalledViewer(dir)
+    const error = await ensureViewer(system, { timeoutMs: 50 }).catch((reason) => reason)
+    stalled.close()
+    expect(error).toMatchObject({ exit: 4, code: 'no-host' })
+    expect((error as CliError).message).toContain('vui viewer stop')
+    expect(farm.spawns).toBe(0)
+    expect(existsSync(join(dir, 'viewer.json'))).toBe(true)
+  })
+
+  it('is killed by stop, and only then is its file removed', async () => {
+    const { system, dir } = setup()
+    const stalled = await stalledViewer(dir)
+    const signals: string[] = []
+    const watched: System = {
+      ...system,
+      kill: (_pid, signal) => {
+        signals.push(signal)
+      },
+    }
+    const stopped = await stopViewer(watched)
+    stalled.close()
+    expect(stopped).toEqual({ stopped: true, pid: process.pid })
+    expect(signals).toEqual(['SIGKILL'])
+    expect(readViewerInfo(dir)).toBeUndefined()
+  })
+})
+
+describe('a stranger on the same pid and port', () => {
+  it('gets no signal, where /proc can tell', async () => {
+    const { system, dir } = setup()
+    const stalled = await stalledViewer(dir)
+    const signals: string[] = []
+    const watched: System = {
+      ...system,
+      read: (path) => (path === `/proc/${process.pid}/cmdline` ? 'postgres\0-D\0/x' : undefined),
+      kill: (_pid, signal) => {
+        signals.push(signal)
+      },
+    }
+    expect(await stopViewer(watched)).toEqual({ stopped: false })
+    stalled.close()
+    expect(signals).toEqual([])
+    expect(readViewerInfo(dir)).toBeUndefined()
+  })
+})
+
 describe('tryLock', () => {
   it('is exclusive until released', () => {
     const dir = tempDir()
@@ -195,15 +264,39 @@ describe('tryLock', () => {
     const dir = tempDir()
     writeFileSync(join(dir, 'viewer.lock'), '2147483646')
     expect(tryLock(dir)).toBeDefined()
-    expect(readFileSync(join(dir, 'viewer.lock'), 'utf8')).toBe(String(process.pid))
+    expect(readFileSync(join(dir, 'viewer.lock'), 'utf8')).toMatch(`${process.pid} `)
   })
 
   it('takes over an old lock even if its pid is alive, since a pid can be reused', () => {
     const dir = tempDir()
     const path = join(dir, 'viewer.lock')
     writeFileSync(path, String(process.pid))
-    const old = new Date(Date.now() - 60_000)
+    const old = new Date(Date.now() - 120_000)
     utimesSync(path, old, old)
+    expect(tryLock(dir)).toBeDefined()
+  })
+
+  it('holds a live lock for as long as three Orca calls can take', () => {
+    const dir = tempDir()
+    const path = join(dir, 'viewer.lock')
+    writeFileSync(path, String(process.pid))
+    const held = new Date(Date.now() - 31_000)
+    utimesSync(path, held, held)
+    expect(tryLock(dir)).toBeUndefined()
+  })
+
+  it('does not remove a lock it lost', () => {
+    const dir = tempDir()
+    const path = join(dir, 'viewer.lock')
+    const release = tryLock(dir)
+    writeFileSync(path, 'another owner')
+    release?.()
+    expect(readFileSync(path, 'utf8')).toBe('another owner')
+  })
+
+  it('keeps the pane lock apart from the start lock', () => {
+    const dir = tempDir()
+    expect(tryLock(dir, 'pane.lock')).toBeDefined()
     expect(tryLock(dir)).toBeDefined()
   })
 
@@ -233,6 +326,21 @@ describe('stopViewer', () => {
     const { info } = await ensureViewer(system)
     expect(await stopViewer(system)).toEqual({ stopped: true, pid: info.pid })
     expect(readViewerInfo(dir)).toBeUndefined()
+  })
+
+  it('waits for the process itself, which outlives its port', async () => {
+    const { system } = setup()
+    await ensureViewer(system)
+    let checks = 0
+    const exiting: System = {
+      ...system,
+      isAlive: () => {
+        checks++
+        return checks < 3
+      },
+    }
+    await stopViewer(exiting)
+    expect(checks).toBe(3)
   })
 
   it('reports nothing to stop', async () => {

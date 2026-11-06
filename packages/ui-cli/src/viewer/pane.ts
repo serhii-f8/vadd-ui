@@ -2,7 +2,7 @@ import { readViewerInfo, updateViewerInfo } from '@vadd/ui-viewer'
 import { detectEnvironment } from '../environment.js'
 import { createTab, gotoTab, listTabs, resolveOrca, type Tab } from '../host/orca.js'
 import type { System } from '../system.js'
-import { type Running, tryLock } from './lifecycle.js'
+import { PANE_LOCK, type Running, tryLock } from './lifecycle.js'
 
 /** `busy`: another show holds the lock and is doing this. */
 export type PaneState = 'opened' | 'moved' | 'kept' | 'busy' | 'none'
@@ -43,16 +43,23 @@ async function openOrReuse(system: System, orca: string, viewer: Running): Promi
   return record(viewer, tab.pageId, 'opened')
 }
 
-/** §4.1, §4.0 (SSH: "no auto-open") and §17.3 (a failure is not a failed delivery). */
+/**
+ * §4.1, §4.0 (SSH: "no auto-open") and §17.3. The document is stored by now, so no failure here
+ * may fail the show: a retry would store it twice.
+ */
 export async function showPane(system: System, viewer: Running): Promise<Pane> {
   if (detectEnvironment(system).kind === 'ssh') return { state: 'none' }
   const orca = resolveOrca(system)
   if (orca === undefined) return { state: 'none' }
-  const release = tryLock(viewer.place.stateDir)
-  if (release === undefined) return { state: 'busy' }
   try {
-    return await openOrReuse(system, orca, viewer)
-  } finally {
-    release()
+    const release = tryLock(viewer.place.stateDir, PANE_LOCK)
+    if (release === undefined) return { state: 'busy' }
+    try {
+      return await openOrReuse(system, orca, viewer)
+    } finally {
+      release()
+    }
+  } catch {
+    return { state: 'none', failure: 'state-not-writable' }
   }
 }

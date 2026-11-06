@@ -141,23 +141,41 @@ export function isAlive(pid: number): boolean {
   }
 }
 
-/** The pid can be a stranger's by now, so only this workspace's `/health` proves it. */
-async function isServing(port: number, hash: string): Promise<boolean> {
+type Health = 'serving' | 'stalled' | 'absent'
+
+/**
+ * The pid can be a stranger's by now, so only this workspace's `/health` proves it. A timeout
+ * is a process that holds the port and does not answer, which a refused connection is not.
+ */
+async function healthOf(port: number, hash: string): Promise<Health> {
   try {
     const signal = AbortSignal.timeout(HEALTH_TIMEOUT_MS)
     const reply = await fetch(`http://${LOOPBACK}:${port}/health`, { signal })
-    return ((await reply.json()) as { workspaceHash?: unknown }).workspaceHash === hash
-  } catch {
-    return false
+    const { workspaceHash: served } = (await reply.json()) as { workspaceHash?: unknown }
+    return served === hash ? 'serving' : 'absent'
+  } catch (error) {
+    return (error as Error).name === 'TimeoutError' ? 'stalled' : 'absent'
   }
+}
+
+export type ViewerState =
+  | { state: 'live' | 'stalled'; info: ViewerInfo }
+  | { state: 'none'; info?: undefined }
+
+/** What `viewer.json` names now. `stalled` still owns the state directory. */
+export async function viewerState(stateDir: string, hash: string): Promise<ViewerState> {
+  const info = readViewerInfo(stateDir)
+  const { pid, port } = info ?? {}
+  if (typeof pid !== 'number' || typeof port !== 'number' || !isAlive(pid)) return { state: 'none' }
+  const health = await healthOf(port, hash)
+  if (health === 'absent') return { state: 'none' }
+  return { state: health === 'serving' ? 'live' : 'stalled', info: info as ViewerInfo }
 }
 
 /** `viewer.json`, if it names a live process serving this workspace. */
 export async function liveViewer(stateDir: string, hash: string): Promise<ViewerInfo | undefined> {
-  const info = readViewerInfo(stateDir)
-  const { pid, port } = info ?? {}
-  if (typeof pid !== 'number' || typeof port !== 'number') return undefined
-  return isAlive(pid) && (await isServing(port, hash)) ? (info as ViewerInfo) : undefined
+  const { state, info } = await viewerState(stateDir, hash)
+  return state === 'live' ? info : undefined
 }
 
 async function refuseIfRunning(stateDir: string, hash: string): Promise<void> {

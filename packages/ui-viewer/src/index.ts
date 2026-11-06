@@ -21,6 +21,8 @@ export {
   type ViewerInfo,
   ViewerRunningError,
   ViewerStartError,
+  type ViewerState,
+  viewerState,
 } from './server.js'
 export {
   type DocHeader,
