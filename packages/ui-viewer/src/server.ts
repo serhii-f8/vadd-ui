@@ -32,8 +32,6 @@ export interface ViewerInfo {
   version: string
   /** The Orca pane showing this feed, written by the CLI (§4.1). */
   browserPageId?: string
-  /** The CLI has printed the URL for this start (§11.2). */
-  urlShown?: boolean
 }
 
 export interface StartOptions {

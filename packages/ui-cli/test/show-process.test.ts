@@ -96,8 +96,28 @@ describe('dist/bin.js show', () => {
     const place = workspace()
     await vui(place, ['show'], DOC)
     const { pid } = info(place)
-    expect((await vui(place, ['show'], DOC)).stdout).toBe('vui: shown "T" (#2) in viewer\n')
+    expect((await vui(place, ['show'], DOC)).stdout.split('\n')[0]).toBe(
+      'vui: shown "T" (#2) in viewer',
+    )
     expect(info(place).pid).toBe(pid)
+  })
+
+  // VD-141: each `vui` here is a new process, as a new session's would be.
+  it('gives a new session the URL on a running Viewer, and not while a reader is connected', async () => {
+    const place = workspace()
+    await vui(place, ['show'], DOC)
+    const { pid, port, readToken } = info(place)
+    const URL_LINE = `vui: open http://localhost:${port}/v/${readToken}/\n`
+    expect((await vui(place, ['show'], DOC)).stdout).toBe(
+      `vui: shown "T" (#2) in viewer\n${URL_LINE}`,
+    )
+
+    const reader = new AbortController()
+    const events = `http://127.0.0.1:${port}/v/${readToken}/api/events`
+    await fetch(events, { signal: reader.signal })
+    expect((await vui(place, ['show'], DOC)).stdout).toBe('vui: shown "T" (#3) in viewer\n')
+    expect(info(place).pid).toBe(pid)
+    expect(info(place)).not.toHaveProperty('urlShown')
   })
 
   it('restarts a killed Viewer, and the feed goes on', async () => {
