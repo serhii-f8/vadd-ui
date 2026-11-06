@@ -940,3 +940,37 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Declined: temp-plus-rename has no test, since only a crash shows the difference and the store is otherwise atomic within a tick. `idle.stop()` on close survives mutation, because the timer is unref'd and `close` is idempotent. A Windows-reserved port giving `EACCES` ends the port search instead of moving on; it needs a Windows host, so task 21 checks it.
 - Rationale: the fixes are small and each failure was reproduced. The declined items cannot affect a user on the platforms this task runs on.
 - Spec sections: §4.1, §4.2, §15.3.
+
+## VD-119 — The feed app's packaging
+- Date: 2026-11-06 · Task: 14
+- Context: VD-019 left the browser app's config to this task. §3 gives `ui-viewer` an edge to `ui`, not `ui-render`.
+- Decision: browser code lives in `packages/ui-viewer/src/app`, typed by `tsconfig.app.json` (browser target, `noEmit`, run by `pnpm typecheck`), and excluded from the package's Node config. It imports `render` and `stylesheet` from `@vadd/ui`. `build-bundle.mjs` bundles it to `dist/app.js` after `@vadd/ui`, and `pnpm check` scans that file. `DocHeader` moved to `doc-header.ts`, which imports nothing and which both configs compile. `placeholderFeed` is gone: `feedHtml` is a constant, and the handler reads `dist/app.js` on the first `GET /app.js`, so `GET /` never depends on the build.
+- For task 15: `app.js` must stay beside `feed.js`. A CLI that re-bundles `viewer.js` has to copy it or pass `feed`.
+- Rationale: one type, and a package table that still matches §3.
+- Spec sections: §3, §4.1, §15.3, §17.4.
+
+## VD-120 — The feed owns its reconnection
+- Date: 2026-11-06 · Task: 14
+- Context: §4.1 asks for backoff, and `EventSource` has none: it retries at its own pace, and not at all after a non-200. It also hides the status, which VD-114 needs.
+- Decision: on `error` the app closes the source and reconnects itself after 1, 2, 4, 8, 16, then 30 s, reset by a completed fill. `Last-Event-ID` replay is therefore unused and `after=` is the only gap filler. `hello` starts every fill, which is stricter than VD-118's "open first": the hub writes it and registers the client in one tick. Only a fill moves `lastSeq` past a gap: a `doc` during a fill marks it dirty and the fill reads again, so a failed page leaves no hole. After a loss, one `GET api/docs?after=<lastSeq>&limit=1` tells the cases apart: 404 is gone and everything stops; anything else backs off.
+- No answer at all keeps retrying at 30 s forever. The token cannot return after a restart, but a suspended machine looks the same and does return. Only a 404 proves the Viewer is gone, and a dead port costs one request every 30 s.
+- Rationale: one path for every failure, and all of it testable with fakes.
+- Spec sections: §4.1, §15.3, §16.1.
+
+## VD-121 — Feed details §4.1 leaves open
+- Date: 2026-11-06 · Task: 14
+- Context: a store holds up to 500 documents, the entry and the document each have a title, and `:root` cannot match in a shadow root.
+- Decision: a batch opens only its last 10 entries, and older ones arrive folded and read their document on the first open; a live document always opens. The shadow stylesheet hides the document's `.vui-title`, and a header left empty, since the entry prints the title; a browser without `:has` only keeps a small gap. `<body>` is a `.vui-root`, so the chrome reads the §8.1 tokens and no palette is copied. The theme is written on every root by script, because the OS rule cannot reach a shadow root (VD-007). Outside links open in a new tab through `linkHandler`, since the feed has no way back. `#id` links scroll inside their shadow root, which closes the gap VD-100 left for this host, and prevent the default, which would only change the URL. Following is pinned after each entry and each document, never from a resize, so unfolding inside a document does not jump the page.
+- Not done: a reader's scroll that lands in the same frame as a new document can be pinned back once, since the `scroll` event comes a frame later. The page keeps entries for documents that retention has evicted; opening one says it could not be loaded. No cap on entries in a long-open page. No "jump to latest" control.
+- Rationale: the first load stays fast, and each choice is reversible.
+- Spec sections: §4.1, §8.1, §8.2, §9.3.
+
+## VD-122 — Task 14 review: fixed findings and declined ones
+- Date: 2026-11-06 · Task: 14
+- Context: a fresh review, with real Chromium runs and 48 source mutations, found no critical defect and no XSS or navigation path. It reported five important findings: a pinned table cell painted over the sticky bar; keyboard focus could land fully under the bar; "Live" outlasted a stopped Viewer and a read that never ended stopped the machine; a copy result and a load failure were not exposed to assistive technology; several tests could not fail.
+- Decision: all fixed, each with a test seen failing first, and the CSS tests also by removing the rule. Each body has `isolation: isolate`. `<html>` has `scroll-padding-top` from the bar's measured height, kept current on `resize` and on a status change, which also replaces `scroll-margin-top` for `#id` targets and so covers a wrapped bar. Every read gives up after 10 s. While live, a probe runs every 30 s, which amends VD-113's "staleness check from `error` events", since a stopped process raises none. The cost is one loopback request per tab per 30 s, and a probe is not a client, so it does not affect idle shutdown beyond what the open stream already does. `.feed-note` has `role="alert"`; the copy button has `aria-live="polite"`, as a code block's does. Stale-source, fallback, `drawn` and probe tests were rewritten so a mutant fails them.
+- Minors fixed: `.feed-status` has no default margin; the status is not rewritten for an unchanged state, so a live region does not repeat each retry; the copy label's timer is cleared on a second click; the failure note goes when an entry folds; a reader opening an old entry no longer pins a following page.
+- Declined, as minors: "Copy failed" replaces §9.3's "Select text to copy", because the feed's copy holds a document that is not on screen as text, so there is nothing to select (DEVIATION). A first copy of a folded document runs after a network read, which can lose user activation; Chromium allows about 5 s, and Safari may refuse it (not tested; only Chromium is installed), which shows "Copy failed", and a second click works since the text is then kept. A connection dying right after every fill retries at 1 s, which on loopback costs nothing. "No visuals yet" stays beside a gone status, which is still true. A failure note stays after a copy succeeded, until the entry is folded. Backoff is not jittered: one reader, one server.
+- For task 15: each tab holds one stream, and HTTP/1.1 allows six connections per host, so a seventh feed tab waits on "Connecting…" and can stall reads in the others. Opening one pane per Viewer, as §4.1 has it, stays clear of this.
+- Rationale: the fixes close AA gaps and an honesty gap in the status; the declined items are rare, cosmetic or free on loopback.
+- Spec sections: §4.1, §9.3, §15.2.

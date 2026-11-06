@@ -3,6 +3,9 @@
 //
 // `vui.min.js` is the boot script, and its path is stable for the whole 1.x line (§10.3).
 // `index.js` is the ESM build: one self-contained module, with nothing on import.
+//
+// The Viewer's `app.js` comes last, because it bundles that `index.js` through the package's
+// `exports`, the §3 edge. It is its own file because the §15.3 CSP blocks an inline script.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +13,7 @@ import { build } from 'esbuild'
 import { BROWSER_TARGET } from './lib/targets.mjs'
 
 const dir = fileURLToPath(new URL('../packages/ui/', import.meta.url))
+const viewerDir = fileURLToPath(new URL('../packages/ui-viewer/', import.meta.url))
 // The one source of the version; `check-versions` ties this manifest to the root.
 const { version } = JSON.parse(readFileSync(`${dir}package.json`, 'utf8'))
 
@@ -37,3 +41,10 @@ await Promise.all([
     outfile: `${dir}dist/index.js`,
   }),
 ])
+
+await build({
+  ...shared,
+  entryPoints: [`${viewerDir}src/app/main.ts`],
+  format: 'iife',
+  outfile: `${viewerDir}dist/app.js`,
+})

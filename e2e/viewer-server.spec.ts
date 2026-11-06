@@ -1,70 +1,22 @@
-import { type ChildProcess, spawn } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { type LiveViewer, launchViewer, postDoc, watchProblems as watch } from './harness/viewer'
 
 // The real `dist/viewer.js` in a real process, opened by a real browser under real CSPs.
 
-const ENTRY = fileURLToPath(new URL('../packages/ui-viewer/dist/viewer.js', import.meta.url))
 const ATTACK = '</script><script>window.pwned=1</script><img src=x onerror=window.pwned=2>'
 
-interface ViewerFile {
-  port: number
-  readToken: string
-  writeToken: string
-}
-
-let child: ChildProcess
-let info: ViewerFile
+let viewer: LiveViewer
 let base: string
 
-async function launch(): Promise<ViewerFile> {
-  const state = mkdtempSync(join(tmpdir(), 'vui-e2e-state-'))
-  const cwd = mkdtempSync(join(tmpdir(), 'vui-e2e-work-'))
-  child = spawn(process.execPath, [ENTRY], {
-    cwd,
-    env: { ...process.env, XDG_STATE_HOME: state, VUI_PORT: undefined },
-    stdio: ['ignore', 'ignore', 'pipe'],
-  })
-  await new Promise<void>((resolve) => {
-    child.stderr?.setEncoding('utf8').on('data', (text: string) => {
-      if (text.includes('listening')) resolve()
-    })
-  })
-  const [hash] = readdirSync(join(state, 'vadd-ui'))
-  return JSON.parse(readFileSync(join(state, 'vadd-ui', hash as string, 'viewer.json'), 'utf8'))
-}
-
-async function post(document: object): Promise<string> {
-  const reply = await fetch(`${base}api/docs`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${info.writeToken}` },
-    body: JSON.stringify(document),
-  })
-  expect(reply.status).toBe(201)
-  return ((await reply.json()) as { id: string }).id
-}
-
-/** Everything a page must never do, gathered for one test. */
-function watch(page: Page): string[] {
-  const problems: string[] = []
-  page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(message.text())
-  })
-  page.on('pageerror', (error) => problems.push(error.message))
-  page.on('requestfailed', (item) => problems.push(`failed: ${item.url()}`))
-  return problems
-}
+const post = (document: object) => postDoc(viewer, document)
 
 test.beforeAll(async () => {
-  info = await launch()
-  base = `http://localhost:${info.port}/v/${info.readToken}/`
+  viewer = await launchViewer()
+  base = viewer.base
 })
 
-test.afterAll(() => {
-  child.kill('SIGTERM')
+test.afterAll(async () => {
+  await viewer.stop()
 })
 
 test('the feed page loads its script under the §15.3 CSP, with no violation', async ({ page }) => {
@@ -72,8 +24,8 @@ test('the feed page loads its script under the §15.3 CSP, with no violation', a
   const requests: string[] = []
   page.on('request', (item) => requests.push(new URL(item.url()).pathname))
   await page.goto(base)
-  await expect(page.locator('main')).toHaveText('vadd-ui Viewer')
-  expect(requests).toContain(`/v/${info.readToken}/app.js`)
+  await expect(page.getByRole('heading', { name: 'vadd-ui Viewer' })).toBeVisible()
+  expect(requests).toContain(`/v/${viewer.info.readToken}/app.js`)
   expect(requests).not.toContain('/favicon.ico')
   expect(problems).toEqual([])
 })

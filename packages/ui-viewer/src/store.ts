@@ -16,6 +16,9 @@ import {
   LIMITS,
   type VuiDocument,
 } from '@vadd/ui-spec'
+import type { DocHeader } from './doc-header.js'
+
+export type { DocHeader } from './doc-header.js'
 
 /** §4.1 retention: the newest 500 documents or 50 MiB, whichever is smaller. */
 export const MAX_DOCS = 500
@@ -26,16 +29,6 @@ const OWNER_ONLY_FILE = 0o600
 const OWNER_ONLY_DIR = 0o700
 const TEMPORARY_SUFFIX = '.tmp'
 const STORED_NAME = /^(\d+)-(.*)\.vui\.json$/
-
-/** §4.1 (`GET /api/docs`). `id` is the file stem and everything else comes from VD-112. */
-export interface DocHeader {
-  seq: number
-  id: string
-  title: string | null
-  createdAt: string
-  cwd: string | null
-  branch: string | null
-}
 
 interface Entry {
   header: DocHeader

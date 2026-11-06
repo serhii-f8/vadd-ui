@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { version as packageVersion } from '@vadd/ui'
 import { LIMITS, MEDIA_TYPE, type VuiDocument, validateText } from '@vadd/ui-spec'
-import { type FeedAssets, placeholderFeed } from './feed.js'
+import { type FeedAssets, feedHtml, readFeedScript } from './feed.js'
 import { isAllowedHost, readBody, tokensMatch, WriteLimiter } from './request.js'
 import { SseHub } from './sse.js'
 import type { DocStore } from './store.js'
@@ -114,7 +114,9 @@ export function viewerUrl(port: number, readToken: string): string {
 /** §4.1's HTTP interface, with §15.3's controls and VD-006's additions, on any Node server. */
 export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandler {
   const { store, readToken, writeToken, port, workspaceHash } = options
-  const { feed = placeholderFeed, now = Date.now, onActivity } = options
+  const { now = Date.now, onActivity } = options
+  const html = options.feed?.html ?? feedHtml
+  let script = options.feed?.script
   const hub = new SseHub({ version: packageVersion, onChange: onActivity })
   const limiter = new WriteLimiter()
   let bundle: string | undefined
@@ -187,9 +189,14 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
 
   const routes: Record<string, Route> = {
     '/': {
-      GET: ({ res }) => send(res, 200, HTML, feed.html, { 'Content-Security-Policy': FEED_CSP }),
+      GET: ({ res }) => send(res, 200, HTML, html, { 'Content-Security-Policy': FEED_CSP }),
     },
-    '/app.js': { GET: ({ res }) => send(res, 200, SCRIPT, feed.script) },
+    '/app.js': {
+      GET: ({ res }) => {
+        script ??= readFeedScript()
+        send(res, 200, SCRIPT, script)
+      },
+    },
     '/api/docs': { GET: listDocs, POST: writeDoc },
     '/api/events': { GET: events },
   }
