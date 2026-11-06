@@ -1,7 +1,8 @@
 import { version } from '@vadd/ui'
 import { type Diagnostic, LIMITS } from '@vadd/ui-spec'
+import { GENERATOR } from '@vadd/ui-viewer'
 import { describe, expect, it } from 'vitest'
-import { exitCodeOf, GENERATOR, prepare } from '../src/pipeline.js'
+import { exitCodeOf, prepare } from '../src/pipeline.js'
 import { NOW } from './helpers.js'
 
 const diag = (severity: Diagnostic['severity'], code: Diagnostic['code']): Diagnostic => ({

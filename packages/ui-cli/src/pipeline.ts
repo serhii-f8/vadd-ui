@@ -8,12 +8,8 @@ import {
   type VuiDocument,
   validateText,
 } from '@vadd/ui-spec'
+import { GENERATOR } from '@vadd/ui-viewer'
 import { EXIT, type ExitCode } from './outcome.js'
-
-export const GENERATOR = 'vadd-ui'
-
-/** The text of the generator `<meta>` (§10.1). */
-export const GENERATOR_LABEL = `${GENERATOR} ${version}`
 
 export interface Prepared {
   diagnostics: Diagnostic[]

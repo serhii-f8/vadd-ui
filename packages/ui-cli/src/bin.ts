@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readBundle, readSchema } from './assets.js'
+import { readBundle } from '@vadd/ui-viewer'
+import { readSchema } from './assets.js'
 import { EXIT } from './outcome.js'
 import { safe } from './print.js'
 import { run } from './run.js'
