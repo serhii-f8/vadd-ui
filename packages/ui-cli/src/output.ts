@@ -1,9 +1,8 @@
 import { writeFileSync } from 'node:fs'
 import type { VuiDocument } from '@vadd/ui-spec'
 import { renderMarkdown, renderPlain } from '@vadd/ui-text'
-import { cdnHtml, inlineHtml } from './html.js'
+import { cdnHtml, GENERATOR_LABEL, inlineHtml } from '@vadd/ui-viewer'
 import { CliError, EXIT } from './outcome.js'
-import { GENERATOR_LABEL } from './pipeline.js'
 
 /** §11.4: 500 KiB, unlike the 256 KiB of §13.4, which is the document's own. */
 export const OUTPUT_LIMIT = 500 * 1024

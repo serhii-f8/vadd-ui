@@ -1,4 +1,21 @@
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { version } from '@vadd/ui'
 import { cleanText, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
+
+export const GENERATOR = 'vadd-ui'
+
+/** The text of the generator `<meta>` (§10.1). */
+export const GENERATOR_LABEL = `${GENERATOR} ${version}`
+
+// Through the package's `exports`, so this works from any install layout (VD-097), and not
+// by a path that only holds inside this monorepo.
+const require = createRequire(import.meta.url)
+
+/** `vui.min.js`, as §10.1 inlines it. */
+export function readBundle(): string {
+  return readFileSync(require.resolve('@vadd/ui/vui.min.js'), 'utf8')
+}
 
 /** §10.2. Pinned to the format's major for the whole line (§10.3). */
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js'

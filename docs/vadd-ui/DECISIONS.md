@@ -882,3 +882,61 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: `ui-text` now follows the DOM. A `tree` with no item in `items` prints `paths`, through a shared `treeSource`. A date-only `timeline.at` prints as written, through a shared `isIsoTime`. Six corpus snapshots changed, each from `Nov 4, 2026, 12:00 AM UTC` to `2026-11-04`. The readers cost 19 bytes of gzip.
 - Rationale: two renderers, one reading.
 - Spec sections: §6.5, §7.
+
+## VD-112 — What identifies a stored document
+- Date: 2026-11-06 · Task: 13
+- Context: §4.1's header has `id`, `createdAt`, `cwd` and `branch`. None is in the §5.2 envelope, and the POST body is only a canonical document, so the spec leaves their source open.
+- Decision: `id` is the file stem, `<seq>-<slug>`, assigned by the server. `createdAt` is the server's clock and is set as the file's mtime, so a restart reads the same value and the file stays a pure canonical document. `cwd` and `branch` are read from `meta.cwd` and `meta.branch`, which task 15 must write; a non-string gives `null`, as does a non-string `title`. `slugify` is §11.5 read literally, exported for task 15, so `Звіт` gives `v--`. A request's id only ever meets the in-memory index, never a path.
+- Alternatives: `X-Vui-*` request headers for `cwd` and `branch`, which every custom endpoint would have to implement and which the §4.1 body text does not mention; a sidecar file, which adds to §4.1's list of contents.
+- Rationale: §5.2 leaves `meta` open and the renderer ignores it, and one file holds all that must survive a restart.
+- Spec sections: §4.1, §5.2, §11.5.
+
+## VD-113 — SSE heartbeat is a comment
+- Date: 2026-11-06 · Task: 13
+- Context: §4.1 lists `doc`, `hello` and "heartbeat every 15 s", with backticks on the first two only.
+- Decision: the heartbeat is the comment `: heartbeat`. `doc` carries `id: <seq>`, so the browser sends `Last-Event-ID` by itself. `hello` carries no `id`, and it comes first, then any replay, then live events. A non-numeric `Last-Event-ID` replays nothing. Replay is capped at 500, which retention also caps.
+- Alternatives: a named `heartbeat` event, which needs a listener to do nothing.
+- Rationale: `EventSource` ignores a comment and it still keeps the connection alive. Task 14 can add a staleness check from `error` events.
+- Spec sections: §4.1.
+
+## VD-114 — Rotated tokens and §16.1's reconnect — needs tasks 14 and 15
+- Date: 2026-11-06 · Task: 13
+- Context: §15.3 says tokens rotate on every start "so old URLs stop working". §16.1 says that after killing the Viewer and showing again, "the open page reconnects". An open page holds the old read token, so both cannot hold.
+- Decision: this task follows §15.3, as its acceptance says, so an open page gets 404 after a restart. Task 14 should treat a 404 from `api/docs` or `api/events` as "this Viewer is gone", stop backing off and say so. Task 15's show then sees `clients: 0` and opens a fresh pane, which is how §16.1's cell gets a live page. That reading of §16.1 is theirs to confirm against a real pane.
+- Alternatives: keep the read token across restarts, which breaks a stated §15.3 control and this task's acceptance.
+- Rationale: the security control is explicit; the scenario is met by the pane the CLI opens.
+- Spec sections: §15.3, §16.1.
+
+## VD-115 — The visual file moves to `ui-viewer`
+- Date: 2026-11-06 · Task: 13
+- Context: `GET /docs/<id>.html` needs `inlineHtml`, which task 12 put in `ui-cli`, and §3 has `ui-cli` depending on `ui-viewer`, not the reverse.
+- Decision: `html.ts` moves unchanged to `ui-viewer/src/visual-file.ts`, with its tests, `readBundle` and `GENERATOR`, and `ui-cli` imports them. `check-forbidden-apis` now scans the file, and it passes.
+- Alternatives: injecting a renderer into the handler, which every host would have to repeat; a copy, which can drift on an escaping rule.
+- Rationale: one escaper, on the side of the dependency edge that §3 allows.
+- Spec sections: §3, §10.1.
+
+## VD-116 — HTTP details the tables leave open
+- Date: 2026-11-06 · Task: 13
+- Context: §4.1 and §15.3 name the routes and limits, not most status codes or the list shape.
+- Decision: a bad `Host` is 403 and comes before everything, `/health` and `/favicon.ico` included. Every miss is the same 404 body, `/v/<token>` without a slash included. A known path with a wrong method is 405 with `Allow`, only behind the token, so `OPTIONS` gets no CORS answer. POST: 201; 401 with `WWW-Authenticate`; 429 with `Retry-After: 1`; 413 by declared length or while reading; 400 for bytes that are not UTF-8; 422 `{ok: false, diagnostics}` for anything `validateText` refuses, unparsable text included. A refused request does not consume the rate budget unless it held the write token. Past 50 streams: 503 with `Retry-After`. `GET /api/docs` is `{docs: [...]}`, ascending, `after` exclusive and default 0, `limit` default 100, range 1–500, 400 otherwise. `GET /api/docs/<id>` is `application/vui+json`. Every response has `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`, because the URL holds a token. The server stores what `validateText` returns, so a relaxed body comes out canonical; `url` in the POST reply is the feed URL.
+- Alternatives: 421 for a bad host; reading the health and favicon routes as exempt, which §4.1's "rejected" does not allow.
+- Rationale: one predictable answer per failure, for task 15's CLI and task 18's contract suite.
+- Spec sections: §4.1, §13, §15.3.
+
+## VD-117 — Store and process details
+- Date: 2026-11-06 · Task: 13
+- Context: §4.1 fixes the store's shape but not how it fails or how a process starts.
+- Decision: the store is synchronous, because at ≤ 20 writes/s of ≤ 256 KiB one tick keeps "number, write, index, evict" atomic with no queue. Files are written to a temp name and renamed, 0600 in 0700 directories. At load, a name that does not match is ignored, and an unreadable file is skipped with a warning naming it, though its number is never reused. Retention also runs at load. `bind` accepts `127.0.0.1` and `0.0.0.0` only. `VUI_PORT` is that port or a failure, with no fallback. `Host` stays loopback-only under `0.0.0.0`, so a published container port must keep its number (§15.3). `startViewer` refuses if `viewer.json` names a live pid whose `/health` reports this workspace, and otherwise replaces the file; close removes it if this pid still owns it. The entry is `@vadd/ui-viewer/viewer.js` with `--bind` and `--workspace`, for task 15 to spawn or wrap. All its output goes to stderr, so task 15 must point stderr at `viewer.log` too. A log line never holds a token or a document. Two starts in the same instant can still race, since §4.1's directory has no lock; task 15 owns starting. `Retry-After`, `workspaceOf` by walking up to `.git` without running git, and `ui-viewer`'s 95% coverage gate follow from this.
+- Rationale: simple, and every failure leaves a state the next start can read.
+- Spec sections: §4.1, §15.3.
+
+## VD-118 — Task 13 review: fixed findings and declined ones
+- Date: 2026-11-06 · Task: 13
+- Context: a fresh review, with live probes and 30 source mutations, found no critical defect and no §15.3 hole. It reproduced four important defects: a failed `viewer.json` write left a listening process with no idle exit; a pipelined `GET /api/events` stayed counted after its socket died, since a queued response has no socket and never emits `close`; a 413 with unread body bytes could arrive as a reset; and the test suite failed about one run in fifteen, through that reset and through `freePort` handing back an ephemeral port another test could take.
+- Decision: all fixed, with tests. `startViewer` closes the server if the write fails. The hub watches `req.socket`. `readBody` drains up to 1 MiB before answering 413, and past that the answer comes from the headers alone with `Connection: close`, where a reset is still possible; §11.4 has the CLI refuse such a document before posting. `freePort` picks below the ephemeral range. Also fixed from the minor list: the rate budget is spent when the body has arrived, so a held-open request cannot store outside its second; a clock stepping back no longer shuts the window; `cwd` and `branch` in a header are clipped to 2,000; a client over 1 MiB of unread output is dropped; `slugify` prefixes before trimming, so a slug is always ≤ 48 (§4.2); busy ports no longer pile up `listening` callbacks; a crash's `.tmp` file is removed at load; `readBody` rejects a body that a host already consumed, rather than hanging. Tests added for the state directory's mode, the `Content-Length` path, and a dead pid with a live `/health`. `RunningViewer.address` is now what the socket reports.
+- For task 18: Fastify's default parser consumes the body, so hijack in `onRequest` or add a passthrough parser. Otherwise POST answers 500.
+- For task 14: an `EventSource` replay and an `after=` fill can return the same document, so dedupe by `seq`. A first connection gets no replay, so open the stream before the first fetch.
+- For task 15: match the readiness line `Viewer listening on port`, and treat stderr as free text.
+- Declined: temp-plus-rename has no test, since only a crash shows the difference and the store is otherwise atomic within a tick. `idle.stop()` on close survives mutation, because the timer is unref'd and `close` is idempotent. A Windows-reserved port giving `EACCES` ends the port search instead of moving on; it needs a Windows host, so task 21 checks it.
+- Rationale: the fixes are small and each failure was reproduced. The declined items cannot affect a user on the platforms this task runs on.
+- Spec sections: §4.1, §4.2, §15.3.

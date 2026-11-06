@@ -1,6 +1,6 @@
 import { parse, type VuiDocument } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
-import { cdnHtml, embedJson, escapeHtml, inlineHtml } from '../src/html.js'
+import { cdnHtml, embedJson, escapeHtml, inlineHtml } from '../src/visual-file.js'
 
 const doc = (fields: Record<string, unknown> = {}): VuiDocument =>
   ({ vui: 1, density: 'compact', locale: 'en-US', body: [], ...fields }) as VuiDocument

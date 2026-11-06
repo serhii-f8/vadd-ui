@@ -37,16 +37,18 @@ export default defineConfig({
         'packages/ui-text/src/**/*.ts',
         'packages/ui-render/src/**/*.ts',
         'packages/ui/src/**/*.ts',
+        'packages/ui-viewer/src/**/*.ts',
         'packages/ui-cli/src/**/*.ts',
       ],
-      // Three lines of wiring, run for real by `ui-cli/test/bin.test.ts`.
-      exclude: ['packages/ui-cli/src/bin.ts'],
+      // Lines of wiring, run for real by `bin.test.ts` and `process.test.ts`.
+      exclude: ['packages/ui-cli/src/bin.ts', 'packages/ui-viewer/src/viewer.ts'],
       reporter: ['text-summary'],
       thresholds: {
         'packages/ui-spec/src/**/*.ts': { lines: 95 },
         'packages/ui-text/src/**/*.ts': { lines: 95 },
         'packages/ui-render/src/**/*.ts': { lines: 95 },
         'packages/ui/src/**/*.ts': { lines: 95 },
+        'packages/ui-viewer/src/**/*.ts': { lines: 95 },
         'packages/ui-cli/src/**/*.ts': { lines: 95 },
       },
     },
