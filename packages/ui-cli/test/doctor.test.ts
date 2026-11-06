@@ -154,6 +154,25 @@ describe('reachability from Windows', () => {
     expect(of('windows').detail).toContain('mirrored')
   })
 
+  it('gives PowerShell long enough, since Windows tries ::1 first and takes 21 s here', async () => {
+    let timeoutMs = 0
+    const base = wsl('mirrored', { ok: true, stdout: '200\r\n' })
+    const system: System = {
+      ...base,
+      exec: (file, args, options) => {
+        if (file === 'powershell.exe') timeoutMs = options?.timeoutMs ?? 0
+        return base.exec(file, args, options)
+      },
+    }
+    await checks(system)
+    expect(timeoutMs).toBeGreaterThanOrEqual(45_000)
+  })
+
+  it('says how long it took', async () => {
+    const { of } = await checks(wsl('mirrored', { ok: true, stdout: '200\r\n' }))
+    expect(of('windows').detail).toMatch(/, \d+ s\)$/)
+  })
+
   it('passes under NAT (fake: this machine is mirrored)', async () => {
     const { of } = await checks(wsl('nat', { ok: true, stdout: '200\r\n' }))
     expect(of('windows')).toMatchObject({ status: 'ok' })

@@ -25,7 +25,8 @@ export interface Check {
 const MIN_NODE = 20
 const STATUS_WIDTH = 5
 const LOOPBACK = '127.0.0.1'
-const PROBE_TIMEOUT_MS = 20_000
+/** `localhost` tries `::1` first, where nothing listens (§15.3), which took 21 s on mirrored. */
+const PROBE_TIMEOUT_MS = 45_000
 const OK_STATUS = '200'
 const POWERSHELLS = [
   'powershell.exe',
@@ -146,13 +147,15 @@ async function windowsCheck(system: System, live: ViewerInfo | undefined): Promi
   const mode = await networkingMode(system)
   const reach = (port: number) => askWindows(system, port)
   const target = live === undefined ? 'a test port' : `port ${live.port}`
+  const started = Date.now()
   const result = await (live === undefined ? withThrowawayServer(reach) : reach(live.port))
+  const seconds = Math.round((Date.now() - started) / 1000)
   if (result === undefined) {
     const fix =
       'Enable WSL interop, or check by hand from Windows: curl http://localhost:<port>/health'
     return { name, status: 'warn', detail: 'powershell.exe not found, so this is unchecked', fix }
   }
-  const networking = `${mode} networking`
+  const networking = `${mode} networking, ${seconds} s`
   if (result.ok && result.stdout.trim() === OK_STATUS) {
     return { name, status: 'ok', detail: `Windows reaches ${target} (${networking})` }
   }
