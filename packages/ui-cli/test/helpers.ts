@@ -34,6 +34,8 @@ export interface FakeSystem {
   exec?: (file: string, args: readonly string[]) => Partial<ExecResult>
   spawnViewer?: System['spawnViewer']
   kill?: System['kill']
+  /** `path.join`, for a test of another platform's paths. */
+  pathJoin?: System['pathJoin']
 }
 
 /** `exec` fails as a missing command, unless a test says what it does. */
@@ -60,6 +62,8 @@ export function fakeSystem(options: FakeSystem = {}): System {
     },
     spawnViewer: options.spawnViewer ?? spawnViewer,
     kill: options.kill ?? (() => undefined),
+    pathJoin: options.pathJoin ?? join,
+    nodeVersion: '22.0.0',
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
     exists: (path) => Object.hasOwn(files, path),
     read: (path) => files[path],

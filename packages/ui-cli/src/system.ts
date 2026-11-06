@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { join } from 'node:path'
 
 const require = createRequire(import.meta.url)
 
@@ -28,6 +29,8 @@ export interface SpawnedViewer {
 export interface System {
   env: NodeJS.ProcessEnv
   platform: NodeJS.Platform
+  /** Without the `v`. */
+  nodeVersion: string
   cwd: () => string
   exec: (
     file: string,
@@ -38,6 +41,7 @@ export interface System {
   spawnViewer: (argv: readonly string[], logFd: number, cwd: string) => SpawnedViewer
   kill: (pid: number, signal: NodeJS.Signals) => void
   sleep: (ms: number) => Promise<void>
+  pathJoin: (directory: string, file: string) => string
   exists: (path: string) => boolean
   read: (path: string) => string | undefined
 }
@@ -119,11 +123,13 @@ function read(path: string): string | undefined {
 export const realSystem: System = {
   env: process.env,
   platform: process.platform,
+  nodeVersion: process.versions.node,
   cwd: () => process.cwd(),
   exec,
   spawnViewer,
   kill: (pid, signal) => void process.kill(pid, signal),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  pathJoin: join,
   exists: existsSync,
   read,
 }

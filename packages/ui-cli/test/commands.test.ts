@@ -698,10 +698,12 @@ describe('help and version', () => {
   it('prints usage, listing what exists', async () => {
     const { exit, stdout } = await vui(['--help'])
     expect(exit).toBe(0)
-    for (const command of ['render', 'validate', 'catalog', 'schema', 'extract']) {
+    const commands = ['show', 'viewer', 'doctor', 'render', 'validate', 'catalog', 'schema']
+    for (const command of [...commands, 'extract']) {
       expect(stdout).toContain(`vui ${command}`)
     }
-    expect(stdout).not.toContain('vui show')
+    expect(stdout).toContain('4 no host')
+    expect(stdout).not.toContain('vui bench')
   })
 
   it('prints the version', async () => {

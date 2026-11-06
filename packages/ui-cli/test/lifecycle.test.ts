@@ -130,7 +130,12 @@ describe('ensureViewer', () => {
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'viewer.log'), 'vui: Viewer listening on port 1\n')
     let killed = false
-    const quiet = failing(system, () => ({ ...idle(), kill: () => void (killed = true) }))
+    const quiet = failing(system, () => ({
+      ...idle(),
+      kill: () => {
+        killed = true
+      },
+    }))
     const error = await ensureViewer(quiet, { timeoutMs: 80 }).catch((reason) => reason)
     expect(error).toMatchObject({ exit: 4 })
     expect(killed).toBe(true)

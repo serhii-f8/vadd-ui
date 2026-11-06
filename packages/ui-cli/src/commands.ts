@@ -17,8 +17,11 @@ import { FORMATS, OUTPUT_LIMIT, type OutputFormat, renderOutput, writeOutput } f
 import { exitCodeOf, inputTooLarge, prepare } from './pipeline.js'
 import { formatDiagnostics, safe, safeJson } from './print.js'
 
-const USAGE = `vui: render a VUI document without a host
+const USAGE = `vui: show a VUI document, or render it without a host
 
+vui show [file|-] [--title T] [--name N] [--host auto|viewer|orca-chat|file] [--dir D] [--no-open]
+vui viewer start|stop|status|open|url [--bind A]
+vui doctor
 vui render [file|-] --format html|md|text [--out F] [--cdn]
 vui validate [file|-] [--strict]
 vui catalog [component]
@@ -26,7 +29,7 @@ vui schema
 vui extract [file.html|-]
 
 Stdin is read when the file is - or omitted. --json works on every command.
-Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 5 I/O.
+Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 4 no host, 5 I/O.
 `
 
 const STDOUT = '-'
@@ -44,7 +47,7 @@ function formatOf(parsed: ParsedArgs): OutputFormat {
   throw usageError(`--format must be one of ${FORMATS.join('|')}`)
 }
 
-function refused(diagnostics: Diagnostic[], print: 'stdout' | 'stderr'): Outcome {
+export function refused(diagnostics: Diagnostic[], print: 'stdout' | 'stderr'): Outcome {
   return {
     exit: exitCodeOf(diagnostics),
     [print]: formatDiagnostics(diagnostics),

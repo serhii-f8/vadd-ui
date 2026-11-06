@@ -10,7 +10,7 @@ import {
   workspaceHash,
   workspaceOf,
 } from '@vadd/ui-viewer'
-import { CliError, EXIT } from '../outcome.js'
+import { CliError, EXIT, noHost } from '../outcome.js'
 import { type System, viewerEntry } from '../system.js'
 
 const INFO_FILE = 'viewer.json'
@@ -49,11 +49,6 @@ export interface Running {
 export interface EnsureOptions {
   bind?: string
   timeoutMs?: number
-}
-
-/** §11.4: the Viewer could not start or be reached. */
-export function noHost(cause: string): CliError {
-  return new CliError(EXIT.noHost, 'no-host', `no usable host: ${cause}; run vui doctor`)
 }
 
 function ioError(what: string, error: unknown): CliError {

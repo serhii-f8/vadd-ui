@@ -75,7 +75,7 @@ describe('parseArgs', () => {
 
   it('refuses an unknown command, with a suggestion', () => {
     expect(usage(['rendr'])).toContain('did you mean "render"?')
-    expect(usage(['show'])).toContain('unknown command "show"')
+    expect(usage(['bench'])).toContain('unknown command "bench"')
   })
 
   it('refuses an inherited name', () => {
@@ -120,5 +120,33 @@ describe('wantsJson', () => {
 
   it('answers in JSON even for a bad --json', () => {
     expect(wantsJson(['validate', '--json=1'])).toBe(true)
+  })
+})
+
+describe('show, viewer and doctor', () => {
+  it('reads every show flag', () => {
+    const argv = ['show', 'f', '--title', 'T', '--name=N', '--host', 'file', '--dir', 'D']
+    expect(parseArgs([...argv, '--no-open'])).toEqual({
+      command: 'show',
+      positional: ['f'],
+      flags: { title: 'T', name: 'N', host: 'file', dir: 'D', 'no-open': true },
+    })
+  })
+
+  it('reads a viewer action and --bind', () => {
+    expect(parseArgs(['viewer', 'start', '--bind', '0.0.0.0'])).toEqual({
+      command: 'viewer',
+      positional: ['start'],
+      flags: { bind: '0.0.0.0' },
+    })
+  })
+
+  it('takes no argument on doctor', () => {
+    expect(usage(['doctor', 'x'])).toContain('unexpected argument')
+    expect(parseArgs(['doctor']).command).toBe('doctor')
+  })
+
+  it('suggests show for a near miss', () => {
+    expect(usage(['shw'])).toContain('did you mean "show"?')
   })
 })
