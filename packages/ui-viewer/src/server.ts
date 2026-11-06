@@ -30,6 +30,10 @@ export interface ViewerInfo {
   writeToken: string
   startedAt: string
   version: string
+  /** The Orca pane showing this feed, written by the CLI (§4.1). */
+  browserPageId?: string
+  /** The CLI has printed the URL for this start (§11.2). */
+  urlShown?: boolean
 }
 
 export interface StartOptions {
@@ -116,7 +120,19 @@ function writeViewerInfo(stateDir: string, info: ViewerInfo): void {
   renameSync(temporary, file)
 }
 
-function isAlive(pid: number): boolean {
+/** Merges into the file of the Viewer `pid`. False if that is not whose file it is now. */
+export function updateViewerInfo(
+  stateDir: string,
+  pid: number,
+  patch: Partial<ViewerInfo>,
+): boolean {
+  const info = readViewerInfo(stateDir)
+  if (info?.pid !== pid) return false
+  writeViewerInfo(stateDir, { ...(info as ViewerInfo), ...patch })
+  return true
+}
+
+export function isAlive(pid: number): boolean {
   try {
     process.kill(pid, 0)
     return true
@@ -136,10 +152,17 @@ async function isServing(port: number, hash: string): Promise<boolean> {
   }
 }
 
+/** `viewer.json`, if it names a live process serving this workspace. */
+export async function liveViewer(stateDir: string, hash: string): Promise<ViewerInfo | undefined> {
+  const info = readViewerInfo(stateDir)
+  const { pid, port } = info ?? {}
+  if (typeof pid !== 'number' || typeof port !== 'number') return undefined
+  return isAlive(pid) && (await isServing(port, hash)) ? (info as ViewerInfo) : undefined
+}
+
 async function refuseIfRunning(stateDir: string, hash: string): Promise<void> {
-  const { pid, port } = readViewerInfo(stateDir) ?? {}
-  if (typeof pid !== 'number' || typeof port !== 'number') return
-  if (isAlive(pid) && (await isServing(port, hash))) throw new ViewerRunningError(pid, port)
+  const live = await liveViewer(stateDir, hash)
+  if (live !== undefined) throw new ViewerRunningError(live.pid, live.port)
 }
 
 function portsToTry(env: NodeJS.ProcessEnv, ports: readonly number[] | undefined): number[] {
