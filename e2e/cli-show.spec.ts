@@ -27,7 +27,7 @@ test.afterEach(async () => {
   }
 })
 
-function rig(): Rig {
+function rig({ orca = true } = {}): Rig {
   const dir = mkdtempSync(join(tmpdir(), 'vui-e2e-show-'))
   const calls = join(dir, 'calls')
   const tabs = join(dir, 'tabs.json')
@@ -47,11 +47,11 @@ console.log(JSON.stringify({ ok: true, result }))
   )
   chmodSync(stub, 0o755)
   const entries = Object.entries(process.env).filter(([name]) => !name.startsWith('ORCA_'))
-  const env = {
+  const env: NodeJS.ProcessEnv = {
     ...Object.fromEntries(entries),
     PATH: dirname(process.execPath),
     XDG_STATE_HOME: join(dir, 'state'),
-    ORCA_CLI_COMMAND: stub,
+    ...(orca ? { ORCA_CLI_COMMAND: stub } : {}),
   }
   const place = { cwd: dir, env, calls, tabs }
   rigs.push(place)
@@ -122,4 +122,26 @@ test('a killed Viewer restarts, and its pane comes back on the new URL', async (
   await expect(page.getByText('Before the kill').first()).toBeVisible()
   await expect(page.getByText('After the kill').first()).toBeVisible()
   await expect(page.getByText('Live')).toBeVisible()
+})
+
+test('without Orca, the URL prints until a real page connects and again once it closes', async ({
+  page,
+}) => {
+  const place = rig({ orca: false })
+  const line = (text: string) => vui(place, ['show'], JSON.stringify({ title: text, body: ['x'] }))
+  const first = await line('First')
+  const url = /^vui: open (.+)$/m.exec(first)?.[1] as string
+  expect(url).toMatch(/^http:\/\/localhost:/)
+
+  // The Viewer outlives the session that started it (§4.1): a new one still gets a way in.
+  expect(await line('A new session')).toBe(
+    `vui: shown "A new session" (#2) in viewer\nvui: open ${url}\n`,
+  )
+
+  await page.goto(url)
+  await expect(page.getByText('Live')).toBeVisible()
+  expect(await line('Seen')).toBe('vui: shown "Seen" (#3) in viewer\n')
+
+  await page.close()
+  await expect.poll(() => line('Closed tab')).toContain(`vui: open ${url}\n`)
 })

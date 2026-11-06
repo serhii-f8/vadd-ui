@@ -91,12 +91,22 @@ describe('vui show, without Orca', () => {
     expect(lines).toHaveLength(2)
   })
 
-  it('prints only the one line after that', async () => {
+  // VD-141: a Viewer outlives a session, so the show before this one proves nothing.
+  it('prints the URL on every show nobody can see', async () => {
     const fixture = setup()
     await show(fixture)
     const { stdout } = await show(fixture)
-    expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
+    const lines = stdout.trimEnd().split('\n')
+    expect(lines[0]).toBe('vui: shown "Test run" (#2) in viewer')
+    expect(lines[1]).toMatch(OPEN)
+    expect(lines).toHaveLength(2)
     expect(fixture.farm.spawns).toBe(1)
+  })
+
+  it('keeps no record of having printed it', async () => {
+    const fixture = setup()
+    await show(fixture)
+    expect(readViewerInfo(fixture.dir)).not.toHaveProperty('urlShown')
   })
 
   it('prints the URL again after a Viewer start', async () => {
@@ -114,6 +124,17 @@ describe('vui show, without Orca', () => {
     const { stdout } = await show(fixture)
     disconnect()
     expect(stdout).toBe('vui: shown "Test run" (#1) in viewer\n')
+  })
+
+  it('prints the URL once the reader has closed the page', async () => {
+    const fixture = setup()
+    await vui(['viewer', 'start'], { system: fixture.system })
+    const disconnect = await connect(fixture)
+    await show(fixture)
+    disconnect()
+    await expect.poll(async () => (await showJson(fixture)).json.clients).toBe(0)
+    const { stdout } = await show(fixture)
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
   })
 
   it('names an untitled document', async () => {
@@ -315,6 +336,23 @@ describe('the Orca pane', () => {
     expect(fixture.calls.map((call) => call[1])).toEqual(['list'])
   })
 
+  it('prints no URL for a pane that is still loading', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    const { url } = (await showJson(fixture)).json as { url: string }
+    orca.list = () => tabs({ browserPageId: 'page-1', url })
+    const { stdout } = await show(fixture)
+    expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
+  })
+
+  it('prints no URL for the pane it reopens after a tab was closed', async () => {
+    const fixture = setup({ orca: { create: () => created('page-2') } })
+    await show(fixture)
+    const { stdout } = await show(fixture)
+    expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
+    expect(readViewerInfo(fixture.dir)?.browserPageId).toBe('page-2')
+  })
+
   it('opens another when the pane was closed', async () => {
     const fixture = setup({ orca: { create: () => created('page-2') } })
     await show(fixture)
@@ -355,6 +393,16 @@ describe('the Orca pane', () => {
     expect(readViewerInfo(fixture.dir)?.browserPageId).toBe('page-1')
   })
 
+  it('prints no URL for a pane it moved', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    const first = (await showJson(fixture)).json as { url: string }
+    orca.list = () => tabs({ browserPageId: 'page-1', url: first.url })
+    await fixture.farm.crash(fixture.farm.viewers[0] as (typeof fixture.farm.viewers)[0])
+    const { stdout } = await show(fixture)
+    expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
+  })
+
   it('opens a new pane when the old one will not move', async () => {
     const orca: OrcaScript = { goto: () => ({ ok: false, stdout: '{"ok":false}' }) }
     const fixture = setup({ orca })
@@ -390,11 +438,64 @@ describe('the Orca pane', () => {
     expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
   })
 
+  it('--no-open prints the URL each time', async () => {
+    const fixture = setup({ orca: {} })
+    await show(fixture, ['--no-open'])
+    const { stdout } = await show(fixture, ['--no-open'])
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+  })
+
+  // VD-141: only `tab list` can tell a recorded pane from a closed one, and this flag skips Orca.
+  it('--no-open prints the URL over a recorded pane, without asking Orca', async () => {
+    const fixture = setup({ orca: {} })
+    await show(fixture)
+    await show(fixture, ['--no-open'])
+    fixture.calls.length = 0
+    const { stdout } = await show(fixture, ['--no-open'])
+    expect(fixture.calls).toEqual([])
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+  })
+
   it('does not open a pane over SSH (§4.0)', async () => {
     const fixture = setup({ orca: {}, env: { SSH_CONNECTION: 'a b c d' } })
     const { stdout } = await show(fixture)
     expect(fixture.calls).toEqual([])
     expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+  })
+
+  it('prints the URL on every show over SSH', async () => {
+    const fixture = setup({ orca: {}, env: { SSH_CONNECTION: 'a b c d' } })
+    await show(fixture)
+    const { stdout } = await show(fixture)
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+  })
+
+  it('prints the URL on every failed Orca call', async () => {
+    const fixture = setup({ orca: { create: () => ({ ok: false }) } })
+    await show(fixture)
+    const { stdout, stderr } = await show(fixture)
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+    expect(stderr).toMatch(/^vui: warning: Orca did not open a pane \([a-z-]+\)\n$/)
+  })
+
+  it('prints the URL when a recorded pane cannot be listed or replaced', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    await show(fixture)
+    orca.list = () => ({ ok: false })
+    orca.create = () => ({ ok: false })
+    const { stdout, stderr } = await show(fixture)
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+    expect(stderr).toContain('Orca did not open a pane')
+  })
+
+  // VD-130's minor, closed by VD-141.
+  it('prints the URL when Orca fails after --no-open printed it', async () => {
+    const fixture = setup({ orca: { create: () => ({ ok: false }) } })
+    await show(fixture, ['--no-open'])
+    const { stdout, stderr } = await show(fixture)
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+    expect(stderr).toContain('Orca did not open a pane')
   })
 
   it.each<[string, FakeReply]>([

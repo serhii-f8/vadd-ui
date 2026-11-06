@@ -1,5 +1,4 @@
 import type { Diagnostic, VuiDocument } from '@vadd/ui-spec'
-import { readViewerInfo, updateViewerInfo } from '@vadd/ui-viewer'
 import { branchOf } from '../git.js'
 import { EXIT, noHost, type Outcome } from '../outcome.js'
 import { exitCodeOf, type Overrides, stamped } from '../pipeline.js'
@@ -114,19 +113,6 @@ async function deliverCustom(delivery: Delivery, target: Target): Promise<Outcom
   return success(delivery, posted, { state: 'none' }, posted.clients === 0)
 }
 
-/** §4.1: once per Viewer start, when nothing is showing the feed and no pane will. */
-function takeUrlLine(viewer: Running, posted: Delivered, pane: Pane): boolean {
-  if (posted.clients > 0 || pane.state !== 'none') return false
-  const { stateDir } = viewer.place
-  if (readViewerInfo(stateDir)?.urlShown === true) return false
-  try {
-    updateViewerInfo(stateDir, viewer.info.pid, { urlShown: true })
-  } catch {
-    // The worst case prints this line again, after a document that is already stored.
-  }
-  return true
-}
-
 async function runningTarget(system: System): Promise<Target | undefined> {
   const custom = customEndpoint(system.env)
   if (custom !== undefined) return custom
@@ -167,5 +153,6 @@ export async function deliverToViewer(delivery: Delivery): Promise<Outcome> {
   if (posted.kind === 'unreachable') throw noHost('the Viewer does not answer')
   const skip = noOpen || posted.clients > 0
   const pane: Pane = skip ? { state: 'none' } : await showPane(system, viewer)
-  return success(delivery, posted, pane, takeUrlLine(viewer, posted, pane))
+  // VD-141: a Viewer outlives a session, so every show checks that the reader has a way in.
+  return success(delivery, posted, pane, posted.clients === 0 && pane.state === 'none')
 }

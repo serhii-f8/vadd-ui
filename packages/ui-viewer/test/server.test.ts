@@ -431,7 +431,7 @@ describe('updateViewerInfo', () => {
   it('leaves the file of another Viewer alone', () => {
     const dir = tempDir()
     writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 8 }))
-    expect(updateViewerInfo(dir, 7, { urlShown: true })).toBe(false)
-    expect(readViewerInfo(dir)?.urlShown).toBeUndefined()
+    expect(updateViewerInfo(dir, 7, { browserPageId: 'page' })).toBe(false)
+    expect(readViewerInfo(dir)?.browserPageId).toBeUndefined()
   })
 })
