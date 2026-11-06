@@ -54,7 +54,7 @@ const DOC = {
       type: 'table',
       columns: [
         { key: 'q', label: 'Query' },
-        { key: 'ms', label: 'ms', format: 'number' },
+        { key: 'ms', label: 'ms', format: 'ms' },
       ],
       rows: [
         ['list', 41],
