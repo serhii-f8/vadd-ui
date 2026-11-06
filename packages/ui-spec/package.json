@@ -12,6 +12,10 @@
       "types": "./dist/catalog.d.ts",
       "default": "./dist/catalog.js"
     },
+    "./host/orca": {
+      "types": "./dist/host/orca.d.ts",
+      "default": "./dist/host/orca.js"
+    },
     "./schema.json": "./dist/vui.schema.json"
   },
   "files": [
