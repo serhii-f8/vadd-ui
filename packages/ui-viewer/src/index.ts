@@ -10,14 +10,19 @@ export { stateDirOf, workspaceHash, workspaceOf } from './paths.js'
 export {
   FIRST_PORT,
   IDLE_MS,
+  isAlive,
   LAST_PORT,
+  liveViewer,
   type RunningViewer,
   readViewerInfo,
   type StartOptions,
   startViewer,
+  updateViewerInfo,
   type ViewerInfo,
   ViewerRunningError,
   ViewerStartError,
+  type ViewerState,
+  viewerState,
 } from './server.js'
 export {
   type DocHeader,

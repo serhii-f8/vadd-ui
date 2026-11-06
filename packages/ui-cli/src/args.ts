@@ -1,7 +1,17 @@
 import { suggest } from '@vadd/ui-spec/catalog'
 import { usageError } from './outcome.js'
 
-export type Command = 'render' | 'validate' | 'catalog' | 'schema' | 'extract' | 'help' | 'version'
+export type Command =
+  | 'show'
+  | 'viewer'
+  | 'doctor'
+  | 'render'
+  | 'validate'
+  | 'catalog'
+  | 'schema'
+  | 'extract'
+  | 'help'
+  | 'version'
 
 export interface ParsedArgs {
   command: Command
@@ -17,6 +27,13 @@ interface CommandSpec {
 }
 
 const SPECS: Record<Exclude<Command, 'help' | 'version'>, CommandSpec> = {
+  show: {
+    values: ['title', 'name', 'host', 'dir'],
+    booleans: ['no-open'],
+    positional: 1,
+  },
+  viewer: { values: ['bind'], booleans: [], positional: 1 },
+  doctor: { values: [], booleans: [], positional: 0 },
   render: { values: ['format', 'out'], booleans: ['cdn'], positional: 1 },
   validate: { values: [], booleans: ['strict'], positional: 1 },
   catalog: { values: [], booleans: [], positional: 1 },

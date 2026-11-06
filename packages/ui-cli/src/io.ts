@@ -1,3 +1,5 @@
+import type { System } from './system.js'
+
 /** Everything `run` takes from the process, so a test can stand in for it. */
 export interface Io {
   stdin: NodeJS.ReadableStream & { isTTY?: boolean; fd?: number }
@@ -7,4 +9,5 @@ export interface Io {
   now: () => Date
   readBundle: () => string
   readSchema: () => string
+  system: System
 }

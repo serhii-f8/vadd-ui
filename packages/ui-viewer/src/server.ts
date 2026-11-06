@@ -30,6 +30,10 @@ export interface ViewerInfo {
   writeToken: string
   startedAt: string
   version: string
+  /** The Orca pane showing this feed, written by the CLI (§4.1). */
+  browserPageId?: string
+  /** The CLI has printed the URL for this start (§11.2). */
+  urlShown?: boolean
 }
 
 export interface StartOptions {
@@ -116,7 +120,19 @@ function writeViewerInfo(stateDir: string, info: ViewerInfo): void {
   renameSync(temporary, file)
 }
 
-function isAlive(pid: number): boolean {
+/** Merges into the file of the Viewer `pid`. False if that is not whose file it is now. */
+export function updateViewerInfo(
+  stateDir: string,
+  pid: number,
+  patch: Partial<ViewerInfo>,
+): boolean {
+  const info = readViewerInfo(stateDir)
+  if (info?.pid !== pid) return false
+  writeViewerInfo(stateDir, { ...(info as ViewerInfo), ...patch })
+  return true
+}
+
+export function isAlive(pid: number): boolean {
   try {
     process.kill(pid, 0)
     return true
@@ -125,21 +141,46 @@ function isAlive(pid: number): boolean {
   }
 }
 
-/** The pid can be a stranger's by now, so only this workspace's `/health` proves it. */
-async function isServing(port: number, hash: string): Promise<boolean> {
+type Health = 'serving' | 'stalled' | 'absent'
+
+/**
+ * The pid can be a stranger's by now, so only this workspace's `/health` proves it. A timeout
+ * is a process that holds the port and does not answer, which a refused connection is not.
+ */
+async function healthOf(port: number, hash: string): Promise<Health> {
   try {
     const signal = AbortSignal.timeout(HEALTH_TIMEOUT_MS)
     const reply = await fetch(`http://${LOOPBACK}:${port}/health`, { signal })
-    return ((await reply.json()) as { workspaceHash?: unknown }).workspaceHash === hash
-  } catch {
-    return false
+    const { workspaceHash: served } = (await reply.json()) as { workspaceHash?: unknown }
+    return served === hash ? 'serving' : 'absent'
+  } catch (error) {
+    return (error as Error).name === 'TimeoutError' ? 'stalled' : 'absent'
   }
 }
 
+export type ViewerState =
+  | { state: 'live' | 'stalled'; info: ViewerInfo }
+  | { state: 'none'; info?: undefined }
+
+/** What `viewer.json` names now. `stalled` still owns the state directory. */
+export async function viewerState(stateDir: string, hash: string): Promise<ViewerState> {
+  const info = readViewerInfo(stateDir)
+  const { pid, port } = info ?? {}
+  if (typeof pid !== 'number' || typeof port !== 'number' || !isAlive(pid)) return { state: 'none' }
+  const health = await healthOf(port, hash)
+  if (health === 'absent') return { state: 'none' }
+  return { state: health === 'serving' ? 'live' : 'stalled', info: info as ViewerInfo }
+}
+
+/** `viewer.json`, if it names a live process serving this workspace. */
+export async function liveViewer(stateDir: string, hash: string): Promise<ViewerInfo | undefined> {
+  const { state, info } = await viewerState(stateDir, hash)
+  return state === 'live' ? info : undefined
+}
+
 async function refuseIfRunning(stateDir: string, hash: string): Promise<void> {
-  const { pid, port } = readViewerInfo(stateDir) ?? {}
-  if (typeof pid !== 'number' || typeof port !== 'number') return
-  if (isAlive(pid) && (await isServing(port, hash))) throw new ViewerRunningError(pid, port)
+  const live = await liveViewer(stateDir, hash)
+  if (live !== undefined) throw new ViewerRunningError(live.pid, live.port)
 }
 
 function portsToTry(env: NodeJS.ProcessEnv, ports: readonly number[] | undefined): number[] {

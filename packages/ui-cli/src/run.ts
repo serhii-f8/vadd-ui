@@ -1,11 +1,20 @@
 import { type ParsedArgs, parseArgs, wantsJson } from './args.js'
 import { catalog, extract, help, render, schema, validate, versionOutcome } from './commands.js'
+import { doctor } from './doctor.js'
 import type { Io } from './io.js'
 import { CliError, EXIT, type ExitCode, type Outcome } from './outcome.js'
 import { safe, safeJson } from './print.js'
+import { show } from './show.js'
+import { viewerCommand } from './viewer-command.js'
 
 function dispatch(parsed: ParsedArgs, io: Io): Outcome | Promise<Outcome> {
   switch (parsed.command) {
+    case 'show':
+      return show(parsed, io)
+    case 'viewer':
+      return viewerCommand(parsed, io)
+    case 'doctor':
+      return doctor(io)
     case 'render':
       return render(parsed, io)
     case 'validate':

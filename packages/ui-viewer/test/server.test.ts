@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { version } from '@vadd/ui'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,12 +10,15 @@ import {
   IDLE_MS,
   IdleTimer,
   LAST_PORT,
+  liveViewer,
   type RunningViewer,
   readViewerInfo,
   type StartOptions,
   startViewer,
+  updateViewerInfo,
   ViewerRunningError,
   ViewerStartError,
+  viewerState,
 } from '../src/server.js'
 import { freePort, request, tempDir } from './helpers.js'
 
@@ -365,5 +368,70 @@ describe('idle exit', () => {
     const viewer = await start({ ...options, idleMs: 10 })
     await viewer.closed
     expect(existsSync(join(options.dir, 'viewer.json'))).toBe(false)
+  })
+})
+
+describe('liveViewer', () => {
+  it('finds the running Viewer of this workspace', async () => {
+    const workspace = tempDir()
+    const env = { XDG_STATE_HOME: tempDir(), VUI_PORT: String(await freePort()) }
+    const viewer = await startViewer({ workspace, env })
+    const hash = workspaceHash(workspace)
+    expect((await liveViewer(viewer.stateDir, hash))?.port).toBe(viewer.port)
+    expect(await liveViewer(viewer.stateDir, 'other')).toBeUndefined()
+    await viewer.close()
+    expect(await liveViewer(viewer.stateDir, hash)).toBeUndefined()
+  })
+
+  it.each([
+    ['missing', undefined],
+    ['corrupt', '{"pid":'],
+    ['not numbers', '{"pid":"1","port":"2"}'],
+    ['a dead pid', '{"pid":2147483646,"port":1}'],
+  ])('reads %s as no Viewer', async (_name, text) => {
+    const dir = tempDir()
+    if (text !== undefined) writeFileSync(join(dir, 'viewer.json'), text)
+    expect(await liveViewer(dir, 'hash')).toBeUndefined()
+  })
+})
+
+describe('viewerState', () => {
+  it('reads a listener that never answers as stalled, not gone', async () => {
+    const sockets: Socket[] = []
+    const server = createNetServer((socket) => sockets.push(socket))
+    await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+    const { port } = server.address() as AddressInfo
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port }))
+    const state = await viewerState(dir, 'hash')
+    for (const socket of sockets) socket.destroy()
+    server.close()
+    expect(state.state).toBe('stalled')
+    expect(await liveViewer(dir, 'hash')).toBeUndefined()
+  })
+
+  it('reads a port that refuses as gone, whatever holds the pid', async () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port: 9 }))
+    expect((await viewerState(dir, 'hash')).state).toBe('none')
+  })
+})
+
+describe('updateViewerInfo', () => {
+  const base = { port: 1, readToken: 'r', writeToken: 'w', startedAt: 't', version: 'v' }
+
+  it('merges into the file and keeps it owner-only', () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7 }))
+    expect(updateViewerInfo(dir, 7, { browserPageId: 'page' })).toBe(true)
+    expect(readViewerInfo(dir)).toMatchObject({ pid: 7, port: 1, browserPageId: 'page' })
+    expect(statSync(join(dir, 'viewer.json')).mode & 0o777).toBe(0o600)
+  })
+
+  it('leaves the file of another Viewer alone', () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 8 }))
+    expect(updateViewerInfo(dir, 7, { urlShown: true })).toBe(false)
+    expect(readViewerInfo(dir)?.urlShown).toBeUndefined()
   })
 })

@@ -4,6 +4,7 @@ import { readSchema } from './assets.js'
 import { EXIT } from './outcome.js'
 import { safe } from './print.js'
 import { run } from './run.js'
+import { realSystem } from './system.js'
 
 // `vui … | head` closing the pipe is the reader's choice, so it does not change the result.
 process.stdout.on('error', (error: NodeJS.ErrnoException) => {
@@ -23,4 +24,5 @@ process.exitCode = await run(process.argv.slice(2), {
   now: () => new Date(),
   readBundle,
   readSchema,
+  system: realSystem,
 })

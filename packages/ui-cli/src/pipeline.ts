@@ -11,6 +11,12 @@ import {
 import { GENERATOR } from '@vadd/ui-viewer'
 import { EXIT, type ExitCode } from './outcome.js'
 
+/** What a command adds. A `meta` key set to `undefined` removes a document's claim. */
+export interface Overrides {
+  title?: string
+  meta?: Record<string, string | undefined>
+}
+
 export interface Prepared {
   diagnostics: Diagnostic[]
   /** The canonical form, stamped. Absent on any error, since nothing may be delivered. */
@@ -28,10 +34,13 @@ export function exitCodeOf(diagnostics: readonly Diagnostic[], strict = false): 
 }
 
 /** §17.2: these record what the CLI inlined, so they replace what a document claims. */
-function stamped(document: VuiDocument): VuiDocument {
+function stamped(document: VuiDocument, overrides: Overrides): VuiDocument {
   // A mistyped `meta` is only a `warn` (§13.3), and a string must not spread into characters.
   const meta = isJsonObject(document.meta as JsonValue | undefined) ? document.meta : {}
-  return { ...document, meta: { ...meta, generator: GENERATOR, version } }
+  const merged = { ...meta, ...overrides.meta, generator: GENERATOR, version }
+  const title = overrides.title === undefined ? {} : { title: overrides.title }
+  // Through JSON, so a removed key is gone and not an `undefined` in a document.
+  return JSON.parse(JSON.stringify({ ...document, ...title, meta: merged })) as VuiDocument
 }
 
 export function inputTooLarge(): Diagnostic {
@@ -48,10 +57,10 @@ export function inputTooLarge(): Diagnostic {
  * run this, so one cannot pass what the other refuses. Measures after the stamp, or a file
  * could hold what `vui validate` later refuses to read back.
  */
-export function prepare(text: string, now: Date): Prepared {
+export function prepare(text: string, now: Date, overrides: Overrides = {}): Prepared {
   const { diagnostics, document } = validateText(text, { generatedAt: now.toISOString() })
   if (document === undefined || exitCodeOf(diagnostics) !== EXIT.ok) return { diagnostics }
-  const canonical = stamped(document)
+  const canonical = stamped(document, overrides)
   const bytes = Buffer.byteLength(JSON.stringify(canonical))
   if (bytes <= LIMITS.inputBytes) return { diagnostics, document: canonical }
   const message = `canonical form is ${bytes} bytes; the limit is ${LIMITS.inputBytes}`
