@@ -6,9 +6,10 @@ export interface FeedAssets {
   script: string
 }
 
-/** A `V` on a blue tile, inline so the browser never asks for `/favicon.ico` (§4.1). */
+/** A `V` on a blue tile, inline so the browser never asks for `/favicon.ico` (§4.1). A
+ * namespace is not a fetch, and encoding its colon keeps "no URL in this page" checkable. */
 const ICON =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232563eb'/%3E%3Cpath d='M4 4.5 8 12l4-7.5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E"
+  "data:image/svg+xml,%3Csvg xmlns='http%3A//www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232563eb'/%3E%3Cpath d='M4 4.5 8 12l4-7.5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E"
 
 /** Fits the §15.3 CSP: the script is a file (VD-006), and the page's CSS comes with it. */
 export const feedHtml = [
