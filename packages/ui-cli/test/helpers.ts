@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import type { Io } from '../src/io.js'
 import { run } from '../src/run.js'
+import type { ExecResult, SpawnedViewer, System } from '../src/system.js'
 
 export const NOW = new Date('2026-11-05T10:00:00.000Z')
 export const BUNDLE = '/*bundle*/'
@@ -20,7 +21,49 @@ export interface Options {
   tty?: boolean
   bundle?: string | (() => string)
   schema?: () => string
+  system?: System
 }
+
+export interface FakeSystem {
+  env?: NodeJS.ProcessEnv
+  cwd?: string
+  platform?: NodeJS.Platform
+  /** What exists on disk, by absolute path. */
+  files?: Record<string, string>
+  exec?: (file: string, args: readonly string[]) => Partial<ExecResult>
+  spawnViewer?: System['spawnViewer']
+}
+
+/** `exec` fails as a missing command, unless a test says what it does. */
+export function fakeSystem(options: FakeSystem = {}): System {
+  const files = options.files ?? {}
+  const spawnViewer: System['spawnViewer'] = () => {
+    throw new Error('this test starts no Viewer')
+  }
+  return {
+    env: options.env ?? {},
+    platform: options.platform ?? 'linux',
+    cwd: () => options.cwd ?? tmpdir(),
+    exec: async (file, args) => {
+      const reply = options.exec?.(file, args) ?? { ok: false, missing: true }
+      return {
+        ok: false,
+        code: reply.ok ? 0 : 1,
+        stdout: '',
+        stderr: '',
+        missing: false,
+        timedOut: false,
+        ...reply,
+      }
+    },
+    spawnViewer: options.spawnViewer ?? spawnViewer,
+    sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
+    exists: (path) => Object.hasOwn(files, path),
+    read: (path) => files[path],
+  }
+}
+
+export type { SpawnedViewer }
 
 function stdinOf(options: Options): Io['stdin'] {
   const source = options.stdin ?? ''
@@ -44,6 +87,7 @@ export async function vui(argv: string[], options: Options = {}): Promise<Result
     now: () => NOW,
     readBundle: typeof bundle === 'string' ? () => bundle : bundle,
     readSchema: options.schema ?? (() => SCHEMA),
+    system: options.system ?? fakeSystem(),
   })
   return { exit, stdout, stderr }
 }

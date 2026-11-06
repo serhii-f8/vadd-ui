@@ -109,3 +109,31 @@ describe('prepare', () => {
     expect(exitCodeOf(over.diagnostics)).toBe(3)
   })
 })
+
+describe('prepare overrides', () => {
+  const NOW_ = new Date('2026-11-06T10:00:00.000Z')
+  const text = '{"title":"T","meta":{"cwd":"/forged","branch":"forged","keep":"yes"},"body":["x"]}'
+
+  it('replaces the title', () => {
+    expect(prepare(text, NOW_, { title: 'New' }).document?.title).toBe('New')
+  })
+
+  it('replaces a claimed meta value, and keeps other keys', () => {
+    const { document } = prepare(text, NOW_, { meta: { cwd: '/real', branch: 'main' } })
+    expect(document?.meta).toMatchObject({ cwd: '/real', branch: 'main', keep: 'yes' })
+  })
+
+  it('removes a claimed value it has no answer for', () => {
+    const { document } = prepare(text, NOW_, { meta: { branch: undefined } })
+    expect(document?.meta).not.toHaveProperty('branch')
+  })
+
+  it('measures what it added', () => {
+    const items = Array.from({ length: 190 }, () => 'x'.repeat(1300))
+    const near = JSON.stringify({ body: items })
+    expect(prepare(near, NOW_).document).toBeDefined()
+    const { document, diagnostics } = prepare(near, NOW_, { meta: { cwd: 'y'.repeat(20000) } })
+    expect(document).toBeUndefined()
+    expect(diagnostics.at(-1)?.code).toBe('limit-canonical-size')
+  })
+})
