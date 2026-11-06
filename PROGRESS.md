@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-05T20:33:21Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T10:04:12Z · Mode: manual
 
 ## Summary
-Done 12 / 22 · In progress: none · Blocked: none · Next: 13 — Viewer server
+Done 13 / 22 · In progress: none · Blocked: none · Next: 14 — Viewer feed app
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -40,7 +40,7 @@ Recorded 2026-11-04 during bootstrap.
 | 10 | Dev-workflow components | §6.5, §6.7, §8.4 | 09 | done | removed | ctx_b15f10f3a930 | [design](docs/superpowers/specs/2026-11-05-dev-components-design.md) | [plan](docs/superpowers/plans/2026-11-05-dev-components.md) | 2c3edaf | 2026-11-05 |
 | 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | done | removed | ctx_82df097ce3f9 | [design](docs/superpowers/specs/2026-11-05-ui-bundle-design.md) | [plan](docs/superpowers/plans/2026-11-05-ui-bundle.md) | 4bead43 | 2026-11-05 |
 | 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | done | removed | ctx_6cbdfd5d1778 | [design](docs/superpowers/specs/2026-11-05-cli-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-cli-core.md) | d7d6c61 | 2026-11-05 |
-| 13 | Viewer server | §4.1, §15.3 | 11 | todo | | | | | | |
+| 13 | Viewer server | §4.1, §15.3 | 11 | done | removed | ctx_265446aad682 | [design](docs/superpowers/specs/2026-11-06-viewer-server-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-server.md) | 19116ab | 2026-11-06 |
 | 14 | Viewer feed app | §4.1 | 13 | todo | | | | | | |
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | todo | | | | | | |
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | todo | | | | | | |
@@ -179,3 +179,14 @@ none
 - Review: fresh reviewer found no Critical issues and 2 Important, both fixed red then green: an error hidden past 1,000 warnings, and raw C1 controls in HTML on stdout. The worker's own probes found 2 more: `title: 5` crashed html output, and a string `meta` spread into characters. Declined: tracking SVG foreign content in `extract` (VD-105); escaping `Cf`, `Zl`, `Zp` in `safeJson`, which breaks byte equality for joined emoji (VD-107); the `and N more` count may include hidden `info` (VD-104).
 - Not tested: native Windows and macOS, including PowerShell's UTF-16 pipes, which should exit 2 with a clear message by reasoning only, and closed stdin there. Task 21 owns the host matrix.
 - Follow-ups: task 15 adds `show`, `viewer` and `doctor` to the unknown-command list and reuses `prepare` and `renderOutput`; `bench` is task 19. Tasks 15 and 16: viewport meta (VD-098). Task 17: tell agents to send the tail of long output (VD-096). 528 bytes of bundle margin remain.
+
+### 13 — Viewer server
+- Built: every §4.1 route plus `GET /app.js` (VD-006), and `createViewerHandler` exported for mounting (VD-004). State directory, `viewer.json` at 0600, document store with retention, port selection, tokens, SSE, idle exit, and `dist/viewer.js`. A placeholder feed page in `feed.ts` is the seam for task 14. `html.ts` moved from `ui-cli` to `ui-viewer/src/visual-file.ts` (VD-115), so the banned-API check now scans it.
+- Decisions: VD-112 to VD-118, no DEVIATION. VD-114 records a real spec conflict: §15.3 rotates tokens on every start, while §16.1 says the open page reconnects. The server follows §15.3, so an open page gets 404 after a restart. Tasks 14 and 15 must handle that, and §16.1's cell then depends on the pane the CLI opens, which is still to be confirmed in a real pane. Coordinator read spec lines 723 and 749 and agrees.
+- Evidence (coordinator rerun on `main` at 19116ab): `pnpm gate` exit 0. Vitest 81 files, 6,296 tests. Playwright 368 tests. Banned-API check clean on 81 source files and 2 built files. `check-bundle-size: 109.9 KiB minified, 37.5 KiB gzip`, unchanged. Coverage: lines 99.82% (4030/4037), statements 99.33%, branches 97.59%. Runtime deps and versions pass. The spec file was not changed by this branch.
+- Coordinator probes on the real `dist/viewer.js`, in a scratch state directory: port 47100; `viewer.json` 0600; no token in the log; `/health` hash; bad and wrong-port `Host` 403, `[::1]` 200; 404 outside the prefix and for a wrong token; favicon 204; exact CSP; no CORS headers, `OPTIONS` included (405); 401 without a bearer and with the read token; 201 and a file inside `docs/`; standalone page 200; four traversal paths 404; 257 KiB 413; bad document 422; 30 concurrent writes gave 18 stored and 12 at 429, on top of one earlier write; `hello` first then replay on `Last-Event-ID`; 51 streams gave 50 and one 503; tokens rotate, the old token 404s, and 19 documents survive a restart. The first runs failed because my probe documents were invalid (no `body`, then unknown types), not because of the server; they passed once the document was `md`. The Orca pane screenshot was viewed and shows a standalone document rendered in dark.
+- Not probed by the coordinator (worker evidence only): retention at 500 documents or 50 MiB, 4 h idle exit, the 15 s heartbeat, `--bind 0.0.0.0` warning, `VUI_PORT`, Node 20 runs (232/232 viewer tests), 30 of 30 clean repeat runs on Node 22, `ui-viewer` coverage of 99.52%. Feed screenshots in light and dark were not inspected: the two feed files per width have the same byte size, as expected for a placeholder, but that was not compared by content.
+- Review: fresh reviewer found no Critical issues and no §15.3 hole. Four Important defects were reproduced and fixed (VD-118): no idle exit after a failed `viewer.json` write, a dead pipelined stream staying counted, a 413 arriving as a reset, and a suite that failed about one run in fifteen.
+- Incident: my first merge command was denied by the permission layer, and the gate I had started beside it was running on unmerged `main`. I stopped that gate run, confirmed `main` had not moved, reran the merge as its own command, and that run went through; the gate above is the run after the merge.
+- Flake: the worker reports that `ui-render` `code.test.ts` "takes a long mark list" failed twice on its 200 ms watchdog with load near 19 from another project. It passes alone and passed here. Unresolved: task 20 should look at it.
+- Follow-ups: task 14: treat a 404 from `api/docs` or `api/events` as "this Viewer is gone" (VD-114); open the stream before the first fetch and dedupe by `seq` (VD-118). Task 15: write `meta.cwd` and `meta.branch` (VD-112), send stderr to `viewer.log` (VD-117; §4.1 says stdout), match `Viewer listening on port`, and own the two-starts race. Task 18: Fastify's body parser must be bypassed (VD-118). Task 21: a Windows `EACCES` port ends the search (VD-118). 528 bytes of bundle margin remain.
