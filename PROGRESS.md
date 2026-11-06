@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T10:04:12Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T10:50:14Z · Mode: manual
 
 ## Summary
-Done 13 / 22 · In progress: none · Blocked: none · Next: 14 — Viewer feed app
+Done 14 / 22 · In progress: none · Blocked: none · Next: 15 — vui show, host routing, viewer lifecycle, doctor
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -41,7 +41,7 @@ Recorded 2026-11-04 during bootstrap.
 | 11 | @vadd/ui bundle and boot script | §4.3, §9.2, §9.5 | 10 | done | removed | ctx_82df097ce3f9 | [design](docs/superpowers/specs/2026-11-05-ui-bundle-design.md) | [plan](docs/superpowers/plans/2026-11-05-ui-bundle.md) | 4bead43 | 2026-11-05 |
 | 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | done | removed | ctx_6cbdfd5d1778 | [design](docs/superpowers/specs/2026-11-05-cli-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-cli-core.md) | d7d6c61 | 2026-11-05 |
 | 13 | Viewer server | §4.1, §15.3 | 11 | done | removed | ctx_265446aad682 | [design](docs/superpowers/specs/2026-11-06-viewer-server-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-server.md) | 19116ab | 2026-11-06 |
-| 14 | Viewer feed app | §4.1 | 13 | todo | | | | | | |
+| 14 | Viewer feed app | §4.1 | 13 | done | removed | ctx_c798040b5e2e | [design](docs/superpowers/specs/2026-11-06-viewer-feed-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-feed.md) | 466d402 | 2026-11-06 |
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | todo | | | | | | |
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | todo | | | | | | |
 | 17 | Agent skill | §12.1 | 16 | todo | | | | | | |
@@ -190,3 +190,13 @@ none
 - Incident: my first merge command was denied by the permission layer, and the gate I had started beside it was running on unmerged `main`. I stopped that gate run, confirmed `main` had not moved, reran the merge as its own command, and that run went through; the gate above is the run after the merge.
 - Flake: the worker reports that `ui-render` `code.test.ts` "takes a long mark list" failed twice on its 200 ms watchdog with load near 19 from another project. It passes alone and passed here. Unresolved: task 20 should look at it.
 - Follow-ups: task 14: treat a 404 from `api/docs` or `api/events` as "this Viewer is gone" (VD-114); open the stream before the first fetch and dedupe by `seq` (VD-118). Task 15: write `meta.cwd` and `meta.branch` (VD-112), send stderr to `viewer.log` (VD-117; §4.1 says stdout), match `Viewer listening on port`, and own the two-starts race. Task 18: Fastify's body parser must be bypassed (VD-118). Task 21: a Windows `EACCES` port ends the search (VD-118). 528 bytes of bundle margin remain.
+
+### 14 — Viewer feed app
+- Built: the feed in `packages/ui-viewer/src/app`, bundled to `dist/app.js` and served from `GET /app.js`, replacing the placeholder. Newest at the bottom with follow-unless-scrolled-up, entry header and actions, one shadow root per document, own SSE reconnection with backoff and `after=` fills, `seq` dedupe, a "gone" state on 404, theme toggle both ways, inline favicon.
+- Decisions: VD-119 to VD-122, one DEVIATION in VD-122: "Copy failed" replaces §9.3's "Select text to copy", because a folded document is not on screen as text. VD-120 stops using `Last-Event-ID`, leaving `after=` as the only gap filler. VD-122 adds a 30 s probe while live, since a stopped process raises no `error` event; this amends VD-113.
+- Evidence (coordinator rerun on `main` at 466d402): `pnpm gate` exit 0. Vitest 87 files, 6,387 tests. Playwright 388 tests. Banned-API check clean on 91 source files and 3 built files, `dist/app.js` included. `check-bundle-size: 109.9 KiB minified, 37.5 KiB gzip`, unchanged. Coverage: lines 99.81% (4304/4312), statements 99.33%, branches 97.63%. No `ui-render` or `ui-spec` change; the root `package.json` change is only the `typecheck` and `check` scripts.
+- Coordinator probes on the real server and Chromium at 360x640: at the bottom on load; sticky bar at `top: 0` at rest and mid-scroll; position unchanged at 300 when a document arrives while scrolled up; follows at the bottom; newest last; a hostile title, `meta` and markdown image and `javascript:` link left no `img` and no script run; theme toggles both ways; at least 5 shadow roots; after `SIGKILL` it shows "Reconnecting…", and after a restart with new tokens "This Viewer has stopped. Run vui show to open a new feed." No CSP message; the 4 console errors are the expected network failures from the kill. In the worker's 360 px full-page screenshot the bar looks stranded mid-page; that is a full-page capture of a scrolled sticky element, and the viewport measurements above disprove a layout bug. My "no CSP violation" line printed FAIL only because its regex matched `ERR_CONNECTION_REFUSED`. `e2e/viewer-server.spec.ts` lost 68 lines to a shared harness, with no assertion dropped except the placeholder's text, now the real heading. Orca pane screenshot viewed: live documents in dark.
+- Not probed by the coordinator (worker evidence only): backoff timing, the gap fill after a dropped stream, `Copy spec`, `Open standalone`, focus under the bar. The worker clicked `Copy spec`, `Open standalone` and the theme toggle in the Orca pane on the pre-review build only; at head they pass in Playwright. Chromium only: Safari may refuse a first copy of a folded document (VD-122). The reviewer's 48-mutant sweep was not rerun after the fixes. Not committed to a browser matrix until task 21.
+- Review: fresh reviewer found no Critical issues and no XSS or navigation path. Five Important fixed (VD-122): a pinned table cell over the sticky bar, focus under the bar, "Live" outlasting a stopped Viewer and a hung read, copy and load results hidden from assistive technology, tests that could not fail.
+- Known gaps, by decision (VD-121): no cap on entries in a long-open page, no "jump to latest", a scroll in the same frame as a new document can be pinned back once, evicted documents stay listed and say they could not be loaded.
+- Follow-ups: task 15: keep `dist/app.js` beside `feed.js` (VD-119); one pane per Viewer, because a seventh tab exhausts HTTP/1.1 connections (VD-122); confirm VD-114's fresh pane in a real restart, which this probe supports: the old page says to run `vui show`. Task 18 reuses the header type in `doc-header.ts`.
