@@ -393,6 +393,16 @@ describe('the Orca pane', () => {
     expect(readViewerInfo(fixture.dir)?.browserPageId).toBe('page-1')
   })
 
+  it('prints no URL for a pane it moved', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    const first = (await showJson(fixture)).json as { url: string }
+    orca.list = () => tabs({ browserPageId: 'page-1', url: first.url })
+    await fixture.farm.crash(fixture.farm.viewers[0] as (typeof fixture.farm.viewers)[0])
+    const { stdout } = await show(fixture)
+    expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
+  })
+
   it('opens a new pane when the old one will not move', async () => {
     const orca: OrcaScript = { goto: () => ({ ok: false, stdout: '{"ok":false}' }) }
     const fixture = setup({ orca })
@@ -439,6 +449,7 @@ describe('the Orca pane', () => {
   it('--no-open prints the URL over a recorded pane, without asking Orca', async () => {
     const fixture = setup({ orca: {} })
     await show(fixture)
+    await show(fixture, ['--no-open'])
     fixture.calls.length = 0
     const { stdout } = await show(fixture, ['--no-open'])
     expect(fixture.calls).toEqual([])
@@ -465,6 +476,17 @@ describe('the Orca pane', () => {
     const { stdout, stderr } = await show(fixture)
     expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
     expect(stderr).toMatch(/^vui: warning: Orca did not open a pane \([a-z-]+\)\n$/)
+  })
+
+  it('prints the URL when a recorded pane cannot be listed or replaced', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    await show(fixture)
+    orca.list = () => ({ ok: false })
+    orca.create = () => ({ ok: false })
+    const { stdout, stderr } = await show(fixture)
+    expect(stdout.trimEnd().split('\n')[1]).toMatch(OPEN)
+    expect(stderr).toContain('Orca did not open a pane')
   })
 
   // VD-130's minor, closed by VD-141.
