@@ -1,7 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs'
-import { createServer } from 'node:http'
-import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,13 +23,9 @@ let base: string
 async function launch(): Promise<ViewerFile> {
   const state = mkdtempSync(join(tmpdir(), 'vui-e2e-state-'))
   const cwd = mkdtempSync(join(tmpdir(), 'vui-e2e-work-'))
-  const probe = createServer()
-  await new Promise<void>((done) => probe.listen(0, '127.0.0.1', done))
-  const { port } = probe.address() as AddressInfo
-  await new Promise((done) => probe.close(done))
   child = spawn(process.execPath, [ENTRY], {
     cwd,
-    env: { ...process.env, XDG_STATE_HOME: state, VUI_PORT: String(port) },
+    env: { ...process.env, XDG_STATE_HOME: state, VUI_PORT: undefined },
     stdio: ['ignore', 'ignore', 'pipe'],
   })
   await new Promise<void>((resolve) => {

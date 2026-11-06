@@ -33,6 +33,7 @@ describe('slugify (§11.5)', () => {
     ['', 'v-'],
     ['Звіт', 'v--'],
     ['a'.repeat(60), 'a'.repeat(48)],
+    [`!${'a'.repeat(60)}`, `v--${'a'.repeat(45)}`],
   ])('%j', (text, slug) => {
     expect(slugify(text)).toBe(slug)
   })
@@ -78,6 +79,13 @@ describe('DocStore.add', () => {
     expect(header).toMatchObject({ id: '1-v-', title: null, cwd: null, branch: null })
     const typed = new DocStore(temp()).add(doc(undefined, { meta: { cwd: 1, branch: {} } }))
     expect(typed).toMatchObject({ title: null, cwd: null, branch: null })
+  })
+
+  it('clips a long cwd or branch, since meta escapes the string limit', () => {
+    const long = 'x'.repeat(250_000)
+    const header = new DocStore(temp()).add(doc('T', { meta: { cwd: long, branch: long } }))
+    expect(header.cwd).toHaveLength(2000)
+    expect(header.branch).toHaveLength(2000)
   })
 
   it('gives a name only of safe characters to any title', () => {
@@ -203,12 +211,19 @@ describe('reload', () => {
     const dir = temp()
     mkdirSync(join(dir, 'docs'), { recursive: true })
     writeFileSync(join(dir, 'docs/notes.txt'), 'x')
-    writeFileSync(join(dir, 'docs/1-a.vui.json.tmp'), 'x')
     const warn = vi.fn()
     const store = new DocStore(dir, { warn })
     expect(store.size).toBe(0)
     expect(warn).not.toHaveBeenCalled()
     expect(existsSync(join(dir, 'docs/notes.txt'))).toBe(true)
+  })
+
+  it('removes what a crash mid-write left', () => {
+    const dir = temp()
+    mkdirSync(join(dir, 'docs'), { recursive: true })
+    writeFileSync(join(dir, 'docs/1-a.vui.json.tmp'), 'partial')
+    expect(new DocStore(dir).size).toBe(0)
+    expect(names(dir)).toEqual([])
   })
 
   it('applies retention at load', () => {

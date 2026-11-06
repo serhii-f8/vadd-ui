@@ -1,3 +1,4 @@
+import { request as httpRequest } from 'node:http'
 import { connect } from 'node:net'
 import { version } from '@vadd/ui'
 import { LIMITS, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
@@ -268,11 +269,60 @@ describe('POST /api/docs', () => {
     expect((await post(padded)).status).toBe(201)
   })
 
-  it('answers 413 by Content-Length, one byte over', async () => {
+  it('answers 413 one byte over, and every time as a 413, not a reset', async () => {
     const { post, store } = await start()
-    const reply = await post(' '.repeat(LIMITS.inputBytes + 1))
-    expect(reply.status).toBe(413)
+    const body = ' '.repeat(LIMITS.inputBytes + 1)
+    for (let i = 0; i < 25; i += 1) expect((await post(body)).status).toBe(413)
     expect(store.size).toBe(0)
+  })
+
+  it('answers 413 from the headers alone past what it will drain', async () => {
+    const { port } = await start()
+    const socket = connect(port, '127.0.0.1')
+    const reply = await new Promise<string>((resolve) => {
+      socket.once('data', (chunk) => resolve(chunk.toString()))
+      socket.write(
+        `POST /v/${READ}/api/docs HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n` +
+          `Authorization: ${BEARER.authorization}\r\nContent-Length: ${64 * 1024 * 1024}\r\n\r\n`,
+      )
+    })
+    socket.destroy()
+    expect(reply).toContain('413')
+  })
+
+  it('spends the rate budget when a body arrives, not when its headers do', async () => {
+    let clock = 0
+    const { port, store } = await start({ now: () => clock })
+    const held = (count: number) =>
+      Array.from({ length: count }, () => {
+        const body = '{"title":"T","body":[]}'
+        const outgoing = httpRequest({
+          host: '127.0.0.1',
+          port,
+          path: `/v/${READ}/api/docs`,
+          method: 'POST',
+          headers: { ...BEARER, 'content-length': body.length },
+          agent: false,
+        })
+        outgoing.write(body.slice(0, 1))
+        const reply = new Promise<number>((resolve) => {
+          outgoing.on('response', (incoming) => {
+            incoming.resume()
+            resolve(incoming.statusCode ?? 0)
+          })
+        })
+        return { reply, finish: () => outgoing.end(body.slice(1)) }
+      })
+    const early = held(20)
+    await new Promise((done) => setTimeout(done, 50))
+    clock = 5000
+    const late = held(5)
+    await new Promise((done) => setTimeout(done, 50))
+    for (const { finish } of [...early, ...late]) finish()
+    const statuses = await Promise.all([...early, ...late].map(({ reply }) => reply))
+    expect(statuses.filter((status) => status === 201)).toHaveLength(20)
+    expect(statuses.filter((status) => status === 429)).toHaveLength(5)
+    expect(store.size).toBe(20)
   })
 
   it('answers 413 to a chunked body, which declares no length', async () => {
@@ -289,7 +339,7 @@ describe('POST /api/docs', () => {
       socket.write(
         `POST /v/${READ}/api/docs HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n` +
           `Authorization: ${BEARER.authorization}\r\nTransfer-Encoding: chunked\r\n\r\n` +
-          `${size}\r\n${' '.repeat(LIMITS.inputBytes + 1)}\r\n`,
+          `${size}\r\n${' '.repeat(LIMITS.inputBytes + 1)}\r\n0\r\n\r\n`,
       )
     })
     expect(reply).toContain('413')
@@ -364,6 +414,17 @@ describe('GET /api/events', () => {
     stream.close()
     await vi.waitFor(() => expect(handler.clients()).toBe(0))
     expect(onActivity).toHaveBeenLastCalledWith(0)
+  })
+
+  it('frees the place of a pipelined stream when its socket dies', async () => {
+    const { port, handler, post } = await start()
+    const socket = connect(port, '127.0.0.1')
+    const stream = `GET /v/${READ}/api/events HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n\r\n`
+    socket.write(stream.repeat(3))
+    await vi.waitFor(() => expect(handler.clients()).toBe(3))
+    socket.destroy()
+    await vi.waitFor(() => expect(handler.clients()).toBe(0))
+    expect((await post(DOC)).json().clients).toBe(0)
   })
 
   it('answers 503 past 50 clients', async () => {

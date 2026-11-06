@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
-import type { ServerResponse } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { HEARTBEAT_MS, MAX_CLIENTS, SseHub } from '../src/sse.js'
+import { HEARTBEAT_MS, MAX_BUFFERED_BYTES, MAX_CLIENTS, SseHub } from '../src/sse.js'
 import type { DocHeader } from '../src/store.js'
 
 class FakeResponse extends EventEmitter {
@@ -9,6 +9,11 @@ class FakeResponse extends EventEmitter {
   status = 0
   headers: Record<string, string> = {}
   ended = false
+  destroyed = false
+  writableLength = 0
+  destroy() {
+    this.destroyed = true
+  }
   writeHead(status: number, headers: Record<string, string>) {
     this.status = status
     this.headers = headers
@@ -34,7 +39,8 @@ const header = (seq: number): DocHeader => ({
 
 function client(hub: SseHub, replay: DocHeader[] = []) {
   const res = new FakeResponse()
-  const opened = hub.open(res as unknown as ServerResponse, replay)
+  const req = { socket: res } as unknown as IncomingMessage
+  const opened = hub.open(req, res as unknown as ServerResponse, replay)
   return { res, opened }
 }
 
@@ -105,6 +111,18 @@ describe('SseHub', () => {
     expect(onChange).toHaveBeenLastCalledWith(1)
     res.emit('close')
     expect(onChange).toHaveBeenLastCalledWith(0)
+    hub.close()
+  })
+
+  it('drops a client that stopped reading', () => {
+    const hub = new SseHub({ version: '1' })
+    const { res } = client(hub)
+    res.writableLength = MAX_BUFFERED_BYTES
+    hub.broadcast(header(1))
+    expect(res.destroyed).toBe(false)
+    res.writableLength = MAX_BUFFERED_BYTES + 1
+    hub.broadcast(header(2))
+    expect(res.destroyed).toBe(true)
     hub.close()
   })
 

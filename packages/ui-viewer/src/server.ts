@@ -158,14 +158,17 @@ function portsToTry(env: NodeJS.ProcessEnv, ports: readonly number[] | undefined
 function listen(server: Server, port: number, address: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const onError = (error: NodeJS.ErrnoException) => {
+      server.off('listening', onListening)
       if (error.code === 'EADDRINUSE') resolve(false)
       else reject(error)
     }
-    server.once('error', onError)
-    server.listen(port, address, () => {
+    const onListening = () => {
       server.off('error', onError)
       resolve(true)
-    })
+    }
+    server.once('error', onError)
+    server.once('listening', onListening)
+    server.listen(port, address)
   })
 }
 
@@ -209,7 +212,13 @@ export async function startViewer(options: StartOptions): Promise<RunningViewer>
 
   const pid = process.pid
   const startedAt = new Date().toISOString()
-  writeViewerInfo(stateDir, { pid, port, readToken, writeToken, startedAt, version })
+  try {
+    writeViewerInfo(stateDir, { pid, port, readToken, writeToken, startedAt, version })
+  } catch (error) {
+    // An open listener would keep this process alive with no file and no idle exit.
+    await new Promise((resolve) => server.close(resolve))
+    throw error
+  }
   if (bind === ALL_INTERFACES) {
     warn(`vui: warning: Viewer bound to ${ALL_INTERFACES}:${port}, reachable from other machines`)
   }
@@ -234,5 +243,6 @@ export async function startViewer(options: StartOptions): Promise<RunningViewer>
   server.on('close', () => settled())
 
   const url = viewerUrl(port, readToken)
-  return { url, port, address: bind, readToken, writeToken, stateDir, close, closed }
+  const { address } = server.address() as AddressInfo
+  return { url, port, address, readToken, writeToken, stateDir, close, closed }
 }

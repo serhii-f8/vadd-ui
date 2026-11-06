@@ -9,7 +9,13 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join } from 'node:path'
-import { FILE_EXTENSION, isJsonObject, type JsonValue, type VuiDocument } from '@vadd/ui-spec'
+import {
+  FILE_EXTENSION,
+  isJsonObject,
+  type JsonValue,
+  LIMITS,
+  type VuiDocument,
+} from '@vadd/ui-spec'
 
 /** §4.1 retention: the newest 500 documents or 50 MiB, whichever is smaller. */
 export const MAX_DOCS = 500
@@ -18,6 +24,7 @@ export const MAX_BYTES = 50 * 1024 * 1024
 const SLUG_LENGTH = 48
 const OWNER_ONLY_FILE = 0o600
 const OWNER_ONLY_DIR = 0o700
+const TEMPORARY_SUFFIX = '.tmp'
 const STORED_NAME = /^(\d+)-(.*)\.vui\.json$/
 
 /** §4.1 (`GET /api/docs`). `id` is the file stem and everything else comes from VD-112. */
@@ -44,11 +51,8 @@ export interface DocStoreOptions {
 
 /** §11.5. The result is safe in a path and a URL whatever the title holds. */
 export function slugify(text: string): string {
-  const slug = text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .slice(0, SLUG_LENGTH)
-  return /^[a-z0-9]/.test(slug) ? slug : `v-${slug}`
+  const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  return (/^[a-z0-9]/.test(slug) ? slug : `v-${slug}`).slice(0, SLUG_LENGTH)
 }
 
 function stringOr(value: unknown): string | null {
@@ -63,8 +67,9 @@ function headerOf(document: VuiDocument, seq: number, id: string, createdAt: str
     id,
     title: stringOr(document.title),
     createdAt,
-    cwd: stringOr(meta?.cwd),
-    branch: stringOr(meta?.branch),
+    // `meta` escapes §13.4's string limit, and each header goes to every client.
+    cwd: stringOr(meta?.cwd)?.slice(0, LIMITS.string) ?? null,
+    branch: stringOr(meta?.branch)?.slice(0, LIMITS.string) ?? null,
   }
 }
 
@@ -100,7 +105,7 @@ export class DocStore {
     const seq = this.#lastSeq + 1
     const id = `${seq}-${slugify(stringOr(document.title) ?? '')}`
     const file = join(this.#dir, `${id}${FILE_EXTENSION}`)
-    const temporary = `${file}.tmp`
+    const temporary = `${file}${TEMPORARY_SUFFIX}`
     const text = JSON.stringify(document)
     const created = new Date(this.#now())
     writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
@@ -142,7 +147,12 @@ export class DocStore {
   }
 
   #load(): void {
-    const stored = readdirSync(this.#dir)
+    const names = readdirSync(this.#dir)
+    // What a crash mid-write left behind, which retention would never see.
+    for (const name of names) {
+      if (name.endsWith(TEMPORARY_SUFFIX)) rmSync(join(this.#dir, name), { force: true })
+    }
+    const stored = names
       .map((name) => ({ name, match: STORED_NAME.exec(name) }))
       .flatMap(({ name, match }) => (match ? [{ name, seq: Number(match[1]) }] : []))
       .sort((a, b) => a.seq - b.seq)

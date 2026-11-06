@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
@@ -17,7 +17,7 @@ import {
   ViewerRunningError,
   ViewerStartError,
 } from '../src/server.js'
-import { request, tempDir } from './helpers.js'
+import { freePort, request, tempDir } from './helpers.js'
 
 const running = new Set<RunningViewer>()
 const blockers = new Set<Server>()
@@ -81,6 +81,12 @@ describe('startViewer', () => {
     expect(statSync(file).mode & 0o777).toBe(0o600)
   })
 
+  it('keeps the state directory owner-only', async () => {
+    const options = fixture()
+    await start(options)
+    expect(statSync(options.dir).mode & 0o777).toBe(0o700)
+  })
+
   it('makes two 128-bit tokens, new on every start', async () => {
     const options = fixture()
     const first = await start(options)
@@ -133,11 +139,22 @@ describe('ports', () => {
     expect(LAST_PORT).toBe(47199)
   })
 
-  it('takes the first free port in the range', async () => {
+  it('moves past a busy port to the next', async () => {
     const busy = await occupy()
-    const free = await freePort(await occupy())
+    const free = await freePort()
     const viewer = await start({ ...fixture(), ports: [busy, free] })
     expect(viewer.port).toBe(free)
+  })
+
+  it('moves past many busy ports without a warning from Node', async () => {
+    const warned = vi.fn()
+    process.on('warning', warned)
+    const busy = await occupy()
+    const viewer = await start({ ...fixture(), ports: [...Array(15).fill(busy), 0] })
+    await new Promise((done) => setImmediate(done))
+    process.off('warning', warned)
+    expect(viewer.port).not.toBe(busy)
+    expect(warned).not.toHaveBeenCalled()
   })
 
   it('fails when every port is taken', async () => {
@@ -148,7 +165,7 @@ describe('ports', () => {
   })
 
   it('uses VUI_PORT, and only that', async () => {
-    const port = await freePort(await occupy())
+    const port = await freePort()
     const options = fixture()
     const viewer = await start({ ...options, env: { ...options.env, VUI_PORT: String(port) } })
     expect(viewer.port).toBe(port)
@@ -177,16 +194,6 @@ describe('ports', () => {
     await expect(startViewer({ ...fixture(), ports: [70_000] })).rejects.toBeInstanceOf(RangeError)
   })
 })
-
-/** A port that was just free. Closing `taken`'s blocker frees it. */
-async function freePort(taken: number): Promise<number> {
-  for (const server of blockers) {
-    if ((server.address() as AddressInfo).port !== taken) continue
-    blockers.delete(server)
-    await new Promise((done) => server.close(done))
-  }
-  return taken
-}
 
 describe('bind', () => {
   it('binds 127.0.0.1 by default and warns about nothing', async () => {
@@ -236,6 +243,16 @@ describe('one Viewer per workspace', () => {
     await expect(start(options)).resolves.toBeDefined()
   })
 
+  it('ignores a server that answers for a pid long gone', async () => {
+    const options = fixture()
+    const first = await start(options)
+    writeFileSync(
+      join(options.dir, 'viewer.json'),
+      JSON.stringify({ pid: 2_147_483_646, port: first.port }),
+    )
+    await expect(start(options)).resolves.toBeDefined()
+  })
+
   it('replaces a file whose live pid is something else', async () => {
     const options = fixture()
     await (await start(options)).close()
@@ -249,6 +266,16 @@ describe('one Viewer per workspace', () => {
     await (await start(options)).close()
     writeFileSync(join(options.dir, 'viewer.json'), 'garbage')
     await expect(start(options)).resolves.toBeDefined()
+  })
+})
+
+describe('a failed start', () => {
+  it('releases the port when viewer.json cannot be written', async () => {
+    const options = fixture()
+    const port = await freePort()
+    mkdirSync(join(options.dir, `viewer.json.${process.pid}.tmp`), { recursive: true })
+    await expect(startViewer({ ...options, ports: [port] })).rejects.toThrow()
+    await expect(occupy(port)).resolves.toBe(port)
   })
 })
 

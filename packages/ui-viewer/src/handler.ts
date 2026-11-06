@@ -15,6 +15,8 @@ const FEED_CSP =
 const STANDALONE_CSP =
   "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; frame-ancestors 'none'"
 
+/** Read past the limit up to here, so the client is reading when its 413 arrives, not reset. */
+const DRAIN_BYTES = 1024 * 1024
 const DEFAULT_PAGE = 100
 const MAX_PAGE = 500
 const PREFIX = /^\/v\/([^/]+)(\/.*)$/
@@ -136,7 +138,7 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
     const last = req.headers['last-event-id']
     const replay = typeof last === 'string' && DIGITS.test(last) ? Number(last) : undefined
     const headers = replay === undefined ? [] : store.after(replay, MAX_PAGE)
-    if (!hub.open(res, headers)) {
+    if (!hub.open(req, res, headers)) {
       res.setHeader('Retry-After', '5')
       refuse(res, 503, 'too-many-clients')
     }
@@ -147,20 +149,21 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       sendJson(res, 401, { ok: false, error: 'unauthorized' }, { 'WWW-Authenticate': 'Bearer' })
       return
     }
-    if (!limiter.allow(now())) {
-      sendJson(res, 429, { ok: false, error: 'rate-limited' }, { 'Retry-After': '1' })
-      return
-    }
     const tooLarge = () => {
       sendJson(res, 413, { ok: false, error: 'too-large' }, { Connection: 'close' })
     }
-    if (Number(req.headers['content-length']) > LIMITS.inputBytes) {
+    if (Number(req.headers['content-length']) > DRAIN_BYTES) {
       tooLarge()
       return
     }
-    const bytes = await readBody(req, LIMITS.inputBytes)
+    const bytes = await readBody(req, LIMITS.inputBytes, DRAIN_BYTES)
     if (bytes === 'too-large') {
       tooLarge()
+      return
+    }
+    // Here, not at the headers, or a held-open request could spend an old second's budget.
+    if (!limiter.allow(now())) {
+      sendJson(res, 429, { ok: false, error: 'rate-limited' }, { 'Retry-After': '1' })
       return
     }
     const text = decode(bytes)

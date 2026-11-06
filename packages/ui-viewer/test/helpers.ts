@@ -11,13 +11,21 @@ export const WRITE = 'w'.repeat(32)
 export const HASH = '0123456789abcdef'
 export const BEARER = { authorization: `Bearer ${WRITE}` }
 
-/** A port that was free a moment ago, so tests of a real process never pick one by chance. */
+/** A port that was free a moment ago, for tests that must name one. */
 export async function freePort(): Promise<number> {
-  const server = createServer()
-  await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
-  const { port } = server.address() as AddressInfo
-  await new Promise((done) => server.close(done))
-  return port
+  for (;;) {
+    // Below the ephemeral range, where another test's `listen(0)` cannot land on it.
+    const port = 20_000 + Math.floor(Math.random() * 12_000)
+    const server = createServer()
+    const free = await new Promise<boolean>((done) => {
+      server.once('error', () => done(false))
+      server.listen(port, '127.0.0.1', () => done(true))
+    })
+    if (free) {
+      await new Promise((done) => server.close(done))
+      return port
+    }
+  }
 }
 
 export function tempDir(): string {

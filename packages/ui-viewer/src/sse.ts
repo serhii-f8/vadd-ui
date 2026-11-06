@@ -1,8 +1,11 @@
-import type { ServerResponse } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { DocHeader } from './store.js'
 
 export const HEARTBEAT_MS = 15_000
 export const MAX_CLIENTS = 50
+
+/** Past this much unread output a client is dropped, and `EventSource` reconnects. */
+export const MAX_BUFFERED_BYTES = 1024 * 1024
 
 // A comment: §4.1 names only `doc` and `hello`, and clients skip it (VD-113).
 const HEARTBEAT = ': heartbeat\n\n'
@@ -33,12 +36,13 @@ export class SseHub {
   }
 
   /** False when full, with `res` untouched. `replay` goes out before anything live. */
-  open(res: ServerResponse, replay: readonly DocHeader[]): boolean {
+  open(req: IncomingMessage, res: ServerResponse, replay: readonly DocHeader[]): boolean {
     if (this.count >= MAX_CLIENTS) return false
     res.writeHead(200, { 'Content-Type': 'text/event-stream' })
     res.write(`event: hello\ndata: ${JSON.stringify({ version: this.#version })}\n\n`)
     for (const header of replay) res.write(docFrame(header))
-    res.on('close', () => this.#remove(res))
+    // The socket: a pipelined response is queued, has none, and so never emits `close`.
+    req.socket.once('close', () => this.#remove(res))
     this.#clients.add(res)
     this.#heartbeat ??= setInterval(() => this.#send(HEARTBEAT), HEARTBEAT_MS).unref()
     this.#onChange(this.count)
@@ -57,7 +61,10 @@ export class SseHub {
   }
 
   #send(frame: string): void {
-    for (const res of this.#clients) res.write(frame)
+    for (const res of this.#clients) {
+      res.write(frame)
+      if (res.writableLength > MAX_BUFFERED_BYTES) res.destroy()
+    }
   }
 
   #remove(res: ServerResponse): void {

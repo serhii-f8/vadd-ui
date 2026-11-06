@@ -27,24 +27,37 @@ export class WriteLimiter {
   #times: number[] = []
 
   allow(now: number): boolean {
-    this.#times = this.#times.filter((time) => now - time < WINDOW_MS)
+    // A clock that stepped back must not leave future times holding the window shut.
+    this.#times = this.#times.filter((time) => time <= now && now - time < WINDOW_MS)
     if (this.#times.length >= WRITES_PER_WINDOW) return false
     this.#times.push(now)
     return true
   }
 }
 
-/** The bytes of a request, or `too-large` the moment they pass `limit`. Keeps none past it. */
-export function readBody(req: IncomingMessage, limit: number): Promise<Buffer | 'too-large'> {
+/**
+ * The bytes of a request, or `too-large` if they pass `limit`, which keeps none past it. That
+ * answer waits for the end of the body, or for `drain` bytes, whichever comes first.
+ */
+export function readBody(
+  req: IncomingMessage,
+  limit: number,
+  drain: number,
+): Promise<Buffer | 'too-large'> {
   return new Promise((resolve, reject) => {
+    // A host's own parser may have taken the body, and no event would come.
+    if (req.readableEnded) {
+      reject(new Error('request body already read'))
+      return
+    }
     const chunks: Buffer[] = []
     let bytes = 0
     req.on('data', (chunk: Buffer) => {
       bytes += chunk.length
-      if (bytes > limit) resolve('too-large')
-      else chunks.push(chunk)
+      if (bytes > drain) resolve('too-large')
+      else if (bytes <= limit) chunks.push(chunk)
     })
-    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('end', () => resolve(bytes > limit ? 'too-large' : Buffer.concat(chunks)))
     req.on('error', reject)
     // Runs after `end` too, when this rejection is a no-op.
     req.on('close', () => reject(new Error('request closed early')))
