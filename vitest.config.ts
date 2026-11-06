@@ -11,6 +11,10 @@ const alias = Object.fromEntries([
     '@vadd/ui-spec/catalog',
     fileURLToPath(new URL('./packages/ui-spec/src/catalog.ts', import.meta.url)),
   ],
+  [
+    '@vadd/ui-spec/host/orca',
+    fileURLToPath(new URL('./packages/ui-spec/src/host/orca.ts', import.meta.url)),
+  ],
   ...['ui-spec', 'ui-render', 'ui-text', 'ui', 'ui-viewer', 'ui-cli', 'ui-react'].map((name) => [
     `@vadd/${name}`,
     fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url)),

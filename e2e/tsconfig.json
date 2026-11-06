@@ -3,7 +3,9 @@
   "extends": "../tsconfig.test.json",
   "compilerOptions": {
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // Orca's own settings: `native-chat-visual-directive.ts` indexes a match and cannot change.
+    "noUncheckedIndexedAccess": false
   },
   "include": ["**/*", "../playwright.config.ts"],
   "exclude": []

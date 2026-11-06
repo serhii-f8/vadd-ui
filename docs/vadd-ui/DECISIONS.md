@@ -1039,3 +1039,40 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Deferred, as minors: a `--title` over the limit starts a Viewer before its exit 3. A custom endpoint's malformed 422 exits 5 rather than 4. An unwritable `docs/` reaches the CLI as a 500, so exit 4 and not §11.4's 5; a task 20 hardening item. A POST timeout goes round once, so a very slow Viewer can store a document twice. After `--no-open` printed the URL, a later Orca failure prints none. `previous` lives only in the show that starts the Viewer, so a kill followed by `vui viewer start` or a `--no-open` show loses the pane, and the next show opens a second one.
 - Rationale: the fixes close a duplicate delivery, a hang and a split state directory. The minors cost a line of output or an extra pane.
 - Spec sections: §4.1, §11.4, §15.3, §17.3.
+
+## VD-131 — The Orca contract: where it lives and what it was read from
+- Date: 2026-11-06 · Task: 16
+- Context: VD-009 places `host/orca.ts`, §17.3 pins it to a version, and the bundle has 528 bytes of margin.
+- Decision: `@vadd/ui-spec/host/orca`, a second entry as in VD-110, which `index.ts` does not import. In the bundle it adds 0 bytes. It is pinned to tag `v1.4.248` (`c2f3bb6`), the installed Orca. `native-chat-visual-directive.ts` and the token file are the same at the tag, at `main` (`1ee8df1`) and at the vendored commit (`afac091`). The shell differs only in guest-theme code, and nothing pinned moved. `native-chat-visual-directive.ts` is now vendored too, so `e2e/orca-chat.spec.ts` compares every constant and runs Orca's real parser. The module holds a port of the parser for unit tests, and the e2e suite runs the two side by side on 20,000 fuzzed lines. `e2e/tsconfig.json` drops `noUncheckedIndexedAccess`: the vendored file indexes a match and cannot change.
+- Rationale: a constant compared with its source cannot drift unseen, and §17.3's scheduled job can diff the same files.
+- Spec sections: §4.2, §9.5, §17.3.
+
+## VD-132 — The directive title
+- Date: 2026-11-06 · Task: 16
+- Context: §4.2 bans quotes, backslashes and control characters. Orca's grammar accepts `{` and `}` inside a quoted value, and measures in UTF-16 units.
+- Decision: `directiveTitle` is the only way document text reaches the line. It runs `cleanText`, drops format characters and lone surrogates, and turns `"`, `\`, braces and whitespace runs into one space. It cuts at 120 units without splitting a pair, then trims. Braces go although Orca allows them: with none, a title cannot spell `::orca-visual{`. A title with nothing left omits the attribute, which Orca reads as optional. An untitled or mistyped-title document has no title attribute and is named `v-<hex4>.html`. `<title>` in the file keeps the original text with its own escaping.
+- Alternatives: keep braces, which relies on every reader honoring quotes.
+- Rationale: `stdout` is pasted verbatim, so the line must be safe whoever reads it.
+- Spec sections: §4.2, §11.2, §15.1.
+
+## VD-133 — File hosts: details §11 leaves open
+- Date: 2026-11-06 · Task: 16
+- Context: §11.2 has no output for `--host file`, §11.5 does not say what follows a trailing `-` or an empty slug, and §11.4 does not separate an unset variable from an unusable folder.
+- Decision: `--host file` prints `vui: wrote <path> (<n> bytes)`, as `render --out` does. Slug: lowercased, each run outside `[a-z0-9]` becomes `-`, cut to 48, trailing `-` dropped, `v-` prefixed when it does not start alphanumeric, cut and dropped again. So `Тест` gives `v` and `!Hi` gives `v--hi`, the second literal to §11.5. Explicit `--host orca-chat` with the variable unset or empty exits 4; a folder that is missing or not writable exits 5, as `--dir` does; folders are never created. `auto` still goes to the Viewer on an unusable folder (§4.0). Files are written with `wx`, so a collision retries (16 tries, then exit 5) and a planted symlink is not followed. A failed write removes its own file. `meta.cwd` and `meta.branch` are removed from files, even when the document claims them (VD-123). `--json` has `host`, `file`, `path`, `bytes`, `title`, `viewer`, `diagnostics`, and `directive` on `orca-chat`.
+- `--title` over `LIMITS.string` now exits 3 in `prepare`, before any host. A file host has no 422 to catch it, so a file could hold what `vui validate` refuses. This closes VD-130's deferred minor.
+- Rationale: each case keeps to §11.4's meanings, and `wx` is the one call that is atomic.
+- Spec sections: §4.0, §4.2, §11.2, §11.4, §11.5.
+
+## VD-134 — "A running Viewer"
+- Date: 2026-11-06 · Task: 16
+- Context: §3 says the document is also posted to the Viewer "if one is already running", for `orca-chat`. The task's acceptance line sits under files generally.
+- Decision: running means `findViewer` proves one for this workspace through `/health`, or `VUI_VIEWER_URL` is set, since that is the Viewer the user configured. Nothing starts and no pane opens. Both file hosts post, because the reason (the feed stays complete) holds for both. The file goes first. The copy gets `viewerOverrides`, so it carries `cwd` and `branch` and the file does not. After the file exists every failure (unreachable, 401, 413, 422, 5xx, a bad `VUI_VIEWER_URL`) is one `vui: warning:` line and exit 0, and `--json` reports it in `viewer.state` (`none`, `posted`, `failed`). A Viewer that is not running is silent. A file over 500 KiB exits 3 and posts nothing, as nothing was delivered. A hung Viewer delays the line by the 5 s POST timeout. The worst case is an endpoint that answers `429` just inside that timeout each time: 3 POSTs and 2 sleeps, measured at 16.5 s. A stopped local Viewer fails `/health` in about 1 s and counts as not running, so the feed misses that document silently. A folder needs `W_OK` and `X_OK` to count as writable.
+- Rationale: §17.3's "delivery still succeeds" holds, and the agent's line is never lost to a courtesy.
+- Spec sections: §3, §4.0, §11.2, §17.3.
+
+## VD-135 — What the Orca shell proof covers
+- Date: 2026-11-06 · Task: 16
+- Context: Orca Chat UI and `::orca-visual` do not work in WSL on this machine.
+- Decision: the proof is the vendored shell, in Chromium: real `vui show` files through Orca's own `buildNativeChatVisualDocument`, in a real sandboxed iframe, at 360, 720 and 1100 px, light and dark, and lines read by Orca's own parser. `render --cdn` runs through it with the CDN URL routed to the local bundle, so jsDelivr itself is not exercised, and `@vadd/ui@1` is not on npm yet. Unverified for task 21: the real transcript's file read and mounting, the directive during streaming, Electron's frame registration, and macOS and Windows WebViews.
+- Rationale: stated so that a passing suite is not read as a checked chat.
+- Spec sections: §4.2, §16, §16.1.

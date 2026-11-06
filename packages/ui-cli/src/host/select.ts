@@ -14,9 +14,10 @@ export interface HostChoice {
 const AUTO = 'auto'
 const HOSTS: readonly string[] = ['viewer', 'orca-chat', 'file']
 
-function isWritableDirectory(path: string): boolean {
+/** Search as well as write: creating an entry needs both. */
+export function isWritableDirectory(path: string): boolean {
   try {
-    accessSync(path, constants.W_OK)
+    accessSync(path, constants.W_OK | constants.X_OK)
     return statSync(path).isDirectory()
   } catch {
     return false

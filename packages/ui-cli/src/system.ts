@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
@@ -44,6 +45,8 @@ export interface System {
   isAlive: (pid: number) => boolean
   sleep: (ms: number) => Promise<void>
   pathJoin: (directory: string, file: string) => string
+  /** §11.5's random suffix. */
+  hex4: () => string
   exists: (path: string) => boolean
   read: (path: string) => string | undefined
 }
@@ -135,6 +138,7 @@ export const realSystem: System = {
   isAlive,
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   pathJoin: join,
+  hex4: () => randomBytes(2).toString('hex'),
   exists: existsSync,
   read,
 }

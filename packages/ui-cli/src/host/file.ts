@@ -1,0 +1,125 @@
+import { rmSync, writeFileSync } from 'node:fs'
+import { directiveLine } from '@vadd/ui-spec/host/orca'
+import { outputTooLarge } from '../commands.js'
+import { CliError, EXIT, noHost, type Outcome } from '../outcome.js'
+import { OUTPUT_LIMIT, renderOutput } from '../output.js'
+import type { Overrides } from '../pipeline.js'
+import { formatDiagnostics, safe } from '../print.js'
+import type { System } from '../system.js'
+import { type Delivery, type Mirror, mirrorToViewer } from '../viewer/deliver.js'
+
+const MAX_SLUG = 48
+const FALLBACK_PREFIX = 'v-'
+const NAME_TRIES = 16
+
+const NOT_IN_SLUG = /[^a-z0-9]+/g
+const TRAILING_DASHES = /-+$/
+const STARTS_WELL = /^[a-z0-9]/
+
+const cut = (slug: string) => slug.slice(0, MAX_SLUG).replace(TRAILING_DASHES, '')
+
+/** §11.5. It never holds a `.`, so Orca's device check always sees `<slug>-<hex4>`. */
+export function slugOf(text: string): string {
+  const slug = cut(text.toLowerCase().replace(NOT_IN_SLUG, '-'))
+  return STARTS_WELL.test(slug) ? slug : cut(`${FALLBACK_PREFIX}${slug}`)
+}
+
+/** VD-123: a file holds no local path, not even one the document claims. */
+export function fileOverrides(): Overrides {
+  return { meta: { cwd: undefined, branch: undefined } }
+}
+
+interface Written {
+  file: string
+  path: string
+}
+
+/** Removes only its own file: `wx` got past `EEXIST`, so anything left there is this write's. */
+function discard(path: string): void {
+  try {
+    rmSync(path, { force: true })
+  } catch {
+    // The directive was never printed, so nothing will read what is left.
+  }
+}
+
+/** `wx`: a collision fails instead of overwriting, and a planted symlink is not followed. */
+function writeNew(dir: string, slug: string, text: string, system: System): Written {
+  for (let attempt = 0; attempt < NAME_TRIES; attempt += 1) {
+    const file = `${slug}-${system.hex4()}.html`
+    const path = system.pathJoin(dir, file)
+    try {
+      writeFileSync(path, text, { flag: 'wx' })
+      return { file, path }
+    } catch (error) {
+      const { code, message } = error as NodeJS.ErrnoException
+      if (code === 'EEXIST') continue
+      discard(path)
+      throw new CliError(EXIT.io, 'io', `cannot write ${path}: ${code ?? message}`)
+    }
+  }
+  throw new CliError(EXIT.io, 'io', `no free file name in ${dir} after ${NAME_TRIES} tries`)
+}
+
+function warningOf(mirror: Mirror): string {
+  if (mirror.state !== 'failed') return ''
+  return `${safe(`vui: warning: the Viewer did not take a copy (${mirror.reason})`)}\n`
+}
+
+interface Host {
+  host: 'orca-chat' | 'file'
+  dir: string
+  /** The one line of stdout. */
+  line: (written: Written, title: string, bytes: number) => string
+  /** What `--json` adds. */
+  extra: (line: string) => Record<string, unknown>
+}
+
+/** The file first, then the copy: §3's Viewer is a courtesy, and its failure only warns. */
+async function deliverFile(delivery: Delivery, host: Host): Promise<Outcome> {
+  const { document, diagnostics, name, readBundle, system } = delivery
+  const output = renderOutput(document, { format: 'html', readBundle })
+  const bytes = Buffer.byteLength(output)
+  if (bytes > OUTPUT_LIMIT) return outputTooLarge(bytes, diagnostics)
+
+  const title = typeof document.title === 'string' ? document.title : ''
+  const written = writeNew(host.dir, slugOf(name ?? title), output, system)
+  const viewer = await mirrorToViewer(document, system)
+  const line = host.line(written, title, bytes)
+  return {
+    exit: EXIT.ok,
+    stdout: `${line}\n`,
+    stderr: `${formatDiagnostics(diagnostics)}${warningOf(viewer)}`,
+    json: {
+      host: host.host,
+      ...written,
+      bytes,
+      title: title === '' ? null : title,
+      ...host.extra(line),
+      viewer,
+      diagnostics,
+    },
+  }
+}
+
+/** §4.2. The line is the agent's to paste, and all a document can put in it is a clean title. */
+export function deliverToChat(delivery: Delivery): Promise<Outcome> {
+  const { ORCA_CHAT_SCRATCH_DIR: dir } = delivery.system.env
+  if (!dir) throw noHost('ORCA_CHAT_SCRATCH_DIR is not set')
+  return deliverFile(delivery, {
+    host: 'orca-chat',
+    dir,
+    line: ({ file }, title) => directiveLine({ file, title }),
+    extra: (directive) => ({ directive }),
+  })
+}
+
+/** `selectHost` has seen to it that `--dir` is there. */
+export function deliverToDirectory(delivery: Delivery): Promise<Outcome> {
+  return deliverFile(delivery, {
+    host: 'file',
+    dir: delivery.dir as string,
+    line: ({ path }, _title, bytes) => safe(`vui: wrote ${path} (${bytes} bytes)`),
+    extra: () => ({}),
+  })
+}
