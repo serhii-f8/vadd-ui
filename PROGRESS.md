@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T12:06:42Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T12:46:13Z · Mode: manual
 
 ## Summary
-Done 15 / 22 · In progress: none · Blocked: none · Next: 16 — orca-chat adapter and file host
+Done 16 / 22 · In progress: none · Blocked: none · Next: 17 — Agent skill
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -43,7 +43,7 @@ Recorded 2026-11-04 during bootstrap.
 | 13 | Viewer server | §4.1, §15.3 | 11 | done | removed | ctx_265446aad682 | [design](docs/superpowers/specs/2026-11-06-viewer-server-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-server.md) | 19116ab | 2026-11-06 |
 | 14 | Viewer feed app | §4.1 | 13 | done | removed | ctx_c798040b5e2e | [design](docs/superpowers/specs/2026-11-06-viewer-feed-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-feed.md) | 466d402 | 2026-11-06 |
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | done | removed | ctx_8bf75fe4de7b | [design](docs/superpowers/specs/2026-11-06-vui-show-design.md) | [plan](docs/superpowers/plans/2026-11-06-vui-show.md) | 3170078 | 2026-11-06 |
-| 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | todo | | | | | | |
+| 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | done | removed | ctx_4d1d7dc57557 | [design](docs/superpowers/specs/2026-11-06-orca-chat-design.md) | [plan](docs/superpowers/plans/2026-11-06-orca-chat.md) | 53a5319 | 2026-11-06 |
 | 17 | Agent skill | §12.1 | 16 | todo | | | | | | |
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | todo | | | | | | |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | todo | | | | | | |
@@ -212,3 +212,15 @@ none
 - Review: fresh reviewer found no Critical issues and 5 Important, all fixed (VD-130): a lock released by the wrong show, a command ignoring SIGTERM holding the CLI open, a stored document exiting 5 and being stored twice on retry, a stalled Viewer read as dead, and the §15.3 `--bind` warning reaching only the log. The worker found 2 more while fixing. Six minors deferred in VD-130.
 - Incident: the worker stopped once on `API Error: Connection lost mid-response`, 16 failing tests into its fix pass. `send` resumed it. The gate it reported ran at the commit before head, which only edits `DECISIONS.md`; the gate above covers head.
 - Follow-ups: task 16 fills `ADAPTERS` in `packages/ui-cli/src/show.ts`. Task 18: `VUI_VIEWER_URL` semantics in VD-126. Task 20: exit 5 for an unwritable `docs/` (VD-130); `/docs/<id>.html` embeds `meta.cwd`, so a shared file shows a local path (VD-123). Task 21: report both delivery numbers per cell (VD-129); read §16.1 for system browsers per VD-125; run `viewer open` for real. After `vui viewer stop` or an idle exit the pane id is lost, so the next show opens a new pane beside the dead one (VD-125).
+
+### 16 — orca-chat adapter and file host
+- Built: `--host orca-chat`, `--host file --dir`, auto-selection through `ORCA_CHAT_SCRATCH_DIR`, a best-effort post to a running Viewer, and `@vadd/ui-spec/host/orca`, a separate entry pinned to Orca 1.4.248 (tag `v1.4.248`, `c2f3bb6`). `--title` over the string limit now exits 3 before any host, closing a VD-130 minor.
+- The real Orca chat is NOT verified: Orca Chat UI and `::orca-visual` do not work in WSL here. The proof is the vendored shell in Chromium and Orca's own parser (VD-135). Open for task 21: the transcript's file read and mounting, the directive during streaming, Electron frame registration, macOS and Windows WebViews, real jsDelivr (`@vadd/ui@1` is not on npm).
+- Decisions: VD-131 to VD-135, no DEVIATION.
+- Evidence (coordinator rerun on `main` at 53a5319): `pnpm gate` exit 0. Vitest 100 files, 6,748 tests. Playwright 413 tests. Banned-API check clean on 92 source files and 3 built files. `check-bundle-size: 109.9 KiB minified, 37.5 KiB gzip`, unchanged. Coverage: lines 99.66% (5004/5021), statements 99.06%, branches 97.07%. The only `package.json` change is the `./host/orca` export; no lockfile or spec change.
+- Coordinator probes on the real CLI: a hostile title holding quotes, backslash, newline, braces and a second `::orca-visual{` gave exactly one stdout line, with no quote, backslash or brace in the title value; `--host orca-chat` unset exit 4; auto used the scratch folder, and with a missing one fell to the Viewer; a document claiming `meta.cwd` and `meta.branch` left neither in the file, while the Viewer's copy got the real `cwd`; `--host file` without `--dir` and `--dir` without it exit 2; missing folder exit 5; `--format html --cdn` writes the §10.2 lines. A 240 KB document that passes `validate` but expands to 592,983 bytes exits 3, wrote no file in either file host, and posted nothing to a running Viewer. Three of my inputs were wrong first (hitting input, string and format errors), then corrected; only the last oversize run counts. I viewed the final `chat-light-360` shell shot and the Viewer pane evidence.
+- Not probed by the coordinator (worker evidence only): the 5,000-input property test, the 20,000-line parser fuzz, exact 500 KiB passing, planted symlink (a test exists), the 16.5 s worst case, shell runs at other widths.
+- Review: fresh reviewer found 1 Important, a Viewer reply of JSON null losing the directive, fixed with the minors. The reviewer saw 1 unit failure once, name not captured; it did not recur in 12 reruns, the worker's gates or mine. Treat it as a possible flake, unidentified.
+- Coordinator notes: `ui-viewer` `slugify` and `ui-cli` `slugOf` differ on non-Latin titles: `Звіт` gives `v--` for a store id (VD-112) and `Тест` gives `v` for a file (VD-133). Both output valid names, so nothing is wrong today, but it is two readings of §11.5. `e2e/tsconfig.json` turned off `noUncheckedIndexedAccess` for all of `e2e/` to fit one vendored file. Commits `db95388` and `8dc326d` have red e2e tests mid-branch; head is green.
+- Left open: `discard()` on a failed write and `safe()` on the warning line have no test. A stopped local Viewer counts as not running, so the feed silently misses that document (VD-134). A 429-looping endpoint can delay the directive 16.5 s (VD-134).
+- Follow-ups: task 17: the skill must teach pasting the directive line verbatim and sending the tail of long output (VD-096), plus explicit columns for year-like keys. Task 20: merge the two slug functions; narrow the e2e `tsconfig` change to the vendored file; add the two missing tests; watch for the unidentified flake and the `code.test.ts` watchdog. Task 21: VD-135's list.
