@@ -1126,3 +1126,12 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - `SKILL.md` is unchanged: "If a `vui: open <url>` line follows, give the user that URL" already covers it.
 - Rationale: a repeated line costs an agent a few tokens; a missing one leaves the user with no data and no link.
 - Spec sections: §4.1, §11.2, §17.3.
+
+## VD-142 — The one-pane test's stub lists what it created
+- Date: 2026-11-06 · Task: 17 (coordinator, at integration)
+- Context: the gate on merged `main` at 8f1fecd failed once on `opens one pane for five simultaneous shows`: 2 `tab create` calls, where 1 was expected. The stub always answered `tab list` with no tabs. The test dates from task 15, so VD-141 did not cause this. The two gates before it passed, and the file passed 6 of 6 alone.
+- Cause, reproduced with the real `dist/bin.js` under CPU load, 30 rounds each: when a slower show takes `pane.lock` after the first released it, it reads the recorded id and lists tabs. The old stub said none, which gave `tab create > tab list > tab create` in 1 of 30. A stub that lists what it created gave `tab create > tab list` in 6 of 30 and never a second create. The CLI was right, and it did what `kept` exists for.
+- Decision: the stub remembers its tabs, as Orca does. This is a test fix by the coordinator, because it was on a red `main`, and it changes no product code. The test still has teeth: with `pane.lock` removed from `showPane` and rebuilt, it failed 3 of 3 with 5 `tab create` calls.
+- Limit: the stub's `tab list` is consistent as soon as `tab create` returns. Real Orca was seen listing the tab in the task 15 and coordinator pane runs, but not in this exact race, so a real Orca that lags here could still open a second pane.
+- Rationale: a test that fails for its own fake teaches people to ignore it, and rerunning until green would have hidden a real-looking one-pane failure.
+- Spec sections: §4.1, §16.1.

@@ -155,13 +155,22 @@ describe('dist/bin.js show', () => {
   it('opens one pane for five simultaneous shows, through a stub Orca', async () => {
     const dir = tempDir()
     const calls = join(dir, 'calls')
+    const tabs = join(dir, 'tabs')
     const stub = join(dir, 'orca-stub')
     writeFileSync(
       stub,
       `#!${process.execPath}
-const { appendFileSync } = require('node:fs')
-appendFileSync(${JSON.stringify(calls)}, process.argv.slice(2).join(' ') + '\\n')
-const result = process.argv[3] === 'list' ? { tabs: [] } : { browserPageId: 'page-1' }
+const { appendFileSync, existsSync, readFileSync, writeFileSync } = require('node:fs')
+const args = process.argv.slice(2)
+appendFileSync(${JSON.stringify(calls)}, args.join(' ') + '\\n')
+// As Orca does, list what was created: a late show must find the pane and keep it.
+const tabs = ${JSON.stringify(tabs)}
+const known = existsSync(tabs) ? JSON.parse(readFileSync(tabs, 'utf8')) : []
+if (args[1] !== 'list') {
+  known.push({ browserPageId: 'page-' + (known.length + 1), url: args[args.indexOf('--url') + 1] })
+  writeFileSync(tabs, JSON.stringify(known))
+}
+const result = args[1] === 'list' ? { tabs: known } : known[known.length - 1]
 console.log(JSON.stringify({ ok: true, result }))
 `,
     )
