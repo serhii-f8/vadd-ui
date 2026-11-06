@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T10:50:14Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T12:06:42Z · Mode: manual
 
 ## Summary
-Done 14 / 22 · In progress: none · Blocked: none · Next: 15 — vui show, host routing, viewer lifecycle, doctor
+Done 15 / 22 · In progress: none · Blocked: none · Next: 16 — orca-chat adapter and file host
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -42,7 +42,7 @@ Recorded 2026-11-04 during bootstrap.
 | 12 | CLI core | §10, §10.1, §11.1, §11.3, §11.4, §15.1, §17.2 | 05, 11 | done | removed | ctx_6cbdfd5d1778 | [design](docs/superpowers/specs/2026-11-05-cli-core-design.md) | [plan](docs/superpowers/plans/2026-11-05-cli-core.md) | d7d6c61 | 2026-11-05 |
 | 13 | Viewer server | §4.1, §15.3 | 11 | done | removed | ctx_265446aad682 | [design](docs/superpowers/specs/2026-11-06-viewer-server-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-server.md) | 19116ab | 2026-11-06 |
 | 14 | Viewer feed app | §4.1 | 13 | done | removed | ctx_c798040b5e2e | [design](docs/superpowers/specs/2026-11-06-viewer-feed-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-feed.md) | 466d402 | 2026-11-06 |
-| 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | todo | | | | | | |
+| 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | done | removed | ctx_8bf75fe4de7b | [design](docs/superpowers/specs/2026-11-06-vui-show-design.md) | [plan](docs/superpowers/plans/2026-11-06-vui-show.md) | 3170078 | 2026-11-06 |
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | todo | | | | | | |
 | 17 | Agent skill | §12.1 | 16 | todo | | | | | | |
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | todo | | | | | | |
@@ -200,3 +200,15 @@ none
 - Review: fresh reviewer found no Critical issues and no XSS or navigation path. Five Important fixed (VD-122): a pinned table cell over the sticky bar, focus under the bar, "Live" outlasting a stopped Viewer and a hung read, copy and load results hidden from assistive technology, tests that could not fail.
 - Known gaps, by decision (VD-121): no cap on entries in a long-open page, no "jump to latest", a scroll in the same frame as a new document can be pinned back once, evicted documents stay listed and say they could not be loaded.
 - Follow-ups: task 15: keep `dist/app.js` beside `feed.js` (VD-119); one pane per Viewer, because a seventh tab exhausts HTTP/1.1 connections (VD-122); confirm VD-114's fresh pane in a real restart, which this probe supports: the old page says to run `vui show`. Task 18 reuses the header type in `doc-header.ts`.
+
+### 15 — vui show, host routing, viewer lifecycle, doctor
+- Built: `vui show` with §4.0 host selection and an adapter table for task 16, detached Viewer start with `viewer.lock` and `pane.lock`, one-pane logic, `vui viewer start|stop|status|open|url`, `vui doctor`, `VUI_VIEWER_URL` and `VUI_VIEWER_TOKEN`, `meta.cwd` and `meta.branch` on the Viewer path only.
+- Acceptance not fully met: "≤ 1 s" holds for an open pane, not for the first show of a Viewer. VD-129 logs this as a DEVIATION: the worker measured about 1.05 s to the document read, attributing the excess to `orca tab create` at 0.9 to 1.9 s. Accepted by the coordinator because the CLI and Viewer take about 170 ms; task 21 reports both numbers per cell.
+- Decisions: VD-123 to VD-130, one DEVIATION (VD-129). VD-125 goes further than VD-114: after a kill the CLI moves the same pane to the new URL with `goto`, so §16.1's "the open page reconnects" holds in Orca while §15.3's rotation stands. In a system browser it does not: the old page stays stopped and the new URL line is the way back.
+- Evidence (coordinator rerun on `main` at 3170078): `pnpm gate` exit 0. Vitest 98 files, 6,622 tests. Playwright 390 tests. Banned-API check clean on 91 source files and 3 built files. `check-bundle-size: 109.9 KiB minified, 37.5 KiB gzip`, unchanged. Coverage: lines 99.63% (4884/4902), statements 99.02%, branches 97.03%, down slightly from 99.81% and 97.63%; package thresholds pass. No `package.json`, lockfile or spec change.
+- Coordinator probes on the real CLI: first show 159 ms with `--no-open`, and the second reused the Viewer; a title with ESC and a newline printed escaped on one stdout line; invalid document exit 1; `--host file` without `--dir` exit 2; `--host orca-chat` exit 4; `--json` valid; `viewer.json` and `viewer.log` 0600 with no token in the log; `meta.cwd` stored; `kill -9` then show restarted the Viewer; 5 simultaneous shows stored 5 sequential documents and one `stop` left no Viewer; `viewer.lock` gone afterwards.
+- Coordinator probes in a real Orca pane: the first CLI call returned in 2,418 ms; three later shows returned in 96 to 102 ms; `tab list` showed 1 viewer tab after 4 shows and after a `kill -9`, with the same `browserPageId`; the restart show returned in 1,946 ms. The tab was closed and the Viewer stopped. `vui doctor`: exit 0 in 21.4 s, confirming VD-128. These are CLI return times, not time to visible. I did not reproduce the worker's 66 to 88 ms or 1,046 to 1,068 ms figures, and did not confirm by eye that the restarted page was live.
+- Not run for real: `vui viewer open` against a real browser, the NAT cell, native Windows paths. Fakes only; task 21 owns them. Worker evidence, not rerun: the `MutationObserver` timing, `kill -STOP` stalled state, the custom endpoint against a stub, screenshots at three widths in both themes.
+- Review: fresh reviewer found no Critical issues and 5 Important, all fixed (VD-130): a lock released by the wrong show, a command ignoring SIGTERM holding the CLI open, a stored document exiting 5 and being stored twice on retry, a stalled Viewer read as dead, and the §15.3 `--bind` warning reaching only the log. The worker found 2 more while fixing. Six minors deferred in VD-130.
+- Incident: the worker stopped once on `API Error: Connection lost mid-response`, 16 failing tests into its fix pass. `send` resumed it. The gate it reported ran at the commit before head, which only edits `DECISIONS.md`; the gate above covers head.
+- Follow-ups: task 16 fills `ADAPTERS` in `packages/ui-cli/src/show.ts`. Task 18: `VUI_VIEWER_URL` semantics in VD-126. Task 20: exit 5 for an unwritable `docs/` (VD-130); `/docs/<id>.html` embeds `meta.cwd`, so a shared file shows a local path (VD-123). Task 21: report both delivery numbers per cell (VD-129); read §16.1 for system browsers per VD-125; run `viewer open` for real. After `vui viewer stop` or an idle exit the pane id is lost, so the next show opens a new pane beside the dead one (VD-125).
