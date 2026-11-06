@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T12:46:13Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T13:46:51Z · Mode: manual
 
 ## Summary
-Done 16 / 22 · In progress: none · Blocked: none · Next: 17 — Agent skill
+Done 17 / 22 · In progress: none · Blocked: none · Next: 18 — ui-react and the Viewer HTTP contract
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -44,7 +44,7 @@ Recorded 2026-11-04 during bootstrap.
 | 14 | Viewer feed app | §4.1 | 13 | done | removed | ctx_c798040b5e2e | [design](docs/superpowers/specs/2026-11-06-viewer-feed-design.md) | [plan](docs/superpowers/plans/2026-11-06-viewer-feed.md) | 466d402 | 2026-11-06 |
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | done | removed | ctx_8bf75fe4de7b | [design](docs/superpowers/specs/2026-11-06-vui-show-design.md) | [plan](docs/superpowers/plans/2026-11-06-vui-show.md) | 3170078 | 2026-11-06 |
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | done | removed | ctx_4d1d7dc57557 | [design](docs/superpowers/specs/2026-11-06-orca-chat-design.md) | [plan](docs/superpowers/plans/2026-11-06-orca-chat.md) | 53a5319 | 2026-11-06 |
-| 17 | Agent skill | §12.1 | 16 | todo | | | | | | |
+| 17 | Agent skill | §12.1 | 16 | done | removed | ctx_8fd8d4955071, ctx_1b30618a57dd | [design](docs/superpowers/specs/2026-11-06-agent-skill-design.md) | [plan](docs/superpowers/plans/2026-11-06-agent-skill.md) | 8f1fecd, fix f7a4267 | 2026-11-06 |
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | todo | | | | | | |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | todo | | | | | | |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | todo | | | | | | |
@@ -224,3 +224,16 @@ none
 - Coordinator notes: `ui-viewer` `slugify` and `ui-cli` `slugOf` differ on non-Latin titles: `Звіт` gives `v--` for a store id (VD-112) and `Тест` gives `v` for a file (VD-133). Both output valid names, so nothing is wrong today, but it is two readings of §11.5. `e2e/tsconfig.json` turned off `noUncheckedIndexedAccess` for all of `e2e/` to fit one vendored file. Commits `db95388` and `8dc326d` have red e2e tests mid-branch; head is green.
 - Left open: `discard()` on a failed write and `safe()` on the warning line have no test. A stopped local Viewer counts as not running, so the feed silently misses that document (VD-134). A 429-looping endpoint can delay the directive 16.5 s (VD-134).
 - Follow-ups: task 17: the skill must teach pasting the directive line verbatim and sending the tail of long output (VD-096), plus explicit columns for year-like keys. Task 20: merge the two slug functions; narrow the e2e `tsconfig` change to the vendored file; add the two missing tests; watch for the unidentified flake and the `code.test.ts` watchdog. Task 21: VD-135's list.
+
+### 17 — Agent skill
+- Built: `skills/vadd-ui/SKILL.md` with the exact §12.1 frontmatter, a README with both install paths, and 88 skill tests that hold the clauses, the examples, the CLI contract and host neutrality. In the CLI, `vui: open` now prints whenever the reader has no way in (VD-141).
+- Decisions: VD-136 to VD-142, one DEVIATION (VD-141, from §11.2 and §4.1). VD-142 is the coordinator's.
+- Token budget is an estimate, not a measurement: 1,706 against a local gate of 1,710, with 4 tokens of slack, from 1,312 `cl100k_base` tokens × 1.3 (VD-136). No API key here, and nothing counted a real model. A real count could land above 1,800. Task 19 must recount.
+- Held before merge: the first worker's report (b906a2a) left an Important gap. A new session or a closed tab printed only `vui: shown`, and the skill says not to repeat the data, so the user got neither data nor a link. Coordinator ruled: fix it on this branch. `send` failed at `terminal_create` (ctx_9e7be5a5aee4; its task task_bbc7419e805a is closed as failed), `worker-start` on the old terminal gave `agent_unconfigured`, and a fresh worker fixed it in the same worktree (ctx_1b30618a57dd, head e9c2bc1).
+- Incident, red `main`: the gate on merge 8f1fecd FAILED, 1 test, `opens one pane for five simultaneous shows`, 2 `tab create` calls. I first misread the background task's "exit code 0", which came from `echo`, and said nothing about the result until the log showed `exit=1`. `main` was red from the merge until f7a4267. Cause: the test's stub never listed the tab it created, so a late show made a second one. Not a CLI bug: reproduced under load at 1 in 30 with the old stub and 0 in 30 with a stub that lists its tabs (VD-142). Coordinator fixed the stub, a test-only change. Mutant: `pane.lock` removed gave 5 tabs and failed 3 of 3. A first attempt at this mutant was void, because the build had not run. The test dates from task 15, so that task's green gates depended on timing.
+- Evidence (coordinator rerun on `main` at f7a4267): `pnpm gate` exit 0. Vitest 103 files, 6,847 tests. Playwright 414 tests. Banned-API check clean on 92 source files and 3 built files. `check-bundle-size: 109.9 KiB minified, 37.5 KiB gzip`, unchanged. Coverage: lines 99.66% (4998/5015), statements 99.06%, branches 97.07%. `js-tiktoken` 1.0.21 is a dev dependency of `skills/vadd-ui` only; no runtime dependency in `ui-spec`, `ui-render` or `ui`.
+- Coordinator probes: `SKILL.md` frontmatter equals the §12.1 lines, by `diff`. 4 of 4 hand mutants on `SKILL.md` failed the skill tests: the `## Precedence` heading, the secrets rule, the host sentence, the verbatim directive. Two `vui show` calls in a row with no page and no pane each printed `vui: open`, and `viewer.json` no longer holds `urlShown`. These probes ran on 8f1fecd; the only later change is the test stub.
+- Worker evidence, not rerun: 126 of 126 mutations, the install test with a temporary `HOME`, one live Sonnet run that found the skill and pasted the directive (one sample, not an eval), 6 URL-rule mutants, the real Orca runs of the URL rule.
+- Review: first review's rulings in VD-140, including one sentence and one clause test tightened. Second review: no Critical or Important; 3 minors fixed. Accepted in VD-141: `--no-open` prints beside a pane that is in fact loading; a `busy` show gets no link if the lock holder's Orca call fails (from reading the code, not reproduced).
+- Left open: `SKILL.md` omits the rest of §4.2's name rule and `<!--` escaping for budget (VD-140); both apply to the hand-written fallback only. Baseline runs are left to task 21's eval (VD-139). The second worker's reviewer left `/tmp/vui-probe-*` directories, with no repo data.
+- Follow-ups: task 19: count `SKILL.md` through the API when a key exists and move the gate to a real count (VD-136). Task 20: `record` throwing after `tab create` prints the URL beside a real pane with a false warning (VD-141); `code.test.ts` watchdog, which failed a worker gate again here; check for other stubs that return fixed answers. Task 21: confirm real `tab list` right after `tab create` (VD-142).
