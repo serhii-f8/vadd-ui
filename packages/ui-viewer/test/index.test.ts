@@ -10,6 +10,6 @@ describe('@vadd/ui-viewer', () => {
     expect(viewer.createViewerHandler).toBeTypeOf('function')
     expect(viewer.DocStore).toBeTypeOf('function')
     expect(viewer.feedHtml).toContain('app.js')
-    expect(viewer.readFeed).toBeTypeOf('function')
+    expect(viewer.readFeedScript).toBeTypeOf('function')
   })
 })

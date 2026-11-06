@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { feedHtml, readFeed } from '../src/feed.js'
+import { feedHtml, readFeedScript } from '../src/feed.js'
 import { tempDir } from './helpers.js'
 
 describe('feedHtml', () => {
@@ -24,10 +24,10 @@ describe('feedHtml', () => {
   })
 })
 
-describe('readFeed', () => {
-  it('pairs the page with the bundle it finds', () => {
+describe('readFeedScript', () => {
+  it('reads the bundle it is pointed at', () => {
     const file = join(tempDir(), 'app.js')
     writeFileSync(file, 'bundle()')
-    expect(readFeed(pathToFileURL(file))).toEqual({ html: feedHtml, script: 'bundle()' })
+    expect(readFeedScript(pathToFileURL(file))).toBe('bundle()')
   })
 })

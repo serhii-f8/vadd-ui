@@ -1,4 +1,4 @@
-export { type FeedAssets, feedHtml, readFeed } from './feed.js'
+export { type FeedAssets, feedHtml, readFeedScript } from './feed.js'
 export {
   createViewerHandler,
   type ViewerHandler,

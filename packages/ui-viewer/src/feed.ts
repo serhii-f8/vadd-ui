@@ -26,6 +26,6 @@ export const feedHtml = [
 /** The build puts the feed app beside this module. */
 const SCRIPT = new URL('./app.js', import.meta.url)
 
-export function readFeed(script: URL = SCRIPT): FeedAssets {
-  return { html: feedHtml, script: readFileSync(script, 'utf8') }
+export function readFeedScript(script: URL = SCRIPT): string {
+  return readFileSync(script, 'utf8')
 }
