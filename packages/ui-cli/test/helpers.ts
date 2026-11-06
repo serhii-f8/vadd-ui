@@ -5,7 +5,7 @@ import { Readable } from 'node:stream'
 import { type RunningViewer, startViewer } from '@vadd/ui-viewer'
 import type { Io } from '../src/io.js'
 import { run } from '../src/run.js'
-import type { ExecResult, System } from '../src/system.js'
+import { type ExecResult, realSystem, type System } from '../src/system.js'
 
 export const NOW = new Date('2026-11-05T10:00:00.000Z')
 export const BUNDLE = '/*bundle*/'
@@ -36,6 +36,7 @@ export interface FakeSystem {
   kill?: System['kill']
   /** `path.join`, for a test of another platform's paths. */
   pathJoin?: System['pathJoin']
+  hex4?: System['hex4']
 }
 
 /** `exec` fails as a missing command, unless a test says what it does. */
@@ -63,6 +64,7 @@ export function fakeSystem(options: FakeSystem = {}): System {
     spawnViewer: options.spawnViewer ?? spawnViewer,
     kill: options.kill ?? (() => undefined),
     pathJoin: options.pathJoin ?? join,
+    hex4: options.hex4 ?? realSystem.hex4,
     nodeVersion: '22.0.0',
     isAlive: () => false,
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),

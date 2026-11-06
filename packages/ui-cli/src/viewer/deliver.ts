@@ -1,12 +1,12 @@
 import type { Diagnostic, VuiDocument } from '@vadd/ui-spec'
 import { readViewerInfo, updateViewerInfo } from '@vadd/ui-viewer'
 import { branchOf } from '../git.js'
-import { EXIT, noHost, type Outcome } from '../outcome.js'
-import { exitCodeOf, type Overrides } from '../pipeline.js'
+import { CliError, EXIT, noHost, type Outcome } from '../outcome.js'
+import { exitCodeOf, type Overrides, stamped } from '../pipeline.js'
 import { formatDiagnostics, safe } from '../print.js'
 import type { System } from '../system.js'
 import { customEndpoint, type Posted, postDocument, type Target } from './client.js'
-import { ensureViewer, placeOf, type Running } from './lifecycle.js'
+import { ensureViewer, findViewer, placeOf, type Running } from './lifecycle.js'
 import { type Pane, showPane } from './pane.js'
 
 export interface Delivery {
@@ -14,7 +14,18 @@ export interface Delivery {
   diagnostics: Diagnostic[]
   noOpen: boolean
   system: System
+  readBundle: () => string
+  /** §11.5's name, for hosts that write a file. */
+  name?: string
+  /** `--dir`. */
+  dir?: string
 }
+
+/** What became of a copy for the Viewer, when a file host already holds the document. */
+export type Mirror =
+  | { state: 'none' }
+  | { state: 'posted'; seq: number; id: string; url: string }
+  | { state: 'failed'; reason: string }
 
 type Delivered = Extract<Posted, { kind: 'delivered' }>
 
@@ -114,6 +125,36 @@ function takeUrlLine(viewer: Running, posted: Delivered, pane: Pane): boolean {
     // The worst case prints this line again, after a document that is already stored.
   }
   return true
+}
+
+async function runningTarget(system: System): Promise<Target | undefined> {
+  const custom = customEndpoint(system.env)
+  if (custom !== undefined) return custom
+  const viewer = await findViewer(system)
+  return viewer === undefined ? undefined : localTarget(viewer)
+}
+
+/**
+ * §3: "if one is already running". That is a Viewer `/health` proves for this workspace, or
+ * the endpoint a user configured. Nothing starts here and no pane opens, and the copy alone
+ * carries the path (VD-123). Called with the document delivered, so nothing here may throw.
+ */
+export async function mirrorToViewer(document: VuiDocument, system: System): Promise<Mirror> {
+  try {
+    const target = await runningTarget(system)
+    if (target === undefined) return { state: 'none' }
+    const copy = stamped(document, viewerOverrides(system))
+    const posted = await postDocument(target, copy, system)
+    if (posted.kind === 'delivered') {
+      const { seq, id, url } = posted
+      return { state: 'posted', seq, id, url }
+    }
+    const reason = posted.kind === 'refused' ? 'it refused the document' : 'it does not answer'
+    return { state: 'failed', reason }
+  } catch (error) {
+    if (error instanceof CliError) return { state: 'failed', reason: error.message }
+    throw error
+  }
 }
 
 /** §3's Viewer data flow, steps 3 to 6. */

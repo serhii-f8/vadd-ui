@@ -55,6 +55,16 @@ export function refused(diagnostics: Diagnostic[], print: 'stdout' | 'stderr'): 
   }
 }
 
+/** §11.4, for anything that would write this many bytes. */
+export function outputTooLarge(bytes: number, diagnostics: Diagnostic[]): Outcome {
+  const message = `output is ${bytes} bytes; the limit is ${OUTPUT_LIMIT}`
+  return {
+    exit: EXIT.limit,
+    stderr: `${formatDiagnostics(diagnostics)}error: ${message}\n`,
+    json: { diagnostics, error: { code: 'limit-output-size', message } },
+  }
+}
+
 export async function render(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   const format = formatOf(parsed)
   const cdn = parsed.flags.cdn === true
@@ -67,14 +77,7 @@ export async function render(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   const output = renderOutput(document, { format, cdn, readBundle: io.readBundle })
   const warnings = formatDiagnostics(diagnostics)
   const bytes = Buffer.byteLength(output)
-  if (bytes > OUTPUT_LIMIT) {
-    const message = `output is ${bytes} bytes; the limit is ${OUTPUT_LIMIT}`
-    return {
-      exit: EXIT.limit,
-      stderr: `${warnings}error: ${message}\n`,
-      json: { diagnostics, error: { code: 'limit-output-size', message } },
-    }
-  }
+  if (bytes > OUTPUT_LIMIT) return outputTooLarge(bytes, diagnostics)
   const out = parsed.flags.out
   if (typeof out !== 'string' || out === STDOUT) {
     return {

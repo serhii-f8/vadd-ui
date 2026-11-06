@@ -210,30 +210,6 @@ describe('what stops a show before delivery', () => {
   })
 })
 
-describe('hosts without an adapter yet', () => {
-  it('exits 4 for an explicit --host orca-chat', async () => {
-    const fixture = setup()
-    const { exit, stderr, stdout } = await show(fixture, ['--host', 'orca-chat'])
-    expect(exit).toBe(4)
-    expect(stdout).toBe('')
-    expect(stderr).toContain('orca-chat')
-    expect(stderr).toContain('vui doctor')
-  })
-
-  it('exits 4 for --host file', async () => {
-    const { exit, json } = await showJson(setup(), ['--host', 'file', '--dir', 'd'])
-    expect(exit).toBe(4)
-    expect(json).toMatchObject({ error: { code: 'no-host' } })
-  })
-
-  it('goes on to the Viewer from auto', async () => {
-    const fixture = setup({ env: { ORCA_CHAT_SCRATCH_DIR: tempDir() } })
-    const { exit, stdout } = await show(fixture)
-    expect(exit).toBe(0)
-    expect(stdout).toContain('in viewer')
-  })
-})
-
 describe('no usable host', () => {
   it('exits 4 and names the cause when the Viewer cannot start', async () => {
     const fixture = setup()

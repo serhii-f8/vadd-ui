@@ -34,7 +34,7 @@ export function exitCodeOf(diagnostics: readonly Diagnostic[], strict = false): 
 }
 
 /** §17.2: these record what the CLI inlined, so they replace what a document claims. */
-function stamped(document: VuiDocument, overrides: Overrides): VuiDocument {
+export function stamped(document: VuiDocument, overrides: Overrides): VuiDocument {
   // A mistyped `meta` is only a `warn` (§13.3), and a string must not spread into characters.
   const meta = isJsonObject(document.meta as JsonValue | undefined) ? document.meta : {}
   const merged = { ...meta, ...overrides.meta, generator: GENERATOR, version }
@@ -60,6 +60,12 @@ export function inputTooLarge(): Diagnostic {
 export function prepare(text: string, now: Date, overrides: Overrides = {}): Prepared {
   const { diagnostics, document } = validateText(text, { generatedAt: now.toISOString() })
   if (document === undefined || exitCodeOf(diagnostics) !== EXIT.ok) return { diagnostics }
+  const { title = '' } = overrides
+  if (title.length > LIMITS.string) {
+    const message = `--title has ${title.length} chars; the limit is ${LIMITS.string}`
+    const tooLong = { severity: 'error', path: '/title', code: 'limit-string', message } as const
+    return { diagnostics: [...diagnostics, tooLong] }
+  }
   const canonical = stamped(document, overrides)
   const bytes = Buffer.byteLength(JSON.stringify(canonical))
   if (bytes <= LIMITS.inputBytes) return { diagnostics, document: canonical }
