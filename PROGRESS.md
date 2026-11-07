@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-06T13:46:51Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-07T09:25:34Z · Mode: manual
 
 ## Summary
-Done 17 / 22 · In progress: none · Blocked: none · Next: 18 — ui-react and the Viewer HTTP contract
+Done 17 / 22 · In progress: 18 · Blocked: none · Next: 18 — ui-react and the Viewer HTTP contract
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -45,14 +45,15 @@ Recorded 2026-11-04 during bootstrap.
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | done | removed | ctx_8bf75fe4de7b | [design](docs/superpowers/specs/2026-11-06-vui-show-design.md) | [plan](docs/superpowers/plans/2026-11-06-vui-show.md) | 3170078 | 2026-11-06 |
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | done | removed | ctx_4d1d7dc57557 | [design](docs/superpowers/specs/2026-11-06-orca-chat-design.md) | [plan](docs/superpowers/plans/2026-11-06-orca-chat.md) | 53a5319 | 2026-11-06 |
 | 17 | Agent skill | §12.1 | 16 | done | removed | ctx_8fd8d4955071, ctx_1b30618a57dd | [design](docs/superpowers/specs/2026-11-06-agent-skill-design.md) | [plan](docs/superpowers/plans/2026-11-06-agent-skill.md) | 8f1fecd, fix f7a4267 | 2026-11-06 |
-| 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | todo | | | | | | |
+| 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | in_progress | vui-18-ui-react | ctx_22d6938816d6 | | | | |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | todo | | | | | | |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | todo | | | | | | |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | todo | | | | | | |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
 
 ## Current task log
-none
+- 18 · 2026-11-07T09:25:34Z · selected (deps 11, 13 done)
+- 18 · 2026-11-07T09:26:30Z · dispatched: worktree `vui-18-ui-react` (id `28b6546a-7693-41f8-a180-476d9aaa0d09::\\wsl.localhost\Ubuntu-22.04\home\serhii\orca\workspaces\vadd-ui\vui-18-ui-react`), terminal `term_91000201-f9cc-47d9-8da5-a2bf6ca9fc2a`, dispatch `ctx_22d6938816d6`, run `run_2a8cc4712719`, branch `vadd-ui/18-ui-react`
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding
