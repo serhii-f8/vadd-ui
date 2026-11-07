@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-07T09:25:34Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-07T10:01:14Z · Mode: manual
 
 ## Summary
-Done 17 / 22 · In progress: 18 · Blocked: none · Next: 18 — ui-react and the Viewer HTTP contract
+Done 18 / 22 · In progress: none · Blocked: none · Next: 19 — vui bench, corpus, token budgets
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -45,15 +45,14 @@ Recorded 2026-11-04 during bootstrap.
 | 15 | vui show, host routing, viewer lifecycle, doctor | §3, §4.0, §4.1, §11.1, §11.2, §16.1 | 12, 14 | done | removed | ctx_8bf75fe4de7b | [design](docs/superpowers/specs/2026-11-06-vui-show-design.md) | [plan](docs/superpowers/plans/2026-11-06-vui-show.md) | 3170078 | 2026-11-06 |
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | done | removed | ctx_4d1d7dc57557 | [design](docs/superpowers/specs/2026-11-06-orca-chat-design.md) | [plan](docs/superpowers/plans/2026-11-06-orca-chat.md) | 53a5319 | 2026-11-06 |
 | 17 | Agent skill | §12.1 | 16 | done | removed | ctx_8fd8d4955071, ctx_1b30618a57dd | [design](docs/superpowers/specs/2026-11-06-agent-skill-design.md) | [plan](docs/superpowers/plans/2026-11-06-agent-skill.md) | 8f1fecd, fix f7a4267 | 2026-11-06 |
-| 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | in_progress | vui-18-ui-react | ctx_22d6938816d6 | | | | |
+| 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | done | removed | ctx_22d6938816d6 | [design](docs/superpowers/specs/2026-11-07-ui-react-design.md) | [plan](docs/superpowers/plans/2026-11-07-ui-react.md) | b41f419 | 2026-11-07 |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | todo | | | | | | |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | todo | | | | | | |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | todo | | | | | | |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
 
 ## Current task log
-- 18 · 2026-11-07T09:25:34Z · selected (deps 11, 13 done)
-- 18 · 2026-11-07T09:26:30Z · dispatched: worktree `vui-18-ui-react` (id `28b6546a-7693-41f8-a180-476d9aaa0d09::\\wsl.localhost\Ubuntu-22.04\home\serhii\orca\workspaces\vadd-ui\vui-18-ui-react`), terminal `term_91000201-f9cc-47d9-8da5-a2bf6ca9fc2a`, dispatch `ctx_22d6938816d6`, run `run_2a8cc4712719`, branch `vadd-ui/18-ui-react`
+none
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding
@@ -238,3 +237,12 @@ Recorded 2026-11-04 during bootstrap.
 - Review: first review's rulings in VD-140, including one sentence and one clause test tightened. Second review: no Critical or Important; 3 minors fixed. Accepted in VD-141: `--no-open` prints beside a pane that is in fact loading; a `busy` show gets no link if the lock holder's Orca call fails (from reading the code, not reproduced).
 - Left open: `SKILL.md` omits the rest of §4.2's name rule and `<!--` escaping for budget (VD-140); both apply to the hand-written fallback only. Baseline runs are left to task 21's eval (VD-139). The second worker's reviewer left `/tmp/vui-probe-*` directories, with no repo data.
 - Follow-ups: task 19: count `SKILL.md` through the API when a key exists and move the gate to a real count (VD-136). Task 20: `record` throwing after `tab create` prints the URL beside a real pane with a false warning (VD-141); `code.test.ts` watchdog, which failed a worker gate again here; check for other stubs that return fixed answers. Task 21: confirm real `tab list` right after `tab create` (VD-142).
+
+### 18 — ui-react and the Viewer HTTP contract
+- Built: `<VuiView doc theme onDiagnostics />` in `@vadd/ui-react`, mounted in an open shadow root, React as a peer (`>=18`), the same 23 tests on React 19.3.1 and 18.3.1 (private fixture package `packages/ui-react/react18`, added to `pnpm-workspace.yaml`). `@vadd/ui-viewer/contract` (`contractCases`, `runContract`, `CONTRACT_CASES`): 12 §4.1 cases on `node:http` and `node:assert`, no test runner. A Fastify host in `ui-cli`'s tests (Fastify is a dev dependency of `ui-cli` only) that mounts the handler in `onRequest` with `hijack`. `docs/vadd-ui/VADD_INTEGRATION.md` with the wiring steps for `/var/www/html/vadd`.
+- Decisions: VD-143 to VD-147, no DEVIATION.
+- Evidence (coordinator rerun on `main` at b41f419): `pnpm install` exit 0, `pnpm gate` exit 0. Vitest 110 files, 6,922 tests. Playwright 432 tests (18 new in `e2e/ui-react.spec.ts`). Coverage 99.66% lines (5,283/5,301), 99.04% statements. Bundle 109.9 KiB minified, 37.5 KiB gzip, unchanged. Forbidden-API check clean on 95 sources and 3 bundles; no `innerHTML`, `eval` or `new Function` in `ui-react/src`. `@vadd/ui-viewer/contract` resolves from the built package and exports 12 cases. `/var/www/html/vadd` still at a8b5cc2; its only change is a `.gitignore` edit the user made before the task.
+- Worker evidence, not rerun: the Fastify host passes all 12 cases; real `vui show` through `VUI_VIEWER_URL`/`VUI_VIEWER_TOKEN` exits 0, reports `clients: 1` with an open stream, and exits 4 on a wrong token; each of 11 deliberately broken servers fails the case aimed at it; an outside npm project installed from packed tarballs passed all 12 on Fastify. Playwright at 360/720/1100 px, light and dark, against hostile dashboard CSS: shadow styles identical with and without it, nothing leaking out, no horizontal overflow. Orca pane screenshots in VADD light and dark.
+- Found in the Orca pane and fixed: `auto` followed the OS when `<html class="">`, which is what VADD's ThemeProvider leaves in light mode (VD-145).
+- Review: no Critical issues. The Important one, a contract loop against servers that ignore `after`, is fixed, along with five minors. Two were declined (VD-147).
+- Follow-ups: whether Tailwind v4 in VADD's build emits `--font-sans` on `:root` cannot be checked here; it affects only the font inside visuals. Wiring VADD itself stays with the user (VD-004).
