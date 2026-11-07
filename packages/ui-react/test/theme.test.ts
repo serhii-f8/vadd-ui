@@ -21,7 +21,8 @@ function media(initial: boolean) {
 
 function html(className = ''): HTMLElement {
   const element = document.createElement('html')
-  element.className = className
+  // No attribute at all unless asked: `class=""` has a meaning of its own.
+  if (className !== '') element.className = className
   return element
 }
 
@@ -36,6 +37,18 @@ describe('resolveTheme', () => {
   it('reads .dark and .light on <html> under auto', () => {
     expect(resolveTheme('auto', html('dark'), media(false))).toBe('dark')
     expect(resolveTheme('auto', html('light'), media(true))).toBe('light')
+  })
+
+  it('reads an empty class on <html> as light, as the stylesheet does (VD-058)', () => {
+    // VADD's ThemeProvider removes `dark` with `classList.toggle`, which leaves `class=""`.
+    const root = html('dark')
+    root.classList.toggle('dark', false)
+    expect(root.getAttribute('class')).toBe('')
+    expect(resolveTheme('auto', root, media(true))).toBe('light')
+  })
+
+  it('follows the OS beside other classes on <html>', () => {
+    expect(resolveTheme('auto', html('app'), media(true))).toBe('dark')
   })
 
   it('falls back to the OS, and to light with no matchMedia', () => {
@@ -58,6 +71,8 @@ describe('watchTheme', () => {
     root.classList.remove('dark')
     await tick()
     expect(apply).toHaveBeenLastCalledWith('light')
+    root.removeAttribute('class')
+    await tick()
     os.fire(true)
     expect(apply).toHaveBeenLastCalledWith('dark')
     stop()

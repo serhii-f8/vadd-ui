@@ -182,6 +182,24 @@ for (const react of ['19', '18'] as ReactLine[]) {
       expect(kept).toBe(true)
     })
 
+    test('on a dark OS, class="" (VADD in light mode) is light and no class follows the OS', async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: 'dark' })
+      await open(page, { react })
+      const root = await vuiRoot(page)
+      const theme = () => root.evaluate((element) => element.dataset.vuiTheme)
+      expect(await theme()).toBe('dark')
+      // What VADD's ThemeProvider leaves after `classList.toggle('dark', false)`.
+      await page.evaluate(() => document.documentElement.setAttribute('class', ''))
+      await expect.poll(theme).toBe('light')
+      // The light tone, as §8.1 gives it, and not the dark one beside a light card.
+      const warn = await root.evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('--vui-warn').trim(),
+      )
+      expect(warn).toBe('#d97706')
+    })
+
     test('an explicit theme wins over the page', async ({ page }) => {
       await open(page, { react, dark: true }, 'light')
       const root = await vuiRoot(page)

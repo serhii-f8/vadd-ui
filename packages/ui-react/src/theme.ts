@@ -11,7 +11,8 @@ export interface MediaLike {
 /**
  * The scheme a root shows. `auto` reads the host page the way the stylesheet would outside a
  * shadow root, where its `:root.dark` and OS rules cannot match (VD-145): `.dark` or `.light`
- * on `<html>`, which is how VADD's `ThemeProvider` marks it, and otherwise the OS.
+ * on `<html>`, which is how VADD's `ThemeProvider` marks it, then an empty `class` as light,
+ * and otherwise the OS.
  */
 export function resolveTheme(
   theme: VuiTheme,
@@ -21,6 +22,9 @@ export function resolveTheme(
   if (theme !== 'auto') return theme
   if (html.classList.contains('dark')) return 'dark'
   if (html.classList.contains('light')) return 'light'
+  // The stylesheet's rule (VD-058): a toggle that removed `dark` leaves `class=""`, which
+  // means light. VADD's ThemeProvider toggles exactly that way.
+  if (html.getAttribute('class') === '') return 'light'
   return media?.matches === true ? 'dark' : 'light'
 }
 
