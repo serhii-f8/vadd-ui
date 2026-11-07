@@ -11,6 +11,10 @@
     "./viewer.js": {
       "types": "./dist/viewer.d.ts",
       "default": "./dist/viewer.js"
+    },
+    "./contract": {
+      "types": "./dist/contract.d.ts",
+      "default": "./dist/contract.js"
     }
   },
   "files": [
