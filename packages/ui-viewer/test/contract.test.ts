@@ -13,6 +13,7 @@ type Wrap = (
 
 interface Host {
   target: ContractTarget
+  clients: () => number
   close: () => Promise<void>
 }
 
@@ -33,6 +34,7 @@ async function host(wrap: Wrap = (handler) => handler, tracked = true): Promise<
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
   port = (server.address() as AddressInfo).port
   const served: Host = {
+    clients: () => handler.clients(),
     // Short, so a case that waits for what a broken server never sends fails fast.
     target: { base: `http://localhost:${port}/v/${READ}`, token: WRITE, timeoutMs: 1000 },
     close: async () => {
@@ -166,6 +168,43 @@ describe('the suite catches a broken server', () => {
       handler(req, res)
     })
     expect(await failures(target)).toEqual([CONTRACT_CASES[9]])
+  })
+
+  it('fails, and ends, against a list that ignores after', async () => {
+    const { target } = await host((handler) => (req, res) => {
+      if (req.url?.includes('/api/docs?') === true)
+        req.url = req.url.replace(/after=\d+/, 'after=0')
+      handler(req, res)
+    })
+    const failed = await failures(target)
+    expect(failed).toEqual([CONTRACT_CASES[5], CONTRACT_CASES[8], CONTRACT_CASES[9]])
+    const results = await runContract(target)
+    expect(results.find((r) => r.name === CONTRACT_CASES[8])?.error).toMatch(
+      /after is not honoured/,
+    )
+  })
+
+  it('fails the write case, without crashing, when a doc event is not JSON', async () => {
+    const { target } = await host((handler) => (req, res) => {
+      const write = res.write.bind(res) as (chunk: unknown, ...rest: unknown[]) => boolean
+      ;(res as { write: unknown }).write = (chunk: unknown, ...rest: unknown[]) =>
+        write(String(chunk).includes('event: doc') ? 'event: doc\ndata: {nope\n\n' : chunk, ...rest)
+      handler(req, res)
+    })
+    const results = await runContract(target)
+    const write = results.find((r) => r.name === CONTRACT_CASES[3])
+    expect(write?.ok).toBe(false)
+    expect(write?.error).toMatch(/not JSON/)
+  })
+
+  it('closes the event stream when the write case is skipped', async () => {
+    const { target, clients } = await host()
+    const cases = contractCases(target)
+    await (cases[2] as { run(): Promise<void> }).run()
+    expect(clients()).toBe(1)
+    // A host running cases one by one, without the write: the next case closes the stream.
+    await (cases[10] as { run(): Promise<void> }).run()
+    await expect.poll(clients).toBe(0)
   })
 
   it('fails the miss case when an unknown route answers 200', async () => {

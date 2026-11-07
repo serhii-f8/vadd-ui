@@ -135,6 +135,22 @@ describe('VuiView', () => {
     }
   })
 
+  it('opens a link in a new tab, as the feed does, and leaves the dashboard in place', () => {
+    const opened = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const linked = {
+      ...doc('Linked'),
+      body: [{ type: 'callout', tone: 'info', text: 'See [the docs](https://example.com/x).' }],
+    } as VuiDocument
+    const { container } = open(view({ doc: linked }))
+    const anchor = vuiRoot(container).querySelector<HTMLAnchorElement>('a[href^="https:"]')
+    expect(anchor).not.toBeNull()
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+    anchor?.dispatchEvent(event)
+    expect(opened).toHaveBeenCalledWith('https://example.com/x', '_blank', 'noopener,noreferrer')
+    expect(event.defaultPrevented).toBe(true)
+    opened.mockRestore()
+  })
+
   it('writes an explicit theme on the root', () => {
     const handle = open(view({ doc: doc('Dark'), theme: 'dark' }))
     expect(vuiRoot(handle.container).dataset.vuiTheme).toBe('dark')

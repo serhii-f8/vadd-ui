@@ -132,6 +132,16 @@ function expectHeader(value: unknown, what: string): void {
   }
 }
 
+function eventJson(data: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(data)
+    if (typeof value === 'object' && value !== null) return value as Record<string, unknown>
+  } catch {
+    // Reported below.
+  }
+  fail(`an event's data is not JSON: ${data.slice(0, 200)}`)
+}
+
 function withoutTime(document: Record<string, unknown>): Record<string, unknown> {
   const { generatedAt: _, ...rest } = document
   return rest
@@ -234,8 +244,17 @@ class Client {
                 const seen = events.map((event) => event.event).join(', ') || 'none'
                 failed(new Error(`no matching event within ${timeout} ms; seen: ${seen}`))
               }, timeout)
+              // Runs in the stream's `data` listener, where a throw would end the process.
               function check() {
-                const found = events.find(test)
+                let found: Event | undefined
+                try {
+                  found = events.find(test)
+                } catch (error) {
+                  clearTimeout(timer)
+                  waiting.delete(check)
+                  failed(error)
+                  return
+                }
                 if (found === undefined) return
                 clearTimeout(timer)
                 waiting.delete(check)
@@ -282,7 +301,10 @@ export function contractCases(target: ContractTarget): ContractCase[] {
       const docs = json(reply, what).docs
       ok(Array.isArray(docs), `${what}: docs is not an array`)
       if (docs.length === 0) return seq
-      seq = (docs.at(-1) as Posted).seq
+      const last = (docs.at(-1) as Partial<Posted> | undefined)?.seq
+      // A list that ignores `after` would answer the same page forever.
+      ok(typeof last === 'number' && last > seq, `${what}: after is not honoured`)
+      seq = last
     }
   }
 
@@ -333,9 +355,9 @@ export function contractCases(target: ContractTarget): ContractCase[] {
         ok(stream !== undefined, `no event stream from "${CONTRACT_CASES[2]}"`)
         ok(body.clients >= 1, `POST /api/docs: clients is ${body.clients} with a stream open`)
         const event = await stream.next(
-          ({ event, data }) => event === 'doc' && (JSON.parse(data) as Posted).seq === body.seq,
+          ({ event, data }) => event === 'doc' && eventJson(data).seq === body.seq,
         )
-        const header = JSON.parse(event.data) as Record<string, unknown>
+        const header = eventJson(event.data)
         expectHeader(header, 'doc event')
         strictEqual(header.id, body.id, 'doc event: id differs from the write reply')
         strictEqual(header.title, title, 'doc event: title differs')
@@ -449,7 +471,16 @@ export function contractCases(target: ContractTarget): ContractCase[] {
     if (slug === 'auth' && target.token === undefined) {
       return { name: `${name}${SKIPPED}`, run: async () => undefined }
     }
-    return { name, run: runs[slug] }
+    if (slug === 'events' || slug === 'write') return { name, run: runs[slug] }
+    // A host that runs cases one by one may skip the write, which closes the stream.
+    return {
+      name,
+      run: () => {
+        stream?.close()
+        stream = undefined
+        return runs[slug]()
+      },
+    }
   })
 }
 

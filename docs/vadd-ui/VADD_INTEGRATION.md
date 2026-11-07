@@ -42,7 +42,7 @@ VADD and vadd-ui share the `@vadd` scope, and the names do not clash: VADD has `
 
 VADD has no request auth today: anything on loopback can call `/api`. The handler's two tokens are therefore the auth. The **write token** guards `POST /v/<readToken>/api/docs`; the **read token** is the path prefix.
 
-- **Keep them stable across restarts**, unlike the local Viewer, which rotates per start (§15.3). Agents get `VUI_VIEWER_TOKEN` in their environment when they start, and a token that rotated under a long-running agent would turn every `vui show` into exit 4. On first start, generate both with `randomBytes(16).toString('hex')` and write them to `~/.vadd/vui.json` with mode `0600`. Read them back afterwards. Deleting the file rotates them.
+- **Keep them stable across restarts**, unlike the local Viewer, which rotates per start (§15.3). Agents get `VUI_VIEWER_TOKEN` in their environment when they start, and a token that rotated under a long-running agent would turn every `vui show` into exit 4. On first start, generate both with `randomBytes(16).toString('hex')` and write them to `join(vaddHome(), 'vui.json')` (so `~/.vadd/vui.json`, and a test's `VADD_HOME` never touches the real one) with mode `0600`. Read them back afterwards. Deleting the file rotates them.
 - **Give agents the endpoint.** VADD spawns its agents in `packages/server/src/agent/registry.ts:82` with `env: config.setupProfile().env`, which `acp-agent-port.ts:170` merges over `process.env`. Add `VUI_VIEWER_URL=http://localhost:4319/v/<readToken>` and `VUI_VIEWER_TOKEN=<writeToken>` to that `env`. Every `vui show` from a VADD agent then lands in VADD, and the skill (`skills/vadd-ui`) needs no change.
 - **For a terminal outside VADD**, print the two `export` lines once at startup, after `index.ts:61`'s "listening" line, or offer them from `vadd` CLI.
 - **Never send the write token to the browser.** The dashboard needs only the read prefix (step 4).
@@ -89,7 +89,7 @@ import { VuiView } from '@vadd/ui-react'
 Nothing to configure:
 
 - **Tokens.** CSS custom properties inherit into a shadow root. VADD's `packages/web/src/index.css` declares the shadcn names that §8.1 reads: `--background`, `--foreground`, `--card`, `--card-foreground`, `--muted`, `--muted-foreground`, `--border`, `--accent`, `--accent-foreground`, `--primary`, `--primary-foreground`, `--destructive`, `--chart-1` to `--chart-5`, `--radius` and `--font-sans`. Its `.dark` block redefines them. So "VADD maps its own theme to the same token names" is already true. A visual uses VADD's palette and Geist, and VADD's `@font-face` applies inside the shadow root. Only `--vui-ok`, `--vui-warn` and `--vui-info` are vadd-ui's own.
-- **Scheme.** With `theme="auto"`, `<VuiView>` reads `<html>` the way `ThemeProvider.tsx:47` writes it: `.dark` means dark. The `class=""` that `classList.toggle('dark', false)` leaves means light, even on a dark OS. With no class at all, it follows the OS. It watches the class and the OS setting and switches with no re-render (§8.2).
+- **Scheme.** With `theme="auto"`, `<VuiView>` reads `<html>` the way `ThemeProvider.tsx:47` writes it: `.dark` means dark. The `class=""` that `classList.toggle('dark', false)` leaves means light, even on a dark OS. With no class at all, or with only other classes, it follows the OS, as vadd-ui's stylesheet does. So if VADD ever puts another class on `<html>` (say `antialiased`), it should also toggle `light`, or pass `theme` explicitly; today `index.html` has none. It watches the class and the OS setting and switches with no re-render (§8.2).
 - Pass `theme` only to pin a visual against the page. Host tokens still apply, so pinning `dark` on a light page gives dark status colors on VADD's light cards.
 
 ## 6. Events: one object in chat and dashboard
@@ -98,7 +98,8 @@ Nothing to configure:
 
 1. **A card kind.** In `packages/core/src/schemas/card.ts`, add `const VuiCard = z.object({ ...base, kind: z.literal('vui'), doc: z.record(z.unknown()) })`, with the `base` fields (`id`, `title`, `role`, line 18) every card shares, and add it to the union on line 69. `doc` stays opaque to zod.
 2. **Validate on the server**, where an emission is ingested (`WorkflowRunner.ingest`, wired in `packages/server/src/index.ts`). Run `validate` from `@vadd/ui-spec` (add it to `packages/server` directly, as in step 0: pnpm does not expose a transitive dependency), and store the canonical `document` it returns. Reject on `error` diagnostics, as the Viewer's POST does with 422. The render is then the same in chat (Orca, via `vui show`) and in the dashboard, because both render the same canonical object.
-3. **Render it** in `src/cards/ArtifactBlock.tsx`: a `case 'vui': return <VuiView key={card.id} doc={card.doc as VuiDocument} />` beside `case 'diagram'` on line 16. The `never` check there then compiles again.
+3. **Render it** in `src/cards/ArtifactBlock.tsx`: a `case 'vui'` beside `case 'diagram'` on line 16, inside VADD's `CardFrame` so it gets the title row and Low Energy Mode (D8) collapses it like every other card, which is what the `collapsed` argument of `renderCard` is for. As the other cards do (`TextCard.tsx:16`): `<CardFrame card={card} defaultCollapsed={collapsed}><VuiView doc={card.doc as VuiDocument} /></CardFrame>`. The `never` check there then compiles again.
+   Links in a visual open in a new tab (`noopener,noreferrer`), as in the Viewer feed, so the dashboard stays where it is.
 4. **Optionally post it to the feed too**: after ingesting, `store.add(document)` plus the handler's broadcast, by POSTing to the handler in-process, so the dashboard feed holds every visual an objective produced.
 
 `AgentEvent` in `packages/core/src/schemas/agent-event.ts` (`decision_needed` line 53, `plan` line 78, `evidence` line 103) can then carry cards, or an optional `vui` field with the same validation, if a decision needs a visual without an artifact.
@@ -110,18 +111,20 @@ The contract suite is exported for exactly this, and does not depend on a test r
 ```ts
 // packages/server/test/vui-contract.test.ts
 import { contractCases } from '@vadd/ui-viewer/contract'
-import { describe, it, beforeAll, afterAll } from 'vitest'
+import { afterAll, describe, it } from 'vitest'
 
 describe('VADD implements the Viewer HTTP interface', async () => {
   // buildApp with a temp VADD_HOME and vuiPort, then app.listen({ host: '127.0.0.1', port: 0 })
-  const { base, writeToken } = await startTestServer()
+  const { app, base, writeToken } = await startTestServer()
+  afterAll(() => app.close())
   for (const check of contractCases({ base, token: writeToken })) it(check.name, check.run)
 })
 ```
 
 - `base` must use the host name `localhost` or `127.0.0.1` with the listening port, or the `Host` case is (rightly) refused. With `port: 0`, read the port after `listen` and give the handler `port: () => app.server.address().port`.
 - The cases run in order and store one test document per run (the refused writes store nothing), so point it at a test instance, never at `~/.vadd`.
-- `runContract(target)` returns `{name, ok, error?}[]` without throwing, for a script or a health check.
+- `runContract(target)` returns `{name, ok, skipped?, error?}[]` without throwing and always ends, for a script or a health check.
+- It speaks plain HTTP, or HTTPS with a certificate Node already trusts; it has no option for a self-signed one. VADD is plain HTTP on loopback.
 - End to end: start VADD, export the two variables from step 2, then `echo "{title: 'Hello VADD', body: ['It works']}" | vui show`. Expect `vui: shown "Hello VADD" (#1) in viewer`, then `vui: open http://localhost:4319/v/<readToken>/` while no page is connected, and the document in the dashboard feed.
 
 ## 8. What does not change
@@ -133,7 +136,7 @@ describe('VADD implements the Viewer HTTP interface', async () => {
 ## 9. Checklist
 
 - [ ] Packages installed (step 0); `pnpm -r build` in VADD passes.
-- [ ] `vui.ts` mounted with `onRequest` and `hijack`; `~/.vadd/vui.json` holds stable tokens with mode `0600`.
+- [ ] `vui.ts` mounted with `onRequest` and `hijack`; `vaddHome()/vui.json` holds stable tokens with mode `0600`.
 - [ ] Agents get `VUI_VIEWER_URL` and `VUI_VIEWER_TOKEN`.
 - [ ] `/api/vui` returns the read prefix only; Vite proxies `/v` with `changeOrigin`.
 - [ ] `<VuiView>` renders in the feed page and in `ArtifactBlock`; `vui` cards validate on ingest.

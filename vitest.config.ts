@@ -112,7 +112,7 @@ export default defineConfig({
         oxc: { define },
         test: {
           name: 'jsdom-react18',
-          include: ['packages/ui-react/test/**/*.test.ts'],
+          include: ['packages/ui-react/test/**/*.test.{ts,tsx}'],
           environment: 'jsdom',
           env: { VUI_REACT_MAJOR: '18' },
         },

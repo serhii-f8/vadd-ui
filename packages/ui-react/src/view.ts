@@ -73,7 +73,12 @@ export function VuiView({ doc, theme = 'auto', onDiagnostics }: VuiViewProps): R
     shadow.replaceChildren(style, root)
     const jump = jumpWithin(shadow)
     shadow.addEventListener('click', jump)
-    const handle = render(initial.current, root)
+    // As the feed does (VD-147): a link opens beside the dashboard instead of replacing it.
+    const view = element.ownerDocument.defaultView
+    const linkHandler = (url: string) => {
+      view?.open(url, '_blank', 'noopener,noreferrer')
+    }
+    const handle = render(initial.current, root, { linkHandler })
     mounted.current = { root, handle, doc: initial.current }
     report.current?.(handle.diagnostics)
     return () => {
