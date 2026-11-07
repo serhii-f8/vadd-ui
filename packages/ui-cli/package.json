@@ -19,9 +19,12 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@vadd/ui-spec": "workspace:*",
     "@vadd/ui": "workspace:*",
+    "@vadd/ui-spec": "workspace:*",
     "@vadd/ui-text": "workspace:*",
     "@vadd/ui-viewer": "workspace:*"
+  },
+  "devDependencies": {
+    "fastify": "^5.12.8"
   }
 }

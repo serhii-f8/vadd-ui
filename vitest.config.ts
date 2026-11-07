@@ -12,6 +12,10 @@ const alias = Object.fromEntries([
     fileURLToPath(new URL('./packages/ui-spec/src/catalog.ts', import.meta.url)),
   ],
   [
+    '@vadd/ui-viewer/contract',
+    fileURLToPath(new URL('./packages/ui-viewer/src/contract.ts', import.meta.url)),
+  ],
+  [
     '@vadd/ui-spec/host/orca',
     fileURLToPath(new URL('./packages/ui-spec/src/host/orca.ts', import.meta.url)),
   ],
@@ -28,6 +32,18 @@ const { version } = JSON.parse(
 )
 const define = { __VUI_VERSION__: JSON.stringify(version) }
 
+// VD-143: React 18 sits in its own private package, where its DOM meets React 18 and not the
+// React 19 that `ui-react` develops against. These come first, so `react-dom` never reaches
+// the `react` rule by prefix.
+const react18 = fileURLToPath(new URL('./packages/ui-react/react18/node_modules/', import.meta.url))
+const react18Alias = [
+  { find: /^react-dom$/, replacement: `${react18}react-dom/index.js` },
+  { find: /^react-dom\/(.*)$/, replacement: `${react18}react-dom/$1.js` },
+  { find: /^react$/, replacement: `${react18}react/index.js` },
+  { find: /^react\/(.*)$/, replacement: `${react18}react/$1.js` },
+  ...Object.entries(alias).map(([find, replacement]) => ({ find, replacement })),
+]
+
 export default defineConfig({
   test: {
     // Explicit root: without it, project `include` globs resolve against
@@ -43,6 +59,7 @@ export default defineConfig({
         'packages/ui/src/**/*.ts',
         'packages/ui-viewer/src/**/*.ts',
         'packages/ui-cli/src/**/*.ts',
+        'packages/ui-react/src/**/*.ts',
       ],
       // Lines of wiring, run for real by `bin.test.ts` and `process.test.ts`.
       exclude: [
@@ -58,6 +75,7 @@ export default defineConfig({
         'packages/ui/src/**/*.ts': { lines: 95 },
         'packages/ui-viewer/src/**/*.ts': { lines: 95 },
         'packages/ui-cli/src/**/*.ts': { lines: 95 },
+        'packages/ui-react/src/**/*.ts': { lines: 95 },
       },
     },
     projects: [
@@ -86,6 +104,17 @@ export default defineConfig({
             'packages/ui-viewer/test/app/**/*.test.ts',
           ],
           environment: 'jsdom',
+          env: { VUI_REACT_MAJOR: '19' },
+        },
+      },
+      {
+        resolve: { alias: react18Alias },
+        oxc: { define },
+        test: {
+          name: 'jsdom-react18',
+          include: ['packages/ui-react/test/**/*.test.{ts,tsx}'],
+          environment: 'jsdom',
+          env: { VUI_REACT_MAJOR: '18' },
         },
       },
     ],
