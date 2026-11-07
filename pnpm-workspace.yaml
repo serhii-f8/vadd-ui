@@ -1,6 +1,8 @@
 packages:
   - "packages/*"
   - "skills/*"
+  # React 18 for the ui-react tests (VD-143). Private, never built or published.
+  - "packages/ui-react/react18"
 
 # pnpm 11 renamed onlyBuiltDependencies to allowBuilds.
 allowBuilds:

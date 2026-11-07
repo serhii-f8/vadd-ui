@@ -1,0 +1,11 @@
+{
+  "name": "@vadd/ui-react-react18",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Holds React 18 and its DOM together, so the ui-react tests can run on React 18 too (VD-143).",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
