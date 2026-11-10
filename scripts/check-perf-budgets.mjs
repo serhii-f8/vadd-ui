@@ -6,9 +6,12 @@
 // `pnpm gate` runs `test:e2e` before `check`, so the file is always fresh there. Alone, run
 // `pnpm exec playwright test e2e/budgets.spec.ts --no-deps` first.
 //
-// Intentional change: `node scripts/check-perf-budgets.mjs --update` rewrites the baseline from
-// the last run. The diff shows in review, and the commit says why.
+// Intentional change: `node scripts/check-perf-budgets.mjs --update` runs the budgets spec
+// `--runs` times (default 5) and writes the fastest round of all runs as the baseline, so load
+// during one run does not eat the 5%. `--update --result a.json --result b.json` merges recorded
+// runs instead. The diff shows in review, and the commit says why.
 
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { finish, rootArg } from './lib/cli.mjs'
@@ -23,38 +26,71 @@ const option = (name) => {
 
 const root = rootArg(argv)
 const baselinePath = option('--baseline') ?? join(root, 'scripts/perf-baseline.json')
-const resultPath = option('--result') ?? join(root, 'test-results/budgets.json')
+const defaultResult = join(root, 'test-results/budgets.json')
+const resultPaths = argv.flatMap((arg, index) =>
+  arg === '--result' && argv[index + 1] !== undefined
+    ? [/** @type {string} */ (argv[index + 1])]
+    : [],
+)
 const update = argv.includes('--update')
+const runs = Number(option('--runs') ?? 5)
 
 /** @type {string[]} */
 const findings = []
 let summary = ''
 
-const result = existsSync(resultPath) ? JSON.parse(readFileSync(resultPath, 'utf8')) : undefined
-const baseline = existsSync(baselinePath)
-  ? JSON.parse(readFileSync(baselinePath, 'utf8'))
-  : undefined
+/** @param {string} path */
+const read = (path) => (existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : undefined)
+const baseline = read(baselinePath)
+const missing = (/** @type {string} */ path) =>
+  `no results at ${path}; run \`pnpm build && pnpm exec playwright test e2e/budgets.spec.ts --no-deps\` first (pnpm gate runs test:e2e before check)`
 
-if (result === undefined) {
-  findings.push(
-    `no results at ${resultPath}; run \`pnpm build && pnpm exec playwright test e2e/budgets.spec.ts --no-deps\` first (pnpm gate runs test:e2e before check)`,
-  )
-} else if (update) {
-  const next = makeBaseline(result, new Date().toISOString().slice(0, 10))
-  findings.push(...next.findings)
-  if (next.findings.length === 0) {
-    writeFileSync(baselinePath, `${JSON.stringify(next.baseline, null, 2)}\n`)
-    summary = `wrote ${baselinePath}`
+/** Runs the spec `count` times and returns each run's result. */
+function measure(/** @type {number} */ count) {
+  const cli = join(root, 'node_modules/@playwright/test/cli.js')
+  const results = []
+  for (let run = 0; run < count; run += 1) {
+    const spec = spawnSync(process.execPath, [cli, 'test', 'e2e/budgets.spec.ts', '--no-deps'], {
+      cwd: root,
+      stdio: 'inherit',
+    })
+    const result = read(defaultResult)
+    if (spec.status !== 0 || result === undefined) {
+      findings.push(`budgets spec run ${run + 1} of ${count} failed (exit ${spec.status})`)
+      return []
+    }
+    results.push(result)
   }
-} else if (baseline === undefined) {
-  findings.push(`no baseline at ${baselinePath}; run with --update`)
+  return results
+}
+
+if (update) {
+  const results =
+    resultPaths.length > 0 ? resultPaths.map((path) => read(path) ?? path) : measure(runs)
+  for (const result of results) if (typeof result === 'string') findings.push(missing(result))
+  if (findings.length === 0 && results.length > 0) {
+    const next = makeBaseline(results, new Date().toISOString().slice(0, 10))
+    findings.push(...next.findings)
+    if (next.findings.length === 0) {
+      writeFileSync(baselinePath, `${JSON.stringify(next.baseline, null, 2)}\n`)
+      summary = `wrote ${baselinePath} from ${results.length} run(s)`
+    }
+  }
 } else {
-  const { failures, lines } = compare(baseline, result)
-  for (const line of lines) console.log(line)
-  findings.push(...failures)
-  summary = `${Object.keys(baseline.metrics).length} metrics within 5% of the baseline`
-  if (lines[0]?.startsWith('hardware differs')) {
-    summary = 'every metric within its §9.5 limit (other hardware, so no 5% rule)'
+  const resultPath = resultPaths[0] ?? defaultResult
+  const result = read(resultPath)
+  if (result === undefined) {
+    findings.push(missing(resultPath))
+  } else if (baseline === undefined) {
+    findings.push(`no baseline at ${baselinePath}; run with --update`)
+  } else {
+    const { failures, lines } = compare(baseline, result)
+    for (const line of lines) console.log(line)
+    findings.push(...failures)
+    summary = `${Object.keys(baseline.metrics).length} metrics within 5% of the baseline`
+    if (lines[0]?.startsWith('hardware differs')) {
+      summary = 'every metric within its §9.5 limit (other hardware, so no 5% rule)'
+    }
   }
 }
 

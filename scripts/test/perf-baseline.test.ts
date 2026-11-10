@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { compare, LIMITS, makeBaseline } from '../lib/perf-baseline.mjs'
+import { compare, isOver, LIMITS, makeBaseline, sameMachine } from '../lib/perf-baseline.mjs'
 import { repoRoot, run } from './helpers.js'
 
 const MB = 1_048_576
@@ -106,17 +106,31 @@ describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
     )
   })
 
-  it('on other hardware or another Chromium, holds only the §9.5 limits', () => {
+  it('on other hardware, holds only the §9.5 limits', () => {
     const other = { ...HARDWARE, cpu: 'Intel Xeon', cores: 4 }
     const slow = rounds([1.5, 1.5, 1.5, 1.5, 1.5])
     const { failures, lines } = compare(baseline, result(slow, other))
     expect(failures).toEqual([])
     expect(lines[0]).toMatch(/^hardware differs from the baseline/)
-    expect(compare(baseline, result(slow, HARDWARE, '141.0.0.0')).failures).toEqual([])
     const over = { ...slow, 'render.chart': [26, 27, 28, 29, 30] }
     expect(compare(baseline, result(over, other)).failures).toEqual([
       'render.chart: 26.000 ms is over the §9.5 limit of 25 ms',
     ])
+  })
+
+  it('fails another Chromium on the same hardware, asking for --update', () => {
+    expect(compare(baseline, result(rounds(), HARDWARE, '141.0.0.0')).failures).toEqual([
+      "Chromium 141.0.0.0 on the baseline's hardware, baseline Chromium 140.0.7339.16: run with --update",
+    ])
+  })
+
+  it('fails memory more than 5% below its baseline, asking for --update (ratchet)', () => {
+    const values = rounds([0.94, 0.94, 0.94, 0.94, 0.94], 'memory.visual')
+    expect(compare(baseline, result(values)).failures).toEqual([
+      'memory.visual: 0.470 MB, baseline 0.500 MB (-6.0%); improved, so run with --update',
+    ])
+    const close = rounds([0.96, 0.96, 0.96, 0.96, 0.96], 'memory.visual')
+    expect(compare(baseline, result(close)).failures).toEqual([])
   })
 
   it('prints one line per metric with its value, baseline and limit', () => {
@@ -130,6 +144,23 @@ describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
   })
 })
 
+describe('isOver and sameMachine', () => {
+  it('is over only past the allowance; exactly 5% is within', () => {
+    expect(isOver(2, 2.1)).toBe(false)
+    expect(isOver(2, 2.1001)).toBe(true)
+    expect(isOver(2, 2.2, 0.1)).toBe(false)
+  })
+
+  it('matches CPU, cores and Chromium; memGiB and load are informational', () => {
+    const same = { chromium: CHROMIUM, hardware: { ...HARDWARE, memGiB: 64, load: [1, 1, 1] } }
+    expect(sameMachine(baseline, same)).toBe(true)
+    expect(sameMachine(baseline, { ...same, chromium: 'x' })).toBe(false)
+    expect(
+      sameMachine(baseline, { chromium: CHROMIUM, hardware: { ...HARDWARE, cores: 16 } }),
+    ).toBe(false)
+  })
+})
+
 describe('makeBaseline', () => {
   it('takes the hardware, Chromium and each metric from a run', () => {
     const next = makeBaseline(result(rounds([1, 1.1, 1.2, 1.3, 1.4])), '2026-11-11')
@@ -138,8 +169,30 @@ describe('makeBaseline', () => {
       date: '2026-11-11',
       chromium: CHROMIUM,
       hardware: HARDWARE,
+      runs: 1,
+      loads: [HARDWARE.load],
       metrics: { ...METRICS, 'memory.visual': Math.round(1.2 * 0.5 * MB) },
     })
+  })
+
+  it('merges runs: a timing is the fastest round of all of them, memory the median of all', () => {
+    const loaded = result(rounds([1.08, 1.07, 1.09, 1.1, 1.08]), { ...HARDWARE, load: [14, 9, 9] })
+    const quiet = result(rounds([1.01, 1.0, 1.02, 1.0, 1.03]), { ...HARDWARE, load: [3, 5, 8] })
+    const { baseline: next, findings } = makeBaseline([quiet, loaded], 'd')
+    expect(findings).toEqual([])
+    expect(next.metrics['render.table']).toBe(2.6)
+    expect(next.runs).toBe(2)
+    expect(next.loads).toEqual([
+      [3, 5, 8],
+      [14, 9, 9],
+    ])
+  })
+
+  it('refuses runs from different machines', () => {
+    const other = result(rounds(), { ...HARDWARE, cpu: 'Intel Xeon' })
+    expect(makeBaseline([other, result(rounds())], 'd').findings).toEqual([
+      'runs from different machines or Chromium versions: Intel Xeon, Chromium 140.0.7339.16',
+    ])
   })
 
   it('refuses a run over a §9.5 limit, or with a metric unmeasured', () => {
@@ -150,6 +203,31 @@ describe('makeBaseline', () => {
     const { 'render.chart': _, ...fewer } = rounds()
     expect(makeBaseline(result(fewer), 'd').findings).toEqual(['render.chart: not measured'])
   })
+})
+
+describe('sensitivity on a recorded run of e2e/budgets.spec.ts', () => {
+  // A real result (2026-11-10, load 14). Tightening a baseline by 6% is a 6% regression seen
+  // from the other side: the check must fail on it.
+  const recorded = JSON.parse(
+    readFileSync(`${repoRoot}scripts/test/fixtures/perf-run.json`, 'utf8'),
+  ) as ReturnType<typeof result>
+  const own = makeBaseline(recorded, 'd').baseline
+
+  it('passes against a baseline from the same run', () => {
+    expect(compare(own, recorded).failures).toEqual([])
+  })
+
+  for (const name of Object.keys(LIMITS)) {
+    it(`fails ${name} at +6%`, () => {
+      const base = own.metrics[name] as number
+      const tight = { ...own, metrics: { ...own.metrics, [name]: base / 1.06 } }
+      const { failures } = compare(tight, recorded)
+      expect(failures).toHaveLength(1)
+      expect(failures[0]).toMatch(
+        new RegExp(`^${name.replace('.', '\\.')}: .*\\(\\+6\\.0%, allowed \\+5%\\)$`),
+      )
+    })
+  }
 })
 
 describe('check-perf-budgets', () => {
@@ -193,6 +271,20 @@ describe('check-perf-budgets', () => {
     const ok = run('check-perf-budgets.mjs', '--result', faster, '--baseline', base, '--update')
     expect(ok.code).toBe(0)
     expect(JSON.parse(readFileSync(base, 'utf8')).metrics['render.table']).toBe(1.3)
+  })
+
+  it('updates from several recorded runs, keeping the fastest round of all', () => {
+    const folder = dir()
+    const base = write(folder, 'base.json', baseline)
+    const slow = write(folder, 'slow.json', result(rounds([1.1, 1.1, 1.1, 1.1, 1.1])))
+    const fast = write(folder, 'fast.json', result(rounds([1.02, 1.0, 1.03, 1.01, 1.02])))
+    const args = ['--baseline', base, '--update', '--result', slow, '--result', fast]
+    const out = run('check-perf-budgets.mjs', ...args)
+    expect(out.code).toBe(0)
+    expect(out.out).toContain('from 2 run(s)')
+    const written = JSON.parse(readFileSync(base, 'utf8'))
+    expect(written.metrics['render.table']).toBe(2.6)
+    expect(written.runs).toBe(2)
   })
 
   it('has a committed baseline with every metric and the hardware it was measured on', () => {

@@ -66,19 +66,38 @@ const overLimit = (name, value) =>
   `${name}: ${show(name, value)} is over the §9.5 limit of ${showLimit(name, LIMITS[/** @type {keyof typeof LIMITS} */ (name)])}`
 
 /**
- * The comparison is against this machine's own baseline: on another CPU, core count or Chromium,
- * the numbers do not compare, and only §9.5's limits hold.
+ * The 5% compares only on this machine: the same CPU model, core count and Chromium. On other
+ * hardware the numbers do not compare and only §9.5's limits hold; on this hardware with another
+ * Chromium, the check fails and asks for `--update` (VD-171).
  *
- * @param {PerfBaseline} baseline
- * @param {PerfResult} result
+ * @param {{ chromium: string, hardware: { cpu: string, cores: number } }} baseline
+ * @param {{ chromium?: string, hardware?: { cpu?: string, cores?: number } }} result
  */
-function sameMachine(baseline, result) {
-  const { cpu, cores } = baseline.hardware
+export function sameMachine(baseline, result) {
+  return sameHardware(baseline, result) && result.chromium === baseline.chromium
+}
+
+/**
+ * @param {{ hardware: { cpu: string, cores: number } }} baseline
+ * @param {{ hardware?: { cpu?: string, cores?: number } }} result
+ */
+function sameHardware(baseline, result) {
   return (
-    result.hardware?.cpu === cpu &&
-    result.hardware?.cores === cores &&
-    result.chromium === baseline.chromium
+    result.hardware?.cpu === baseline.hardware.cpu &&
+    result.hardware?.cores === baseline.hardware.cores
   )
+}
+
+/**
+ * The one regression rule, for the check and for the spec's re-measure: more than `allowance`
+ * above the baseline. Exactly the allowance is within.
+ *
+ * @param {number} base
+ * @param {number} value
+ * @param {number} [allowance]
+ */
+export function isOver(base, value, allowance = ALLOWANCE) {
+  return (value - base) / base > allowance + 1e-9
 }
 
 /**
@@ -93,9 +112,13 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
   /** @type {string[]} */
   const lines = []
   const same = sameMachine(baseline, result)
-  if (!same) {
-    const was = `${baseline.hardware.cpu}, ${baseline.hardware.cores} cores, Chromium ${baseline.chromium}`
-    const now = `${result.hardware?.cpu}, ${result.hardware?.cores} cores, Chromium ${result.chromium}`
+  const was = `${baseline.hardware.cpu}, ${baseline.hardware.cores} cores, Chromium ${baseline.chromium}`
+  const now = `${result.hardware?.cpu}, ${result.hardware?.cores} cores, Chromium ${result.chromium}`
+  if (!same && sameHardware(baseline, result)) {
+    failures.push(
+      `Chromium ${result.chromium} on the baseline's hardware, baseline Chromium ${baseline.chromium}: run with --update`,
+    )
+  } else if (!same) {
     lines.push(
       `hardware differs from the baseline (${was}; this run ${now}): only the §9.5 limits apply`,
     )
@@ -120,12 +143,18 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
     }
     const rise = (value - base) / base
     let note = ''
-    if (same && rise > allowance + 1e-9) {
+    if (same && isOver(base, value, allowance)) {
       failures.push(
         `${name}: ${show(name, value)}, baseline ${show(name, base)} (${percent(rise)}, allowed +${allowance * 100}%)`,
       )
+    } else if (same && isMemory(name) && isOver(value, base, allowance)) {
+      // Memory reads the same to 0.1% run to run, so a gain left out of the file would become
+      // room to regress (VD-154's ratchet).
+      failures.push(
+        `${name}: ${show(name, value)}, baseline ${show(name, base)} (${percent(rise)}); improved, so run with --update`,
+      )
     } else if (rise < -allowance - 1e-9) {
-      // Not a failure: a quieter machine is faster, and the gate must fail on the code (VD-087).
+      // Not a failure for timing: a quieter machine is faster, and the gate must fail on the code.
       note = '; faster than the baseline, run with --update to keep the gain'
     }
     lines.push(`${head}, baseline ${show(name, base)} (${percent(rise)}${note}), ${tail}`)
@@ -134,19 +163,31 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
 }
 
 /**
- * The baseline a run would write. A run over a §9.5 limit, or with a metric unmeasured, cannot be one.
+ * The baseline one or more runs would write: every run's rounds together, so a timing is the
+ * fastest round of all runs and load during one run does not eat the 5%. A run over a §9.5 limit,
+ * a metric unmeasured, or runs from different machines cannot be one.
  *
- * @param {PerfResult} result
+ * @param {PerfResult | PerfResult[]} results
  * @param {string} date
- * @returns {{ baseline: PerfBaseline, findings: string[] }}
+ * @returns {{ baseline: PerfBaseline & { runs: number, loads: number[][] }, findings: string[] }}
  */
-export function makeBaseline(result, date) {
+export function makeBaseline(results, date) {
+  const runs = Array.isArray(results) ? results : [results]
+  const last = /** @type {PerfResult} */ (runs[runs.length - 1])
   /** @type {string[]} */
   const findings = []
+  for (const run of runs) {
+    if (!sameMachine(last, run)) {
+      findings.push(
+        `runs from different machines or Chromium versions: ${run.hardware?.cpu}, Chromium ${run.chromium}`,
+      )
+    }
+  }
   /** @type {Record<string, number>} */
   const metrics = {}
   for (const [name, limit] of Object.entries(LIMITS)) {
-    const value = metricValue(name, result.rounds?.[name])
+    const all = runs.flatMap((run) => run.rounds?.[name] ?? [])
+    const value = metricValue(name, all)
     if (value === undefined) {
       findings.push(`${name}: not measured`)
       continue
@@ -154,6 +195,14 @@ export function makeBaseline(result, date) {
     if (value > limit) findings.push(overLimit(name, value))
     metrics[name] = isMemory(name) ? Math.round(value) : Math.round(value * 1e4) / 1e4
   }
-  const baseline = { date, chromium: result.chromium, hardware: result.hardware, metrics }
+  const loads = runs.map((run) => run.hardware?.load ?? [])
+  const baseline = {
+    date,
+    chromium: last.chromium,
+    hardware: last.hardware,
+    runs: runs.length,
+    loads,
+    metrics,
+  }
   return { baseline, findings }
 }

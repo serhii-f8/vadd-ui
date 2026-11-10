@@ -3,7 +3,7 @@ import { cpus, loadavg, totalmem } from 'node:os'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, type Page, test } from '@playwright/test'
-import { ALLOWANCE, LIMITS, metricValue } from '../scripts/lib/perf-baseline.mjs'
+import { isOver, LIMITS, metricValue, sameMachine } from '../scripts/lib/perf-baseline.mjs'
 
 // §9.5's render timings and memory per mounted visual, by the real `dist/vui.min.js` in headless
 // Chromium (VD-171). The spec holds the §9.5 limits; `scripts/check-perf-budgets.mjs` holds the
@@ -331,12 +331,8 @@ test('§9.5: render timings and memory per visual, within their limits', async (
         metrics: Record<string, number>
       })
     : undefined
-  // Only this machine's own baseline compares (the check says the same).
-  const comparable =
-    baseline !== undefined &&
-    baseline.chromium === chromium &&
-    baseline.hardware.cpu === hardware.cpu &&
-    baseline.hardware.cores === hardware.cores
+  // Only this machine's own baseline compares, by the check's own rule.
+  const comparable = baseline !== undefined && sameMachine(baseline, { chromium, hardware })
 
   const rounds: Record<string, number[]> = {}
   const names = Object.keys(DOCUMENTS) as Timing[]
@@ -353,7 +349,7 @@ test('§9.5: render timings and memory per visual, within their limits', async (
     extra[name] = 0
     const base = comparable ? baseline?.metrics[name] : undefined
     if (base === undefined) continue
-    while (Math.min(...(rounds[name] ?? [])) > base * (1 + ALLOWANCE) && extra[name] < EXTRA) {
+    while (isOver(base, Math.min(...(rounds[name] ?? []))) && extra[name] < EXTRA) {
       rounds[name]?.push(await round(page, DOCUMENTS[name]))
       extra[name] += 1
     }
