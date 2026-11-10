@@ -25,8 +25,8 @@ export const LIMITS = {
 
 /**
  * @typedef {{ cpu: string, cores: number, memGiB: number, load: number[] }} Hardware
- * @typedef {{ chromium: string, hardware: Hardware, rounds: Record<string, number[]>, samples?: Record<string, { current: number[], reference: number[] }> }} PerfResult
- * @typedef {{ date: string, chromium: string, hardware: Hardware, metrics: Record<string, number>, ms?: Record<string, number> }} PerfBaseline
+ * @typedef {{ chromium: string, hardware: Hardware, reference?: { sha256: string }, rounds: Record<string, number[]>, samples?: Record<string, { current: number[], reference: number[] }> }} PerfResult
+ * @typedef {{ date: string, chromium: string, hardware: Hardware, referenceSha256?: string, metrics: Record<string, number>, ms?: Record<string, number> }} PerfBaseline
  */
 
 /** @param {string} name */
@@ -136,14 +136,47 @@ export function isOver(base, value, allowance = ALLOWANCE) {
 }
 
 /**
+ * The ratios mean "against the baseline's build" only while the reference is that build: the
+ * baseline names it by sha256, and the run records the sha256 of the bundle it loaded (VD-171).
+ *
+ * @param {PerfBaseline} baseline
+ * @param {PerfResult} result
+ * @param {string} [committed] the sha256 of the committed `scripts/perf-reference.vui.min.js`
+ * @returns {string[]}
+ */
+function referenceFailures(baseline, result, committed) {
+  const named = baseline.referenceSha256
+  if (named === undefined) return ['the baseline names no reference sha256: run with --update']
+  /** @type {string[]} */
+  const failures = []
+  if (committed !== undefined && committed !== named) {
+    failures.push(
+      `scripts/perf-reference.vui.min.js has sha256 ${committed}, but the baseline was taken against ${named}: run with --update`,
+    )
+  }
+  const measured = result.reference?.sha256
+  if (measured === undefined) {
+    failures.push(
+      `the run recorded no reference sha256, the baseline's is ${named}: rerun the budgets spec`,
+    )
+  } else if (measured !== named) {
+    failures.push(
+      `the run measured against a reference with sha256 ${measured}, the baseline's is ${named}: rerun the budgets spec`,
+    )
+  }
+  return failures
+}
+
+/**
  * @param {PerfBaseline} baseline
  * @param {PerfResult} result
  * @param {number} [allowance]
+ * @param {string} [committed] the sha256 of the committed reference bundle, when the caller read it
  * @returns {{ failures: string[], lines: string[] }}
  */
-export function compare(baseline, result, allowance = ALLOWANCE) {
+export function compare(baseline, result, allowance = ALLOWANCE, committed = undefined) {
   /** @type {string[]} */
-  const failures = []
+  const failures = referenceFailures(baseline, result, committed)
   /** @type {string[]} */
   const lines = []
   const same = sameMachine(baseline, result)
@@ -202,8 +235,9 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
 /**
  * The baseline one or more runs would write. Timing: the median over runs of each run's ratio
  * (about 1, since the reference is the baseline's own build), and the fastest render in ms for
- * information. Memory: the median of all runs' rounds. A run over a §9.5 limit, a metric
- * unmeasured, or runs from different machines cannot be one.
+ * information. Memory: the median of all runs' rounds. It names the reference the runs measured
+ * against by sha256. A run over a §9.5 limit, a metric unmeasured, runs from different machines,
+ * or runs against different or unrecorded references cannot be one.
  *
  * @param {PerfResult | PerfResult[]} results
  * @param {string} date
@@ -220,6 +254,13 @@ export function makeBaseline(results, date) {
         `runs from different machines or Chromium versions: ${run.hardware?.cpu}, Chromium ${run.chromium}`,
       )
     }
+  }
+  const shas = runs.map((run) => run.reference?.sha256)
+  const referenceSha256 = shas[shas.length - 1]
+  if (shas.some((sha) => sha === undefined)) findings.push('a run recorded no reference sha256')
+  else if (shas.some((sha) => sha !== referenceSha256)) {
+    const other = shas.find((sha) => sha !== referenceSha256)
+    findings.push(`runs against different reference builds: sha256 ${other} and ${referenceSha256}`)
   }
   /** @type {Record<string, number>} */
   const metrics = {}
@@ -245,6 +286,7 @@ export function makeBaseline(results, date) {
     date,
     chromium: last.chromium,
     hardware: last.hardware,
+    referenceSha256,
     runs: runs.length,
     loads,
     metrics,

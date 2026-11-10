@@ -1,4 +1,5 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -19,10 +20,15 @@ const METRICS = {
   'render.chart': 4.0,
   'memory.visual': 0.5 * MB,
 }
+/** The reference bundle a baseline was taken against, by its sha256 (VD-171). */
+const REFERENCE_TEXT = '/* reference build */\n'
+const sha256 = (text: string | Buffer) => createHash('sha256').update(text).digest('hex')
+const SHA = sha256(REFERENCE_TEXT)
 const baseline = {
   date: '2026-11-10',
   chromium: CHROMIUM,
   hardware: HARDWARE,
+  referenceSha256: SHA,
   metrics: METRICS,
 }
 
@@ -58,7 +64,7 @@ const result = (
   hardware = HARDWARE,
   chromium = CHROMIUM,
   samples = sampled(values),
-) => ({ chromium, hardware, rounds: values, samples })
+) => ({ chromium, hardware, reference: { sha256: SHA }, rounds: values, samples })
 
 /** Every timing scaled by `factor` in current and reference renders alike: load, not code. */
 function underLoad(values: Rounds, factor: number) {
@@ -193,6 +199,32 @@ describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
     expect(compare(baseline, result(close)).failures).toEqual([])
   })
 
+  it('fails when the committed reference is not the build the baseline was taken from', () => {
+    expect(compare(baseline, result(rounds()), undefined, SHA).failures).toEqual([])
+    const other = sha256('/* another build */')
+    expect(compare(baseline, result(rounds()), undefined, other).failures).toEqual([
+      `scripts/perf-reference.vui.min.js has sha256 ${other}, but the baseline was taken against ${SHA}: run with --update`,
+    ])
+  })
+
+  it('fails a run that measured against another reference than the baseline names', () => {
+    const run = { ...result(rounds()), reference: { sha256: 'f'.repeat(64) } }
+    expect(compare(baseline, run).failures).toEqual([
+      `the run measured against a reference with sha256 ${'f'.repeat(64)}, the baseline's is ${SHA}: rerun the budgets spec`,
+    ])
+    const { reference: _, ...unrecorded } = result(rounds())
+    expect(compare(baseline, unrecorded as ReturnType<typeof result>).failures).toEqual([
+      `the run recorded no reference sha256, the baseline's is ${SHA}: rerun the budgets spec`,
+    ])
+  })
+
+  it('fails a baseline that names no reference', () => {
+    const { referenceSha256: _, ...unnamed } = baseline
+    expect(compare(unnamed as typeof baseline, result(rounds())).failures).toEqual([
+      'the baseline names no reference sha256: run with --update',
+    ])
+  })
+
   it('prints one line per metric with its value, baseline and limit', () => {
     const { lines } = compare(baseline, result(rounds()))
     expect(lines).toContain(
@@ -229,6 +261,7 @@ describe('makeBaseline', () => {
       date: '2026-11-11',
       chromium: CHROMIUM,
       hardware: HARDWARE,
+      referenceSha256: SHA,
       runs: 1,
       loads: [HARDWARE.load],
       metrics: { ...METRICS, 'memory.visual': Math.round(1.2 * 0.5 * MB) },
@@ -255,6 +288,17 @@ describe('makeBaseline', () => {
     ])
   })
 
+  it('refuses runs against different references, or against none recorded', () => {
+    const other = { ...result(rounds()), reference: { sha256: 'e'.repeat(64) } }
+    expect(makeBaseline([other, result(rounds())], 'd').findings).toEqual([
+      `runs against different reference builds: sha256 ${'e'.repeat(64)} and ${SHA}`,
+    ])
+    const { reference: _, ...unrecorded } = result(rounds())
+    expect(makeBaseline(unrecorded as ReturnType<typeof result>, 'd').findings).toEqual([
+      'a run recorded no reference sha256',
+    ])
+  })
+
   it('refuses a run over a §9.5 limit, or with a metric unmeasured', () => {
     const values = { ...rounds(), 'render.table': [31] }
     expect(makeBaseline(result(values), 'd').findings).toEqual([
@@ -266,7 +310,7 @@ describe('makeBaseline', () => {
 })
 
 describe('sensitivity on a recorded run of e2e/budgets.spec.ts', () => {
-  // A real result of the A/B spec (2026-11-10). Tightening a baseline by 6% is a 6% regression seen
+  // A real result of the A/B spec, one frame per bundle (2026-11-10, final review). Tightening a baseline by 6% is a 6% regression seen
   // from the other side: the check must fail on it.
   const recorded = JSON.parse(
     readFileSync(`${repoRoot}scripts/test/fixtures/perf-run.json`, 'utf8'),
@@ -294,8 +338,55 @@ describe('check-perf-budgets', () => {
   const dir = () => mkdtempSync(join(tmpdir(), 'vui-perf-'))
   const write = (folder: string, name: string, value: unknown) => {
     const path = join(folder, name)
-    writeFileSync(path, JSON.stringify(value))
+    writeFileSync(path, typeof value === 'string' ? value : JSON.stringify(value))
     return path
+  }
+  /** The checks below run against this reference, whose sha256 the baseline names. */
+  const check = (folder: string, ...args: string[]) =>
+    run(
+      'check-perf-budgets.mjs',
+      '--reference',
+      write(folder, 'reference.js', REFERENCE_TEXT),
+      ...args,
+    )
+
+  /**
+   * A tree for `--update --root`: a current bundle, the committed reference and baseline, and a
+   * stub Playwright whose runs are scripted by `runs`: `fail` exits 1, `over` records a run over
+   * a §9.5 limit, `ok` records a clean run against the reference it was handed.
+   */
+  const tree = (runs: ('ok' | 'over' | 'fail')[]) => {
+    const root = dir()
+    const file = (path: string, text: string) => {
+      mkdirSync(join(root, path, '..'), { recursive: true })
+      writeFileSync(join(root, path), text)
+    }
+    file('packages/ui/dist/vui.min.js', '/* current build */\n')
+    file('scripts/perf-reference.vui.min.js', REFERENCE_TEXT)
+    file('scripts/perf-baseline.json', JSON.stringify(baseline))
+    const clean = result(rounds())
+    const over = result({ ...rounds(), 'render.table': [31] })
+    file(
+      'node_modules/@playwright/test/cli.js',
+      `const { createHash } = require('node:crypto')
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs')
+const counter = 'runs.txt'
+const count = existsSync(counter) ? Number(readFileSync(counter, 'utf8')) : 0
+writeFileSync(counter, String(count + 1))
+const step = ${JSON.stringify(runs)}[count]
+if (step === 'fail') process.exit(1)
+const reference = process.env.VUI_PERF_REFERENCE
+const sha256 = createHash('sha256').update(readFileSync(reference)).digest('hex')
+const run = step === 'over' ? ${JSON.stringify(over)} : ${JSON.stringify(clean)}
+mkdirSync('test-results', { recursive: true })
+writeFileSync('test-results/budgets.json', JSON.stringify({ ...run, reference: { sha256 } }))
+`,
+    )
+    chmodSync(join(root, 'node_modules/@playwright/test/cli.js'), 0o644)
+    const read = (path: string) => readFileSync(join(root, path), 'utf8')
+    const update = () =>
+      run('check-perf-budgets.mjs', '--root', root, '--update', '--runs', String(runs.length))
+    return { root, read, update }
   }
 
   it('exits 1 on +6% in every round and 0 on +4%', () => {
@@ -303,12 +394,12 @@ describe('check-perf-budgets', () => {
     const base = write(folder, 'base.json', baseline)
     const worse = write(folder, 'worse.json', result(rounds([1.06, 1.06, 1.06, 1.06, 1.06])))
     const fine = write(folder, 'fine.json', result(rounds([1.04, 1.04, 1.04, 1.04, 1.04])))
-    const bad = run('check-perf-budgets.mjs', '--result', worse, '--baseline', base)
+    const bad = check(folder, '--result', worse, '--baseline', base)
     expect(bad.code).toBe(1)
     expect(bad.out).toContain(
       'render.table: ratio 2.756, baseline ratio 2.600 (+6.0%, allowed +5%)',
     )
-    const good = run('check-perf-budgets.mjs', '--result', fine, '--baseline', base)
+    const good = check(folder, '--result', fine, '--baseline', base)
     expect(good.code).toBe(0)
     expect(good.out).toContain('check-perf-budgets: 4 metrics within 5% of the baseline')
   })
@@ -333,6 +424,65 @@ describe('check-perf-budgets', () => {
     const ok = run('check-perf-budgets.mjs', '--result', faster, '--baseline', base, '--update')
     expect(ok.code).toBe(0)
     expect(JSON.parse(readFileSync(base, 'utf8')).metrics['render.table']).toBe(1.3)
+  })
+
+  it('fails when the committed reference is not the one the baseline names', () => {
+    const folder = dir()
+    const base = write(folder, 'base.json', baseline)
+    const fine = write(folder, 'fine.json', result(rounds()))
+    const other = write(folder, 'other.js', '/* rebuilt */')
+    const out = run(
+      'check-perf-budgets.mjs',
+      '--result',
+      fine,
+      '--baseline',
+      base,
+      '--reference',
+      other,
+    )
+    expect(out.code).toBe(1)
+    expect(out.out).toContain(`perf-reference.vui.min.js has sha256 ${sha256('/* rebuilt */')}`)
+    const none = run(
+      'check-perf-budgets.mjs',
+      '--result',
+      fine,
+      '--baseline',
+      base,
+      '--reference',
+      join(folder, 'none.js'),
+    )
+    expect(none.code).toBe(1)
+    expect(none.out).toContain(
+      `no reference bundle at ${join(folder, 'none.js')}; run with --update`,
+    )
+  })
+
+  it('a failed --update run leaves the reference and the baseline as they were', () => {
+    const { read, update } = tree(['ok', 'fail'])
+    const out = update()
+    expect(out.code).toBe(1)
+    expect(out.out).toContain('budgets spec run 2 of 2 failed (exit 1)')
+    expect(read('scripts/perf-reference.vui.min.js')).toBe(REFERENCE_TEXT)
+    expect(JSON.parse(read('scripts/perf-baseline.json'))).toEqual(baseline)
+  })
+
+  it('an --update the baseline refuses leaves the reference and the baseline as they were', () => {
+    const { read, update } = tree(['over', 'over'])
+    const out = update()
+    expect(out.code).toBe(1)
+    expect(out.out).toContain('render.table: 31.000 ms is over the §9.5 limit of 30 ms')
+    expect(read('scripts/perf-reference.vui.min.js')).toBe(REFERENCE_TEXT)
+    expect(JSON.parse(read('scripts/perf-baseline.json'))).toEqual(baseline)
+  })
+
+  it('a clean --update measures against the current build, then commits it and its sha256', () => {
+    const { read, update } = tree(['ok', 'ok'])
+    const out = update()
+    expect(out.code).toBe(0)
+    expect(read('scripts/perf-reference.vui.min.js')).toBe('/* current build */\n')
+    const written = JSON.parse(read('scripts/perf-baseline.json'))
+    expect(written.referenceSha256).toBe(sha256('/* current build */\n'))
+    expect(written.runs).toBe(2)
   })
 
   it('updates from several recorded runs, keeping the median run', () => {
@@ -366,8 +516,10 @@ describe('check-perf-budgets', () => {
     expect(typeof committed.chromium).toBe('string')
     expect(committed.hardware.cores).toBeGreaterThan(0)
     expect(committed.hardware.load).toHaveLength(3)
-    // The build the baseline was measured against, committed with it.
-    expect(existsSync(`${repoRoot}scripts/perf-reference.vui.min.js`)).toBe(true)
+    // The build the baseline was measured against, committed with it, and named by its sha256.
+    const reference = `${repoRoot}scripts/perf-reference.vui.min.js`
+    expect(existsSync(reference)).toBe(true)
+    expect(committed.referenceSha256).toBe(sha256(readFileSync(reference)))
   })
 
   it('runs last in pnpm check', () => {

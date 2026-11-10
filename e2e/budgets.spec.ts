@@ -1,8 +1,9 @@
+import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { cpus, loadavg, totalmem } from 'node:os'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Frame, type Page, test } from '@playwright/test'
 import { gatedValue, LIMITS, metricValue } from '../scripts/lib/perf-baseline.mjs'
 
 // §9.5's render timings and memory per mounted visual, by the real `dist/vui.min.js` in headless
@@ -11,12 +12,17 @@ import { gatedValue, LIMITS, metricValue } from '../scripts/lib/perf-baseline.mj
 //
 // Each render is paired, alternating, with a render of the same document by the reference bundle
 // (`scripts/perf-reference.vui.min.js`, the build the baseline was taken from) in the same page.
-// Load slows both alike, so the check gates the ratio current ÷ reference: a regression against
-// the baseline's code, with the machine cancelled; each side reads its 2nd percentile of the run,
+// Each bundle runs in its own same-origin frame, so each document has its own `style#vui-style`:
+// the ratio measures the code and the stylesheet. The frames share the page's main thread, so
+// load slows both alike, and the check gates the ratio current ÷ reference: a regression against
+// the baseline's build, with the machine cancelled; each side reads its 2nd percentile of the run,
 // near the fastest without its outliers. The raw fastest render is held to §9.5's ms limits.
 
 const BUNDLE = fileURLToPath(new URL('../packages/ui/dist/vui.min.js', import.meta.url))
-const REFERENCE = fileURLToPath(new URL('../scripts/perf-reference.vui.min.js', import.meta.url))
+/** `check-perf-budgets.mjs --update` hands its snapshot of the current build here. */
+const REFERENCE =
+  process.env.VUI_PERF_REFERENCE ??
+  fileURLToPath(new URL('../scripts/perf-reference.vui.min.js', import.meta.url))
 const RESULT = fileURLToPath(new URL('../test-results/budgets.json', import.meta.url))
 
 /**
@@ -210,9 +216,17 @@ function countNodes(nodes: unknown[]): number {
 const DOCUMENTS = { 'render.table': TABLE, 'render.doc20': DOC20, 'render.chart': CHART }
 type Timing = keyof typeof DOCUMENTS
 
+/** The two frames of the budgets page, one bundle each. */
+const FRAME = { current: 'current', reference: 'reference' } as const
+const FRAME_DOC =
+  '<!doctype html><meta charset="utf-8"><style>body{margin:0;width:720px}</style><body></body>'
+const iframe = (name: string) =>
+  `<iframe name="${name}" style="display:block;border:0;width:720px;height:800px" srcdoc='${FRAME_DOC}'></iframe>`
+
 /**
  * One round of one document: `samples` renders by the current bundle and as many by the
- * reference, paired and alternating, each into a fresh box with layout forced, in ms.
+ * reference, paired and alternating, each into a fresh box of its own frame with that frame's
+ * layout forced, in ms by the page's clock.
  */
 function round(
   page: Page,
@@ -220,36 +234,43 @@ function round(
   samples: number,
 ): Promise<{ current: number[]; reference: number[] }> {
   return page.evaluate(
-    ({ input, samples }) => {
+    ({ input, samples, names }) => {
       type Bundle = { render(doc: unknown, target: HTMLElement): { destroy(): void } }
-      const { VUI, VUI_REF } = window as unknown as { VUI: Bundle; VUI_REF: Bundle }
-      const once = (bundle: Bundle) => {
-        const box = document.createElement('div')
-        document.body.append(box)
-        document.body.getBoundingClientRect()
+      type Side = { win: Window & { VUI: Bundle; JSON: JSON }; input: unknown }
+      const side = (name: string): Side => {
+        const win = (window.frames as unknown as Record<string, Side['win']>)[name] as Side['win']
+        // The document as an object of the frame's own realm, as a host there would hand it.
+        return { win, input: win.JSON.parse(JSON.stringify(input)) }
+      }
+      const current = side(names.current)
+      const reference = side(names.reference)
+      const once = ({ win, input }: Side) => {
+        const doc = win.document
+        const box = doc.createElement('div')
+        doc.body.append(box)
+        doc.body.getBoundingClientRect()
         const start = performance.now()
-        const handle = bundle.render(input, box)
+        const handle = win.VUI.render(input, box)
         box.getBoundingClientRect()
         const time = performance.now() - start
         handle.destroy()
         box.remove()
         return time
       }
-      const current: number[] = []
-      const reference: number[] = []
+      const times = { current: [] as number[], reference: [] as number[] }
       for (let sample = 0; sample < samples; sample += 1) {
-        if (sample % 2 === 0) reference.push(once(VUI_REF))
-        current.push(once(VUI))
-        if (sample % 2 === 1) reference.push(once(VUI_REF))
+        if (sample % 2 === 0) times.reference.push(once(reference))
+        times.current.push(once(current))
+        if (sample % 2 === 1) times.reference.push(once(reference))
       }
-      return { current, reference }
+      return times
     },
-    { input, samples },
+    { input, samples, names: FRAME },
   )
 }
 
-/** Bytes retained per mounted visual: `MOUNTS` mounts, the JS and Blink heaps after GC. */
-async function memoryRound(page: Page, name: Timing): Promise<number> {
+/** Bytes retained per mounted visual: `MOUNTS` mounts in the current frame, the JS and Blink heaps after GC. */
+async function memoryRound(page: Page, frame: Frame, name: Timing): Promise<number> {
   const cdp = await page.context().newCDPSession(page)
   const heap = async () => {
     await cdp.send('HeapProfiler.collectGarbage')
@@ -261,7 +282,7 @@ async function memoryRound(page: Page, name: Timing): Promise<number> {
     return usage.usedSize + (usage.embedderHeapUsedSize ?? 0)
   }
   const before = await heap()
-  await page.evaluate(
+  await frame.evaluate(
     ({ name, mounts }) => {
       const scope = window as unknown as {
         VUI: { render(doc: unknown, target: HTMLElement): { destroy(): void } }
@@ -279,7 +300,7 @@ async function memoryRound(page: Page, name: Timing): Promise<number> {
     { name, mounts: MOUNTS },
   )
   const after = await heap()
-  await page.evaluate(() => {
+  await frame.evaluate(() => {
     const scope = window as unknown as { __mounted: { destroy(): void }[] }
     for (const handle of scope.__mounted) handle.destroy()
     scope.__mounted = []
@@ -328,24 +349,32 @@ test('§9.5: render timings and memory per visual, within their limits', async (
         'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Embedder-Policy': 'require-corp',
       },
-      body: '<!doctype html><meta charset="utf-8"><style>body{margin:0;width:720px}</style><body></body>',
+      body: `<!doctype html><meta charset="utf-8"><style>body{margin:0}</style><body>${iframe(FRAME.current)}${iframe(FRAME.reference)}</body>`,
     }),
   )
   await page.goto('http://localhost:9/budgets')
-  // The current bundle first, so its stylesheet is the page's (one `style#vui-style` per page);
-  // then the reference, kept as `VUI_REF`, and `VUI` restored to the current bundle.
+  // One bundle per frame: each boots into its own document and injects its own stylesheet.
   expect(existsSync(REFERENCE), 'run node scripts/check-perf-budgets.mjs --update').toBe(true)
-  await page.addScriptTag({ content: readFileSync(BUNDLE, 'utf8') })
-  await page.evaluate(() => {
-    const scope = window as unknown as { VUI: unknown; VUI_CURRENT: unknown }
-    scope.VUI_CURRENT = scope.VUI
-  })
-  await page.addScriptTag({ content: readFileSync(REFERENCE, 'utf8') })
-  await page.evaluate(() => {
-    const scope = window as unknown as { VUI: unknown; VUI_CURRENT: unknown; VUI_REF: unknown }
-    scope.VUI_REF = scope.VUI
-    scope.VUI = scope.VUI_CURRENT
-  })
+  const referenceBytes = readFileSync(REFERENCE)
+  const frameOf = (name: string) => {
+    const frame = page.frame({ name })
+    if (frame === null) throw new Error(`no ${name} frame`)
+    return frame
+  }
+  const current = frameOf(FRAME.current)
+  const reference = frameOf(FRAME.reference)
+  await current.addScriptTag({ content: readFileSync(BUNDLE, 'utf8') })
+  await reference.addScriptTag({ content: referenceBytes.toString('utf8') })
+  const styleOf = (frame: Frame) =>
+    frame.evaluate(() => ({
+      styles: document.querySelectorAll('style#vui-style').length,
+      vui: typeof (window as unknown as { VUI?: unknown }).VUI,
+      isolated: crossOriginIsolated,
+    }))
+  for (const frame of [current, reference]) {
+    expect(await styleOf(frame)).toEqual({ styles: 1, vui: 'object', isolated: true })
+  }
+  expect(await page.evaluate(() => document.querySelectorAll('style#vui-style').length)).toBe(0)
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true)
 
   const cores = cpus()
@@ -375,15 +404,15 @@ test('§9.5: render timings and memory per visual, within their limits', async (
     }
   }
 
-  await page.evaluate((docs) => {
+  await current.evaluate((docs) => {
     ;(window as unknown as { __docs: unknown }).__docs = docs
   }, DOCUMENTS)
   const perDocument: Record<string, number[]> = {}
   for (const name of names) {
-    await memoryRound(page, name)
+    await memoryRound(page, current, name)
     perDocument[name] = []
     for (let index = 0; index < ROUNDS; index += 1) {
-      perDocument[name]?.push(await memoryRound(page, name))
+      perDocument[name]?.push(await memoryRound(page, current, name))
     }
   }
   // The largest of the three documents is the metric, round by round.
@@ -394,7 +423,9 @@ test('§9.5: render timings and memory per visual, within their limits', async (
   const result = {
     chromium,
     hardware: { ...hardware, load: readLoad() },
+    reference: { sha256: createHash('sha256').update(referenceBytes).digest('hex') },
     method: {
+      isolation: 'a same-origin frame per bundle',
       samples: SAMPLES,
       rounds: ROUNDS,
       warmup: 1,

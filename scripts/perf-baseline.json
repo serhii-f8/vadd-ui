@@ -6,48 +6,49 @@
     "cores": 8,
     "memGiB": 35.2,
     "load": [
-      6.18,
-      11.62,
-      14.62
+      9.2,
+      6.57,
+      8.67
     ]
   },
+  "referenceSha256": "88ca4a159c2cd59403bf5bd4c9dcf722a025fe5b1a91099fbc6984d4a8f8ba15",
   "runs": 5,
   "loads": [
     [
-      11.94,
-      16.47,
-      16.55
+      3.72,
+      5.38,
+      9.05
     ],
     [
-      11.42,
-      15.41,
-      16.17
+      4.07,
+      5.19,
+      8.79
     ],
     [
-      9.72,
-      14.34,
-      15.77
+      4.71,
+      5.18,
+      8.59
     ],
     [
-      5.96,
-      12.62,
-      15.1
+      4.65,
+      5.14,
+      8.4
     ],
     [
-      6.18,
-      11.62,
-      14.62
+      9.2,
+      6.57,
+      8.67
     ]
   ],
   "metrics": {
-    "render.table": 0.9953,
-    "render.doc20": 0.9973,
-    "render.chart": 0.9974,
-    "memory.visual": 2035630
+    "render.table": 1,
+    "render.doc20": 1,
+    "render.chart": 1.0017,
+    "memory.visual": 2036188
   },
   "ms": {
-    "render.table": 1.99,
-    "render.doc20": 1.745,
-    "render.chart": 5.495
+    "render.table": 2.035,
+    "render.doc20": 1.685,
+    "render.chart": 5.625
   }
 }
