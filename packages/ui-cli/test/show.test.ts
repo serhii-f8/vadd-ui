@@ -28,7 +28,10 @@ interface Fixture {
 }
 
 interface OrcaScript {
-  /** Replies by subcommand; a missing one is `tab create` succeeding. */
+  /**
+   * Replies by subcommand. A missing one answers as Orca does from what this stub has done: `tab
+   * create` opens a numbered tab, `tab list` lists the open tabs, `tab goto` moves one (VD-163).
+   */
   create?: () => FakeReply
   list?: () => FakeReply
   goto?: () => FakeReply
@@ -54,11 +57,23 @@ function setup(options: { orca?: OrcaScript; env?: NodeJS.ProcessEnv } = {}): Fi
   if (script !== undefined) {
     env.PATH = '/bin'
     fake.files = { '/bin/orca-ide': '' }
+    const open: { browserPageId: string; url: string }[] = []
     fake.exec = (_file, args) => {
       calls.push([...args])
-      if (args[0] === 'goto') return script.goto?.() ?? { ok: true, stdout: '{"ok":true}' }
-      if (args[1] === 'list') return script.list?.() ?? tabs()
-      return script.create?.() ?? created()
+      if (args[0] === 'goto') {
+        const moved = script.goto?.()
+        if (moved !== undefined) return moved
+        const tab = open.find((one) => one.browserPageId === args[args.indexOf('--page') + 1])
+        if (tab === undefined) return { ok: false, stdout: '{"ok":false}' }
+        tab.url = args[args.indexOf('--url') + 1] as string
+        return { ok: true, stdout: '{"ok":true}' }
+      }
+      if (args[1] === 'list') return script.list?.() ?? tabs(...open)
+      const reply = script.create?.() ?? created(`page-${open.length + 1}`)
+      const id = JSON.parse(reply.stdout ?? '{}')?.result?.browserPageId
+      if (reply.ok && typeof id === 'string')
+        open.push({ browserPageId: id, url: args[args.indexOf('--url') + 1] as string })
+      return reply
     }
   }
   farm = new ViewerFarm(env)
@@ -289,6 +304,45 @@ describe('a failure after the document is stored', () => {
     expect(stderr).toMatch(/^vui: warning: Orca did not open a pane \(state-not-writable\)\n$/)
   })
 
+  // VD-163: the pane exists once `tab create` answered, whatever happens to the record of it.
+  it('is a warning about the record, not a failed pane, when the id cannot be saved', async () => {
+    let fixture: Fixture | undefined
+    fixture = setup({
+      orca: {
+        create: () => {
+          chmodSync((fixture as Fixture).dir, 0o500)
+          return created()
+        },
+      },
+    })
+    await vui(['viewer', 'start'], { system: fixture.system })
+    const { exit, stdout, stderr } = await show(fixture)
+    chmodSync(fixture.dir, 0o700)
+    expect(exit).toBe(0)
+    expect(stdout).toBe('vui: shown "Test run" (#1) in viewer\n')
+    expect(stderr).toBe(
+      'vui: warning: the Orca pane opened but could not be remembered; the next show may open another\n',
+    )
+    expect(readViewerInfo(fixture.dir)?.browserPageId).toBeUndefined()
+  })
+
+  it('reports that pane as opened under --json', async () => {
+    let fixture: Fixture | undefined
+    fixture = setup({
+      orca: {
+        create: () => {
+          chmodSync((fixture as Fixture).dir, 0o500)
+          return created()
+        },
+      },
+    })
+    await vui(['viewer', 'start'], { system: fixture.system })
+    const { json } = await showJson(fixture)
+    chmodSync(fixture.dir, 0o700)
+    expect(json).toMatchObject({ pane: 'opened', browserPageId: 'page-1' })
+    expect(json).not.toHaveProperty('paneFailure')
+  })
+
   it('still prints the URL without Orca', async () => {
     const fixture = setup()
     await vui(['viewer', 'start'], { system: fixture.system })
@@ -345,8 +399,17 @@ describe('the Orca pane', () => {
     expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
   })
 
+  // VD-163: the stub lists what it opened, so a second show finds the first one's pane.
+  it('keeps the pane the last show opened, and opens no second', async () => {
+    const fixture = setup({ orca: {} })
+    await show(fixture)
+    const { json } = await showJson(fixture)
+    expect(json).toMatchObject({ pane: 'kept', browserPageId: 'page-1' })
+    expect(fixture.calls.map((call) => call[1])).toEqual(['create', 'list'])
+  })
+
   it('prints no URL for the pane it reopens after a tab was closed', async () => {
-    const fixture = setup({ orca: { create: () => created('page-2') } })
+    const fixture = setup({ orca: { create: () => created('page-2'), list: () => tabs() } })
     await show(fixture)
     const { stdout } = await show(fixture)
     expect(stdout).toBe('vui: shown "Test run" (#2) in viewer\n')
@@ -354,7 +417,7 @@ describe('the Orca pane', () => {
   })
 
   it('opens another when the pane was closed', async () => {
-    const fixture = setup({ orca: { create: () => created('page-2') } })
+    const fixture = setup({ orca: { create: () => created('page-2'), list: () => tabs() } })
     await show(fixture)
     await show(fixture)
     expect(readViewerInfo(fixture.dir)?.browserPageId).toBe('page-2')
