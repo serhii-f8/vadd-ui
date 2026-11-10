@@ -498,15 +498,15 @@ describe('catalog', () => {
 
   it('prints fields, defaults and sub-shapes', async () => {
     const { stdout } = await vui(['catalog', 'table'])
-    expect(stdout).toContain('  columns: Column[], required')
-    expect(stdout).toContain('  pageSize: integer ≥1, default 25')
-    expect(stdout).toContain('Column:\n  key: string, required')
+    expect(stdout).toContain('\ncolumns: Column[], required\n')
+    expect(stdout).toContain('\npageSize: integer ≥1, default 25\n')
+    expect(stdout).toContain('\nColumn:\nkey: string, required\n')
     expect(stdout).toContain('common: id, title, note, tone, span, fold')
   })
 
   it('tags chart fields by kind', async () => {
     const { stdout } = await vui(['catalog', 'chart'])
-    expect(stdout).toContain('  values: number[], required (spark)')
+    expect(stdout).toContain('\nvalues: number[], required (spark)\n')
   })
 
   it('answers in JSON', async () => {

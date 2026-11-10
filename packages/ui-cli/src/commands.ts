@@ -109,10 +109,11 @@ export async function validate(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   }
 }
 
+/** VD-153: no indent. `cl100k_base` spends a token on each one, and the headers already group. */
 function fieldLine({ name, type, required, default: value, kinds }: CatalogField): string {
   const presence = required ? ', required' : value === undefined ? '' : `, default ${value}`
   const scope = kinds === undefined ? '' : ` (${kinds.join('|')})`
-  return `  ${name}: ${type}${presence}${scope}\n`
+  return `${name}: ${type}${presence}${scope}\n`
 }
 
 function entryText(entry: CatalogEntry): string {
@@ -147,6 +148,13 @@ export function catalog(parsed: ParsedArgs): Outcome {
   const entry = findComponent(name)
   if (entry === undefined) throw unknownComponent(name)
   return { exit: EXIT.ok, stdout: entryText(entry), json: { component: entry } }
+}
+
+/** Exactly what `vui catalog <name>` prints, which §14.2 budgets. */
+export function catalogText(name: string): string {
+  const entry = findComponent(name)
+  if (entry === undefined) throw unknownComponent(name)
+  return entryText(entry)
 }
 
 export function schema(io: Io): Outcome {
