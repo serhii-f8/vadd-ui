@@ -130,13 +130,27 @@ describe('inlineHtml', () => {
 })
 
 describe('cdnHtml', () => {
-  it('writes the §10.2 template', () => {
+  it("writes the §10.2 template, with the inline file's lang and title (VD-168)", () => {
     const value = doc({ title: 'x' })
     expect(cdnHtml(value)).toBe(
-      '<!doctype html><meta charset="utf-8">\n' +
+      '<!doctype html><html lang="en"><meta charset="utf-8"><title>x</title>\n' +
         '<script src="https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js"></script>\n' +
         `<script type="application/vui+json">${JSON.stringify(value)}</script>\n`,
     )
+  })
+
+  it('reads lang and title as the inline file does', () => {
+    const first = (html: string) => html.split('\n')[0]
+    expect(first(cdnHtml(doc({ locale: 'uk-UA', title: 'a < b & c' })))).toBe(
+      '<!doctype html><html lang="uk"><meta charset="utf-8"><title>a &lt; b &amp; c</title>',
+    )
+    expect(first(cdnHtml(doc({ locale: undefined, title: undefined })))).toBe(
+      '<!doctype html><html lang="en"><meta charset="utf-8"><title>vadd-ui</title>',
+    )
+    for (const fields of [{ locale: 'pl-PL', title: 'Raport' }, {}]) {
+      const tags = (html: string) => html.match(/<html lang="[^"]*">|<title>[^<]*<\/title>/g)
+      expect(tags(cdnHtml(doc(fields)))).toEqual(tags(inline(fields)))
+    }
   })
 
   it('escapes the document', () => {

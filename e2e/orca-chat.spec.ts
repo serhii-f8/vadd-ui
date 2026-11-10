@@ -278,7 +278,7 @@ test.describe('vui render --cdn', () => {
     expect(result.status).toBe(0)
     const html = readFileSync(out, 'utf8')
     expect(html.split('\n').slice(0, 2)).toEqual([
-      '<!doctype html><meta charset="utf-8">',
+      `<!doctype html><html lang="en"><meta charset="utf-8"><title>${DOC.title}</title>`,
       `<script src="${CDN}"></script>`,
     ])
     expect(html.split('\n')[2]).toMatch(/^<script type="application\/vui\+json">\{/)

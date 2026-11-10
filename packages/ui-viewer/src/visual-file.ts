@@ -94,10 +94,15 @@ export function inlineHtml(document: VuiDocument, { bundle, generator }: InlineO
   ].join('')
 }
 
-/** §10.2. The same file an agent would write, with the same escaping. */
+/**
+ * §10.2, with the inline file's `lang` and `<title>` on the first line (VD-168): the other
+ * lines are the template an agent writes, with the same escaping.
+ */
 export function cdnHtml(document: VuiDocument): string {
+  const title = escapeHtml(cleanText(titleOf(document.title)))
   return [
-    '<!doctype html><meta charset="utf-8">\n',
+    `<!doctype html><html lang="${languageOf(document.locale)}"><meta charset="utf-8">`,
+    `<title>${title}</title>\n`,
     `<script src="${CDN_URL}"></script>\n`,
     documentScript(document),
   ].join('')
