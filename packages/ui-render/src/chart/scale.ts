@@ -9,8 +9,10 @@ export function niceTicks(low: number, high: number): number[] {
   const from = Math.max(low, -FAR)
   const to = Math.min(high, FAR)
   if (from === to) {
-    if (from === 0) return [0, 1]
-    return niceTicks(from - Math.abs(from) / 2, to + Math.abs(to) / 2)
+    const pad = Math.abs(from) / 2
+    // Half of the smallest subnormal is 0, and a pad of 0 would never widen the domain.
+    if (pad === 0) return from < 0 ? [-1, 0] : [0, 1]
+    return niceTicks(from - pad, to + pad)
   }
   const unit = 10 ** Math.floor(Math.log10((to - from) / 5))
   for (const factor of STEPS) {

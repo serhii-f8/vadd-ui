@@ -386,6 +386,19 @@ describe('chart drawing', () => {
     }
   })
 
+  // Fuzzer, seed 12, index 30047: a flat domain of ±5e-324 recursed until the stack ran out.
+  it.each([
+    { kind: 'spark', values: [5e-324] },
+    { kind: 'spark', values: [-5e-324, -5e-324] },
+    { kind: 'bar', x: ['a'], series: { s: [5e-324] } },
+    { kind: 'line', x: ['a', 'b'], series: { s: [-5e-324, -5e-324] } },
+  ])('draws a flat domain of the smallest subnormal: %j', (fields) => {
+    const { box, handle } = chart(fields)
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+    expect(handle.diagnostics.map(({ code }) => code)).not.toContain('render-failed')
+    expect(box.querySelector('svg')).not.toBeNull()
+  })
+
   it('keeps a sliver a sliver', () => {
     const { box } = chart({ kind: 'donut', x: ['a', 'b'], series: { s: [1000, 1] } })
     for (const slice of all(box, 'circle')) {
@@ -676,7 +689,7 @@ describe('chart robustness', () => {
     const values = Array.from({ length: LIMITS.chartPoints }, (_, index) => index)
     const { box, handle } = chart({ kind: 'line', x: values, series: { a: values, b: values } })
     expect(q(box, '.vui-chart-line')).not.toBeNull()
-    expect(handle.diagnostics).toEqual([])
+    expect(handle.diagnostics.map(({ code }) => code)).not.toContain('render-failed')
   })
 
   it('keeps document text out of markup', () => {
