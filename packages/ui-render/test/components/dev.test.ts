@@ -323,6 +323,16 @@ describe('diff', () => {
     expect(box.querySelector('.vui-diff-mark')).toBeNull()
   })
 
+  // Fuzzer, seed 2, index 421: `hasOwn` read `["M"]` as `"M"`, and the array became a child.
+  it('ignores a change that is not a string', () => {
+    for (const change of [['M'], ['A'], 1, { M: 1 }]) {
+      const { box } = show([{ type: 'diff', files: [['a', 1, 2, change]] }])
+      expect(box.querySelector('.vui-card-error')).toBeNull()
+      expect(box.querySelector('.vui-diff-mark')).toBeNull()
+      expect(box.querySelector('code')?.textContent).toBe('a')
+    }
+  })
+
   it('reads no hunk from a prototype', () => {
     const { box } = show([{ type: 'diff', files: [['constructor', 1, 1]], hunks: {} }])
     expect(box.querySelector('button')).toBeNull()
