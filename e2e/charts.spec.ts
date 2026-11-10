@@ -157,39 +157,3 @@ test('the hidden table adds nothing to the page', async ({ page }) => {
   expect(sizes.height).toBeLessThanOrEqual(1)
   expect(sizes.cells).toBe(8)
 })
-
-test.describe('§9.5 budgets', () => {
-  const values = (shift: number) =>
-    Array.from({ length: 1000 }, (_, index) => Math.sin(index / 20 + shift) * 100)
-  const document = {
-    vui: 1,
-    body: [
-      {
-        type: 'chart',
-        kind: 'line',
-        x: values(0).map((_, index) => index),
-        series: Object.fromEntries([0, 1, 2, 3, 4].map((shift) => [`s${shift}`, values(shift)])),
-      },
-    ],
-  }
-
-  test('a chart with 5 × 1,000 points renders in 25 ms', async ({ page }) => {
-    const { frame } = await open(page, ['start'])
-    // The fastest run, since the gate runs tests side by side and the budget is the code's cost.
-    const [fastest, median] = await frame.evaluate((input) => {
-      const { __vuiHandle: handle } = window as unknown as {
-        __vuiHandle: { update(document: unknown): void }
-      }
-      const times = Array.from({ length: 7 }, () => {
-        const start = performance.now()
-        handle.update(input)
-        return performance.now() - start
-      })
-      times.sort((a, b) => a - b)
-      return [times[0] as number, times[3] as number]
-    }, document)
-    await expect(frame.locator('.vui-chart-line')).toHaveCount(5)
-    console.log(`5 × 1,000 chart: fastest ${fastest.toFixed(1)} ms, median ${median.toFixed(1)} ms`)
-    expect(fastest).toBeLessThanOrEqual(25)
-  })
-})

@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-10",
+  "chromium": "156.0.8078.4",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X3D 16-Core Processor",
+    "cores": 8,
+    "memGiB": 35.2,
+    "load": [
+      7.94,
+      6.71,
+      8.08
+    ]
+  },
+  "metrics": {
+    "render.table": 2.15,
+    "render.doc20": 1.8,
+    "render.chart": 5.83,
+    "memory.visual": 2038452
+  }
+}
