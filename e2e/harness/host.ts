@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { cleanText } from '../../packages/ui-spec/src/dev-view.js'
 import { harnessBundle } from './bundle.js'
 import {
   buildNativeChatVisualDocument,
@@ -25,11 +26,12 @@ function scriptSafe(json: string): string {
   return json.replace(/</g, '\\u003c')
 }
 
-/** The `<title>` text the CLI writes (§10.1): the document's title, else `vadd-ui`. */
+/** The `<title>` text the CLI writes (§10.1): the cleaned title, else (blank too) `vadd-ui`. */
 function titleOf(input: unknown): string {
   const title =
     typeof input === 'object' && input !== null && 'title' in input ? input.title : undefined
-  const text = typeof title === 'string' ? title : 'vadd-ui'
+  const clean = typeof title === 'string' ? cleanText(title) : ''
+  const text = clean.trim() === '' ? 'vadd-ui' : clean
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 }
 

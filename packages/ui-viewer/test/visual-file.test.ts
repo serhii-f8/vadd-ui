@@ -105,6 +105,14 @@ describe('inlineHtml', () => {
     expect(inline()).toContain('<title>vadd-ui</title>')
   })
 
+  it.each(['', '   ', '\u0007 ', '\x1b[2J\t\n'])('names the file when the title %j is blank', (title) => {
+    expect(inline({ title })).toContain('<title>vadd-ui</title>')
+  })
+
+  it('keeps the spaces of a title that has text', () => {
+    expect(inline({ title: ' a b ' })).toContain('<title> a b </title>')
+  })
+
   it('falls back when a warning let a mistyped title or locale through', () => {
     const html = inline({ title: 5, locale: 5 })
     expect(html).toContain('<title>vadd-ui</title>')
@@ -151,6 +159,10 @@ describe('cdnHtml', () => {
       const tags = (html: string) => html.match(/<html lang="[^"]*">|<title>[^<]*<\/title>/g)
       expect(tags(cdnHtml(doc(fields)))).toEqual(tags(inline(fields)))
     }
+  })
+
+  it.each(['', '\u0007 ', ' \n '])('names the file when the title %j is blank', (title) => {
+    expect(cdnHtml(doc({ title }))).toContain('<title>vadd-ui</title>')
   })
 
   it('escapes the document', () => {
