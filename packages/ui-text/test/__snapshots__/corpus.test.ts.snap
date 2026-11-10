@@ -4246,6 +4246,34 @@ exports[`valid corpus snapshots (§16) > plan valid 4: {"items":[{"text":"t","st
 "
 `;
 
+exports[`valid corpus snapshots (§16) > positional stats: every position, null positions, an object beside them > markdown 1`] = `
+"- **Orders:** 18,420 ✓ (+6.4%)
+- **p95:** 840 ms ⚠
+- **Build:** green
+- **L:** 1 ▁█
+"
+`;
+
+exports[`valid corpus snapshots (§16) > positional stats: every position, null positions, an object beside them > plain 1`] = `
+"- Orders: 18,420 ✓ (+6.4%)
+- p95: 840 ms ⚠
+- Build: green
+- L: 1 ▁█
+"
+`;
+
+exports[`valid corpus snapshots (§16) > positional stats: relaxed text, as the skill teaches > markdown 1`] = `
+"- **Tests:** 142 (−3)
+- **Coverage:** 87.4%
+"
+`;
+
+exports[`valid corpus snapshots (§16) > positional stats: relaxed text, as the skill teaches > plain 1`] = `
+"- Tests: 142 (−3)
+- Coverage: 87.4%
+"
+`;
+
 exports[`valid corpus snapshots (§16) > progress valid 0: {} > markdown 1`] = `
 "1 of 100 (1%)
 

@@ -114,12 +114,14 @@ describe('examples', () => {
     },
   )
 
-  it.each(['delta: -3', "format: 'pct'", "status: 'ok', ms:", "status: 'fail', output:"])(
-    'teaches %s',
-    (field) => {
-      expect(heredocs(skill).join('\n')).toContain(field)
-    },
-  )
+  it.each([
+    "['Tests', 142, null, -3]",
+    '[label, value, format?, delta?, deltaFormat?, tone?]',
+    "status: 'ok', ms:",
+    "status: 'fail', output:",
+  ])('teaches %s', (field) => {
+    expect(heredocs(skill).join('\n')).toContain(field)
+  })
 
   it('catches a bad document', () => {
     const broken = (heredocs(skill)[0] ?? '').replace("'table'", "'tabel'")

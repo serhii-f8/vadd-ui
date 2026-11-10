@@ -45,6 +45,11 @@ const COMPUTED_DEFAULTS: Record<string, string> = {
   'TableNode.sticky': 'true when rows > 15',
 }
 
+/** Input forms no canonical rule holds: the normalizer's positional `stats` items (VD-164). */
+const INPUT_TYPES: Record<string, string> = {
+  'StatsNode.items': '([label, value, format?, delta?, deltaFormat?, tone?] or StatItem)[]',
+}
+
 const HANDWRITTEN: Record<ComponentType, Handwritten> = {
   stack: {
     group: 'layout',
@@ -112,12 +117,24 @@ const HANDWRITTEN: Record<ComponentType, Handwritten> = {
   kv: {
     group: 'data',
     summary: 'Key-value pairs',
-    example: { type: 'kv', pairs: { Branch: 'main', Commit: '4f2c1a9' } },
+    example: {
+      type: 'kv',
+      pairs: [
+        ['Branch', 'main'],
+        ['Commit', '4f2c1a9'],
+      ],
+    },
   },
   stats: {
     group: 'data',
     summary: 'Metric tiles',
-    example: { type: 'stats', items: [{ label: 'Passed', value: 412, tone: 'ok' }] },
+    example: {
+      type: 'stats',
+      items: [
+        ['Passed', 412],
+        ['Coverage', 0.874, 'pct', -0.002, 'delta:pct', 'warn'],
+      ],
+    },
   },
   list: {
     group: 'data',
@@ -239,7 +256,7 @@ function defaultOf(owner: string, name: string): string | undefined {
 function fieldOf(owner: string, name: string, field: Field): CatalogField {
   const entry: CatalogField = {
     name,
-    type: typeOf(field.rule),
+    type: INPUT_TYPES[`${owner}.${name}`] ?? typeOf(field.rule),
     required: field.presence === 'required',
   }
   const value = defaultOf(owner, name)

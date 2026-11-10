@@ -3,6 +3,7 @@ import { hasOwn, type JsonObject, type JsonValue } from '../src/json.js'
 import { normalize } from '../src/normalize.js'
 import { parse } from '../src/parser.js'
 import { MAX_TABLE_CELLS, parseColumn } from '../src/table.js'
+import { validate } from '../src/validate.js'
 
 const ENVELOPE = { vui: 1, density: 'compact', locale: 'en-US' }
 
@@ -263,6 +264,45 @@ describe('shorthand 6: string columns', () => {
       { key: 'Time', label: 'Time', format: 'ms' },
       column,
     ])
+  })
+})
+
+describe('positional stats items', () => {
+  const items = (list: JsonValue[]) => node({ type: 'stats', items: list }).items
+
+  it("expands an array in the object form's field order", () => {
+    expect(items([['Orders', 18420, 'int', 0.064, 'delta:pct']])).toEqual([
+      { label: 'Orders', value: 18420, format: 'int', delta: 0.064, deltaFormat: 'delta:pct' },
+    ])
+  })
+
+  it('omits null positions', () => {
+    expect(items([['p95', 840, 'ms', null, null, 'warn']])).toEqual([
+      { label: 'p95', value: 840, format: 'ms', tone: 'warn' },
+    ])
+  })
+
+  it('leaves an object item and an unfit array as written', () => {
+    const object = { label: 'L', value: 1, tone: 'ok' }
+    const raw: JsonValue[] = [[null, 1], ['a'], ['a', 1, 2, 3, 4, 5, 6], [1, 2], object]
+    expect(items(raw)).toEqual(raw)
+  })
+
+  it('reports an unfit array as an error at its item, without throwing', () => {
+    for (const raw of [[null, 1], ['a'], ['a', 1, 2, 3, 4, 5, 6], [1, 2]]) {
+      const result = validate({ body: [{ type: 'stats', items: [raw] }] })
+      expect(result.diagnostics, JSON.stringify(raw)).toContainEqual(
+        expect.objectContaining({ severity: 'error', path: '/body/0/items/0' }),
+      )
+    }
+  })
+
+  it('points a diagnostic on an expanded field at its input position', () => {
+    const { paths } = normalize({ body: [{ type: 'stats', items: [['a', 1, null, 'x']] }] })
+    expect(paths.toInput('/body/0/items/0/label')).toBe('/body/0/items/0/0')
+    expect(paths.toInput('/body/0/items/0/delta')).toBe('/body/0/items/0/3')
+    const result = validate({ body: [{ type: 'stats', items: [['a', 1, null, 'x']] }] })
+    expect(result.diagnostics.map((d) => d.path)).toEqual(['/body/0/items/0/3'])
   })
 })
 

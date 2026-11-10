@@ -115,6 +115,23 @@ function applyDefaults(node: JsonObject, type: string, cp: string, ip: string, c
   }
 }
 
+const STAT_FIELDS = ['label', 'value', 'format', 'delta', 'deltaFormat', 'tone']
+
+/** A positional stat, `[label, value, format?, delta?, deltaFormat?, tone?]` (VD-164). */
+function statItemOf(raw: JsonValue, cp: string, ip: string, ctx: WalkContext): JsonValue {
+  if (!Array.isArray(raw) || raw.length < 2 || raw.length > 6 || typeof raw[0] !== 'string') {
+    return raw
+  }
+  const item: JsonObject = {}
+  raw.forEach((value, index) => {
+    const field = STAT_FIELDS[index] as string
+    if (value === null) return
+    item[field] = value
+    ctx.paths.set(joinPointer(cp, field), joinPointer(ip, index))
+  })
+  return item
+}
+
 function normalizeNode(
   raw: JsonValue,
   cp: string,
@@ -143,6 +160,10 @@ function normalizeNode(
       expandTabs(node, cp, ip, ctx, depth)
       break
     case 'stats':
+      expandList(node, 'items', cp, ip, ctx, (item, itemCp, itemIp) =>
+        statItemOf(item, itemCp, itemIp, ctx),
+      )
+      break
     case 'list':
     case 'checks':
     case 'timeline':

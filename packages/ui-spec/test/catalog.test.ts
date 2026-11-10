@@ -80,6 +80,15 @@ describe('catalog', () => {
     expect(field('list', 'items').type).toBe('(string or ListItem)[]')
   })
 
+  it('teaches the positional forms of kv pairs and stats items', () => {
+    expect(field('stats', 'items').type).toBe(
+      '([label, value, format?, delta?, deltaFormat?, tone?] or StatItem)[]',
+    )
+    expect(entry('stats').shapes.map((shape) => shape.name)).toEqual(['StatItem'])
+    expect((entry('stats').example as { items: unknown[] }).items.every(Array.isArray)).toBe(true)
+    expect((entry('kv').example as { pairs: unknown }).pairs).toBeInstanceOf(Array)
+  })
+
   it('names the sub-shapes a component uses, without nesting them twice', () => {
     expect(entry('table').shapes.map((shape) => shape.name)).toEqual(['Column', 'RowOptions'])
     expect(entry('plan').shapes.map((shape) => shape.name)).toEqual(['PlanItem'])
