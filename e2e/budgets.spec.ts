@@ -3,27 +3,30 @@ import { cpus, loadavg, totalmem } from 'node:os'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, type Page, test } from '@playwright/test'
-import { isOver, LIMITS, metricValue, sameMachine } from '../scripts/lib/perf-baseline.mjs'
+import { gatedValue, LIMITS, metricValue } from '../scripts/lib/perf-baseline.mjs'
 
 // §9.5's render timings and memory per mounted visual, by the real `dist/vui.min.js` in headless
 // Chromium (VD-171). The spec holds the §9.5 limits; `scripts/check-perf-budgets.mjs` holds the
 // 5% against `scripts/perf-baseline.json`, from the `test-results/budgets.json` written here.
+//
+// Each render is paired, alternating, with a render of the same document by the reference bundle
+// (`scripts/perf-reference.vui.min.js`, the build the baseline was taken from) in the same page.
+// Load slows both alike, so the check gates the ratio current ÷ reference: a regression against
+// the baseline's code, with the machine cancelled; each side reads its 2nd percentile of the run,
+// near the fastest without its outliers. The raw fastest render is held to §9.5's ms limits.
 
 const BUNDLE = fileURLToPath(new URL('../packages/ui/dist/vui.min.js', import.meta.url))
+const REFERENCE = fileURLToPath(new URL('../scripts/perf-reference.vui.min.js', import.meta.url))
 const RESULT = fileURLToPath(new URL('../test-results/budgets.json', import.meta.url))
-const BASELINE = fileURLToPath(new URL('../scripts/perf-baseline.json', import.meta.url))
 
-/** A sample is a batch of this many renders, since `performance.now()` is coarsened to 0.1 ms. */
-const BATCH = 10
-/** A round is the fastest sample of this many (VD-087). */
-const SAMPLES = 15
-/** Rounds per metric, after one warm-up round. */
-const ROUNDS = 5
 /**
- * A timing over its baseline's 5% is measured again, up to this many more rounds, and fails only
- * if every round is over: a real regression is, contention is not (design Part E).
+ * Pairs per round. The page is cross-origin isolated (COOP + COEP), so `performance.now()`
+ * resolves to 5 µs and one render is one sample; the short documents get more pairs, which keeps
+ * a run's ratio within about 2% of the baseline under load (VD-171).
  */
-const EXTRA = 10
+const SAMPLES = { 'render.table': 200, 'render.doc20': 200, 'render.chart': 100 }
+/** Rounds per metric, after one warm-up round, the three metrics interleaved. */
+const ROUNDS = 9
 /** Orca holds 8 frames per message (§9.5). */
 const MOUNTS = 8
 
@@ -207,36 +210,41 @@ function countNodes(nodes: unknown[]): number {
 const DOCUMENTS = { 'render.table': TABLE, 'render.doc20': DOC20, 'render.chart': CHART }
 type Timing = keyof typeof DOCUMENTS
 
-/** One round of one document: the fastest of `SAMPLES` batches of `BATCH` renders, in ms. */
-function round(page: Page, input: unknown): Promise<number> {
+/**
+ * One round of one document: `samples` renders by the current bundle and as many by the
+ * reference, paired and alternating, each into a fresh box with layout forced, in ms.
+ */
+function round(
+  page: Page,
+  input: unknown,
+  samples: number,
+): Promise<{ current: number[]; reference: number[] }> {
   return page.evaluate(
-    ({ input, batch, samples }) => {
-      const { VUI } = window as unknown as {
-        VUI: { render(doc: unknown, target: HTMLElement): { destroy(): void } }
-      }
-      let fastest = Number.POSITIVE_INFINITY
-      for (let sample = 0; sample < samples; sample += 1) {
-        const boxes = Array.from({ length: batch }, () => {
-          const box = document.createElement('div')
-          document.body.append(box)
-          return box
-        })
+    ({ input, samples }) => {
+      type Bundle = { render(doc: unknown, target: HTMLElement): { destroy(): void } }
+      const { VUI, VUI_REF } = window as unknown as { VUI: Bundle; VUI_REF: Bundle }
+      const once = (bundle: Bundle) => {
+        const box = document.createElement('div')
+        document.body.append(box)
         document.body.getBoundingClientRect()
         const start = performance.now()
-        // A fresh box each time, with layout forced, so the batch is first renders only.
-        const handles = boxes.map((box) => {
-          const handle = VUI.render(input, box)
-          box.getBoundingClientRect()
-          return handle
-        })
-        const time = (performance.now() - start) / batch
-        for (const handle of handles) handle.destroy()
-        for (const box of boxes) box.remove()
-        fastest = Math.min(fastest, time)
+        const handle = bundle.render(input, box)
+        box.getBoundingClientRect()
+        const time = performance.now() - start
+        handle.destroy()
+        box.remove()
+        return time
       }
-      return fastest
+      const current: number[] = []
+      const reference: number[] = []
+      for (let sample = 0; sample < samples; sample += 1) {
+        if (sample % 2 === 0) reference.push(once(VUI_REF))
+        current.push(once(VUI))
+        if (sample % 2 === 1) reference.push(once(VUI_REF))
+      }
+      return { current, reference }
     },
-    { input, batch: BATCH, samples: SAMPLES },
+    { input, samples },
   )
 }
 
@@ -309,12 +317,36 @@ test('§9.5: render timings and memory per visual, within their limits', async (
   page,
   browser,
 }) => {
-  test.setTimeout(180_000)
+  test.setTimeout(300_000)
   await page.setViewportSize({ width: 720, height: 800 })
-  await page.setContent(
-    '<!doctype html><meta charset="utf-8"><style>body{margin:0;width:720px}</style><body></body>',
+  // A localhost page answered here: a secure context, and with COOP + COEP cross-origin
+  // isolated, which is what gives `performance.now()` its 5 µs resolution.
+  await page.route('http://localhost:9/budgets', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      },
+      body: '<!doctype html><meta charset="utf-8"><style>body{margin:0;width:720px}</style><body></body>',
+    }),
   )
-  await page.addScriptTag({ path: BUNDLE })
+  await page.goto('http://localhost:9/budgets')
+  // The current bundle first, so its stylesheet is the page's (one `style#vui-style` per page);
+  // then the reference, kept as `VUI_REF`, and `VUI` restored to the current bundle.
+  expect(existsSync(REFERENCE), 'run node scripts/check-perf-budgets.mjs --update').toBe(true)
+  await page.addScriptTag({ content: readFileSync(BUNDLE, 'utf8') })
+  await page.evaluate(() => {
+    const scope = window as unknown as { VUI: unknown; VUI_CURRENT: unknown }
+    scope.VUI_CURRENT = scope.VUI
+  })
+  await page.addScriptTag({ content: readFileSync(REFERENCE, 'utf8') })
+  await page.evaluate(() => {
+    const scope = window as unknown as { VUI: unknown; VUI_CURRENT: unknown; VUI_REF: unknown }
+    scope.VUI_REF = scope.VUI
+    scope.VUI = scope.VUI_CURRENT
+  })
+  expect(await page.evaluate(() => crossOriginIsolated)).toBe(true)
 
   const cores = cpus()
   const hardware = {
@@ -324,34 +356,22 @@ test('§9.5: render timings and memory per visual, within their limits', async (
     load: readLoad(),
   }
   const chromium = browser.version()
-  const baseline = existsSync(BASELINE)
-    ? (JSON.parse(readFileSync(BASELINE, 'utf8')) as {
-        chromium: string
-        hardware: { cpu: string; cores: number }
-        metrics: Record<string, number>
-      })
-    : undefined
-  // Only this machine's own baseline compares, by the check's own rule.
-  const comparable = baseline !== undefined && sameMachine(baseline, { chromium, hardware })
 
   const rounds: Record<string, number[]> = {}
+  const samples: Record<string, { current: number[]; reference: number[] }> = {}
   const names = Object.keys(DOCUMENTS) as Timing[]
-  for (const name of names) rounds[name] = []
+  for (const name of names) {
+    rounds[name] = []
+    samples[name] = { current: [], reference: [] }
+  }
   // Metrics interleave round by round, so a burst of load on the machine spreads over all three.
   for (let index = 0; index <= ROUNDS; index += 1) {
     for (const name of names) {
-      const time = await round(page, DOCUMENTS[name])
-      if (index > 0) rounds[name]?.push(time)
-    }
-  }
-  const extra: Record<string, number> = {}
-  for (const name of names) {
-    extra[name] = 0
-    const base = comparable ? baseline?.metrics[name] : undefined
-    if (base === undefined) continue
-    while (isOver(base, Math.min(...(rounds[name] ?? []))) && extra[name] < EXTRA) {
-      rounds[name]?.push(await round(page, DOCUMENTS[name]))
-      extra[name] += 1
+      const { current, reference } = await round(page, DOCUMENTS[name], SAMPLES[name])
+      if (index === 0) continue
+      rounds[name]?.push(Math.min(...current))
+      samples[name]?.current.push(...current)
+      samples[name]?.reference.push(...reference)
     }
   }
 
@@ -374,17 +394,25 @@ test('§9.5: render timings and memory per visual, within their limits', async (
   const result = {
     chromium,
     hardware: { ...hardware, load: readLoad() },
-    method: { batch: BATCH, samples: SAMPLES, rounds: ROUNDS, warmup: 1, mounts: MOUNTS, extra },
+    method: {
+      samples: SAMPLES,
+      rounds: ROUNDS,
+      warmup: 1,
+      mounts: MOUNTS,
+    },
     rounds,
+    samples,
     memoryByDocument: perDocument,
   }
   mkdirSync(dirname(RESULT), { recursive: true })
   writeFileSync(RESULT, `${JSON.stringify(result, null, 2)}\n`)
   const fmt = (values: number[] | undefined, scale = 1) =>
     (values ?? []).map((value) => (value / scale).toFixed(3)).join(' ')
-  for (const name of names) console.log(`${name} ms: ${fmt(rounds[name])}`)
+  for (const name of names) {
+    const gated = gatedValue(name, result)?.toFixed(3)
+    console.log(`${name} ms (fastest per round): ${fmt(rounds[name])}; ratio ${gated}`)
+  }
   console.log(`memory.visual MB: ${fmt(rounds['memory.visual'], 2 ** 20)}`)
-  console.log(`re-measured rounds ${JSON.stringify(extra)}`)
   console.log(
     `load ${hardware.load.join(' ')} → ${result.hardware.load.join(' ')}, Chromium ${chromium}`,
   )

@@ -6,13 +6,16 @@
 // `pnpm gate` runs `test:e2e` before `check`, so the file is always fresh there. Alone, run
 // `pnpm exec playwright test e2e/budgets.spec.ts --no-deps` first.
 //
-// Intentional change: `node scripts/check-perf-budgets.mjs --update` runs the budgets spec
-// `--runs` times (default 5) and writes the fastest round of all runs as the baseline, so load
-// during one run does not eat the 5%. `--update --result a.json --result b.json` merges recorded
+// Timings are gated as current ÷ reference, where the reference is `scripts/perf-reference.vui.min.js`,
+// the build the baseline was taken from, rendered in the same page (VD-171).
+//
+// Intentional change: `node scripts/check-perf-budgets.mjs --update` copies the current
+// `packages/ui/dist/vui.min.js` to the reference, runs the budgets spec `--runs` times (default
+// 5) and writes the baseline from all runs. `--update --result a.json --result b.json` merges recorded
 // runs instead. The diff shows in review, and the commit says why.
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { finish, rootArg } from './lib/cli.mjs'
 import { compare, makeBaseline } from './lib/perf-baseline.mjs'
@@ -33,7 +36,8 @@ const resultPaths = argv.flatMap((arg, index) =>
     : [],
 )
 const update = argv.includes('--update')
-const runs = Number(option('--runs') ?? 5)
+const runsOption = option('--runs') ?? '5'
+const runs = Number(runsOption)
 
 /** @type {string[]} */
 const findings = []
@@ -47,6 +51,12 @@ const missing = (/** @type {string} */ path) =>
 
 /** Runs the spec `count` times and returns each run's result. */
 function measure(/** @type {number} */ count) {
+  const bundle = join(root, 'packages/ui/dist/vui.min.js')
+  if (!existsSync(bundle)) {
+    findings.push(`no bundle at ${bundle}; run pnpm build first`)
+    return []
+  }
+  copyFileSync(bundle, join(root, 'scripts/perf-reference.vui.min.js'))
   const cli = join(root, 'node_modules/@playwright/test/cli.js')
   const results = []
   for (let run = 0; run < count; run += 1) {
@@ -64,7 +74,9 @@ function measure(/** @type {number} */ count) {
   return results
 }
 
-if (update) {
+if (update && !(Number.isInteger(runs) && runs >= 1)) {
+  findings.push(`--runs must be a whole number of 1 or more, not ${runsOption}`)
+} else if (update) {
   const results =
     resultPaths.length > 0 ? resultPaths.map((path) => read(path) ?? path) : measure(runs)
   for (const result of results) if (typeof result === 'string') findings.push(missing(result))

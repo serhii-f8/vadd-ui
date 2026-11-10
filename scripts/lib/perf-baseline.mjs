@@ -1,10 +1,17 @@
 // §9.5's timing and memory budgets, and §16's "≤ 5% regression allowed vs main", against
 // `scripts/perf-baseline.json` (VD-171). `e2e/budgets.spec.ts` measures; this judges.
 //
-// A timing metric is the fastest of its rounds, so one round slowed by a loaded machine does not
-// fail it: a real regression is slower in every round, contention is not. Memory is the median.
+// A timing is gated as a ratio: the 2nd percentile of the run's renders by the current bundle
+// over the 2nd percentile of renders of the same document by the reference bundle
+// (`scripts/perf-reference.vui.min.js`, the build the baseline was taken from), paired and
+// alternating in the same page. Load slows both alike, so the ratio cancels it and measures the
+// code against the baseline's code (VD-171). The raw fastest render, in ms, is held to §9.5's
+// absolute limits. Memory is the median round, in bytes.
 
 export const ALLOWANCE = 0.05
+
+/** The low percentile each side of a timing ratio reads: near the fastest, without its outliers. */
+export const PERCENTILE = 0.02
 
 const MB = 1_048_576
 
@@ -18,8 +25,8 @@ export const LIMITS = {
 
 /**
  * @typedef {{ cpu: string, cores: number, memGiB: number, load: number[] }} Hardware
- * @typedef {{ chromium: string, hardware: Hardware, rounds: Record<string, number[]> }} PerfResult
- * @typedef {{ date: string, chromium: string, hardware: Hardware, metrics: Record<string, number> }} PerfBaseline
+ * @typedef {{ chromium: string, hardware: Hardware, rounds: Record<string, number[]>, samples?: Record<string, { current: number[], reference: number[] }> }} PerfResult
+ * @typedef {{ date: string, chromium: string, hardware: Hardware, metrics: Record<string, number>, ms?: Record<string, number> }} PerfBaseline
  */
 
 /** @param {string} name */
@@ -43,23 +50,51 @@ function median(values) {
   return sorted.length % 2 === 1 ? high : ((sorted[middle - 1] ?? Number.NaN) + high) / 2
 }
 
+/** @param {unknown} rounds */
+const numbers = (rounds) =>
+  Array.isArray(rounds) &&
+  rounds.length > 0 &&
+  rounds.every((round) => typeof round === 'number' && Number.isFinite(round) && round > 0)
+
 /**
- * The metric's value: the fastest round for timing, the median round for memory.
+ * What §9.5's limit is held to: the fastest round for timing (ms), the median round for memory.
  *
  * @param {string} name
  * @param {unknown} rounds
  * @returns {number | undefined}
  */
 export function metricValue(name, rounds) {
-  if (!Array.isArray(rounds) || rounds.length === 0) return undefined
-  if (!rounds.every((round) => typeof round === 'number' && Number.isFinite(round))) {
-    return undefined
-  }
-  return isMemory(name) ? median(rounds) : Math.min(...rounds)
+  if (!numbers(rounds)) return undefined
+  const values = /** @type {number[]} */ (rounds)
+  return isMemory(name) ? median(values) : Math.min(...values)
 }
 
-/** @param {string} name */
-const statistic = (name) => (isMemory(name) ? 'median' : 'fastest')
+/**
+ * What the 5% is held to: for timing, the `PERCENTILE` of the run's current renders ÷ the same
+ * percentile of its reference renders; for memory, the median round in bytes. Undefined when
+ * either side is missing.
+ *
+ * @param {string} name
+ * @param {PerfResult} result
+ * @returns {number | undefined}
+ */
+export function gatedValue(name, result) {
+  const rounds = result.rounds?.[name]
+  if (isMemory(name)) return metricValue(name, rounds)
+  const { current, reference } = result.samples?.[name] ?? {}
+  if (!numbers(current) || !numbers(reference)) return undefined
+  return low(/** @type {number[]} */ (current)) / low(/** @type {number[]} */ (reference))
+}
+
+/** @param {number[]} values */
+function low(values) {
+  const sorted = [...values].sort((a, b) => a - b)
+  return /** @type {number} */ (sorted[Math.floor(sorted.length * PERCENTILE)])
+}
+
+/** @param {string} name @param {number} value */
+const showGated = (name, value) =>
+  isMemory(name) ? show(name, value) : `ratio ${value.toFixed(3)}`
 
 /** @param {string} name @param {number} value */
 const overLimit = (name, value) =>
@@ -89,8 +124,8 @@ function sameHardware(baseline, result) {
 }
 
 /**
- * The one regression rule, for the check and for the spec's re-measure: more than `allowance`
- * above the baseline. Exactly the allowance is within.
+ * The one regression rule: more than `allowance` above the baseline. Exactly the allowance is
+ * within.
  *
  * @param {number} base
  * @param {number} value
@@ -126,15 +161,18 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
   const rounds = result.rounds ?? {}
   for (const name of Object.keys(LIMITS)) {
     const base = baseline.metrics[name]
-    const value = metricValue(name, rounds[name])
+    const raw = metricValue(name, rounds[name])
+    const value = gatedValue(name, result)
     const limit = LIMITS[/** @type {keyof typeof LIMITS} */ (name)]
-    if (value === undefined) {
+    if (raw === undefined || value === undefined) {
       failures.push(`${name}: in the baseline, not measured`)
       continue
     }
-    if (value > limit) failures.push(overLimit(name, value))
+    if (raw > limit) failures.push(overLimit(name, raw))
     const count = /** @type {number[]} */ (rounds[name]).length
-    const head = `${name}: ${show(name, value)} (${statistic(name)} of ${count} rounds)`
+    const head = isMemory(name)
+      ? `${name}: ${show(name, value)} (median of ${count} rounds)`
+      : `${name}: ratio ${value.toFixed(3)} (current over reference, 2nd percentiles; fastest of ${count} rounds ${show(name, raw)})`
     const tail = `§9.5 limit ${showLimit(name, limit)}`
     if (typeof base !== 'number') {
       failures.push(`${name}: measured, not in the baseline; run with --update`)
@@ -145,7 +183,7 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
     let note = ''
     if (same && isOver(base, value, allowance)) {
       failures.push(
-        `${name}: ${show(name, value)}, baseline ${show(name, base)} (${percent(rise)}, allowed +${allowance * 100}%)`,
+        `${name}: ${showGated(name, value)}, baseline ${showGated(name, base)} (${percent(rise)}, allowed +${allowance * 100}%)`,
       )
     } else if (same && isMemory(name) && isOver(value, base, allowance)) {
       // Memory reads the same to 0.1% run to run, so a gain left out of the file would become
@@ -154,18 +192,18 @@ export function compare(baseline, result, allowance = ALLOWANCE) {
         `${name}: ${show(name, value)}, baseline ${show(name, base)} (${percent(rise)}); improved, so run with --update`,
       )
     } else if (rise < -allowance - 1e-9) {
-      // Not a failure for timing: a quieter machine is faster, and the gate must fail on the code.
       note = '; faster than the baseline, run with --update to keep the gain'
     }
-    lines.push(`${head}, baseline ${show(name, base)} (${percent(rise)}${note}), ${tail}`)
+    lines.push(`${head}, baseline ${showGated(name, base)} (${percent(rise)}${note}), ${tail}`)
   }
   return { failures, lines }
 }
 
 /**
- * The baseline one or more runs would write: every run's rounds together, so a timing is the
- * fastest round of all runs and load during one run does not eat the 5%. A run over a §9.5 limit,
- * a metric unmeasured, or runs from different machines cannot be one.
+ * The baseline one or more runs would write. Timing: the median over runs of each run's ratio
+ * (about 1, since the reference is the baseline's own build), and the fastest render in ms for
+ * information. Memory: the median of all runs' rounds. A run over a §9.5 limit, a metric
+ * unmeasured, or runs from different machines cannot be one.
  *
  * @param {PerfResult | PerfResult[]} results
  * @param {string} date
@@ -185,15 +223,22 @@ export function makeBaseline(results, date) {
   }
   /** @type {Record<string, number>} */
   const metrics = {}
+  /** @type {Record<string, number>} */
+  const ms = {}
   for (const [name, limit] of Object.entries(LIMITS)) {
     const all = runs.flatMap((run) => run.rounds?.[name] ?? [])
-    const value = metricValue(name, all)
-    if (value === undefined) {
+    const raw = metricValue(name, all)
+    const ratios = runs.map((run) => gatedValue(name, run))
+    if (raw === undefined || ratios.some((ratio) => ratio === undefined)) {
       findings.push(`${name}: not measured`)
       continue
     }
-    if (value > limit) findings.push(overLimit(name, value))
-    metrics[name] = isMemory(name) ? Math.round(value) : Math.round(value * 1e4) / 1e4
+    if (raw > limit) findings.push(overLimit(name, raw))
+    if (isMemory(name)) metrics[name] = Math.round(raw)
+    else {
+      metrics[name] = Math.round(median(/** @type {number[]} */ (ratios)) * 1e4) / 1e4
+      ms[name] = Math.round(raw * 1e4) / 1e4
+    }
   }
   const loads = runs.map((run) => run.hardware?.load ?? [])
   const baseline = {
@@ -203,6 +248,7 @@ export function makeBaseline(results, date) {
     runs: runs.length,
     loads,
     metrics,
+    ms,
   }
   return { baseline, findings }
 }

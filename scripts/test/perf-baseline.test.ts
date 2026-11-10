@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -38,11 +38,38 @@ function rounds(factors: number[] = [1, 1, 1, 1, 1], only?: string): Rounds {
   )
 }
 
-const result = (values: Rounds, hardware = HARDWARE, chromium = CHROMIUM) => ({
-  chromium,
-  hardware,
-  rounds: values,
-})
+const TIMINGS = ['render.table', 'render.doc20', 'render.chart']
+
+type Samples = Record<string, { current: number[]; reference: number[] }>
+
+/** Samples for every timing in `values`: its rounds as the current renders, against reference
+ * renders of `scale` ms each (1: the ratio reads as the ms). */
+function sampled(values: Rounds, scale = 1): Samples {
+  return Object.fromEntries(
+    TIMINGS.filter((name) => name in values).map((name) => {
+      const current = values[name] ?? []
+      return [name, { current, reference: current.map(() => scale) }]
+    }),
+  )
+}
+
+const result = (
+  values: Rounds,
+  hardware = HARDWARE,
+  chromium = CHROMIUM,
+  samples = sampled(values),
+) => ({ chromium, hardware, rounds: values, samples })
+
+/** Every timing scaled by `factor` in current and reference renders alike: load, not code. */
+function underLoad(values: Rounds, factor: number) {
+  const slowed = Object.fromEntries(
+    Object.entries(values).map(([name, list]) => [
+      name,
+      TIMINGS.includes(name) ? list.map((value) => value * factor) : list,
+    ]),
+  )
+  return result(slowed, HARDWARE, CHROMIUM, sampled(slowed, factor))
+}
 
 describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
   it('fails +6% in every round and names the metric', () => {
@@ -50,7 +77,9 @@ describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
       baseline,
       result(rounds([1.06, 1.06, 1.06, 1.06, 1.06], 'render.table')),
     )
-    expect(failures).toEqual(['render.table: 2.756 ms, baseline 2.600 ms (+6.0%, allowed +5%)'])
+    expect(failures).toEqual([
+      'render.table: ratio 2.756, baseline ratio 2.600 (+6.0%, allowed +5%)',
+    ])
   })
 
   it('passes +4% in every round, and exactly +5%', () => {
@@ -61,6 +90,37 @@ describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
   it('passes +6% in one round of five when the others are +1%: timing is the fastest round', () => {
     const values = rounds([1.06, 1.01, 1.01, 1.01, 1.01], 'render.chart')
     expect(compare(baseline, result(values)).failures).toEqual([])
+  })
+
+  it('cancels load: current and reference renders 30% slower alike pass', () => {
+    expect(compare(baseline, underLoad(rounds(), 1.3)).failures).toEqual([])
+  })
+
+  it('still fails +6% under load, and fails a slowdown the reference did not share', () => {
+    const regressed = rounds([1.06, 1.06, 1.06, 1.06, 1.06], 'render.doc20')
+    expect(compare(baseline, underLoad(regressed, 1.3)).failures).toEqual([
+      'render.doc20: ratio 1.060, baseline ratio 1.000 (+6.0%, allowed +5%)',
+    ])
+    const unshared = result(rounds([1.3, 1.3, 1.3, 1.3, 1.3], 'render.doc20'))
+    expect(compare(baseline, unshared).failures).toEqual([
+      'render.doc20: ratio 1.300, baseline ratio 1.000 (+30.0%, allowed +5%)',
+    ])
+  })
+
+  it('reads the 2nd percentile of each side: one lucky sample does not hide +6%', () => {
+    const current = [0.5, ...Array.from({ length: 99 }, () => 1.06)]
+    const reference = Array.from({ length: 100 }, () => 1)
+    const samples = { ...sampled(rounds()), 'render.doc20': { current, reference } }
+    expect(compare(baseline, result(rounds(), HARDWARE, CHROMIUM, samples)).failures).toEqual([
+      'render.doc20: ratio 1.060, baseline ratio 1.000 (+6.0%, allowed +5%)',
+    ])
+  })
+
+  it('fails a timing whose reference renders are missing', () => {
+    const { 'render.chart': _, ...partial } = sampled(rounds())
+    expect(compare(baseline, result(rounds(), HARDWARE, CHROMIUM, partial)).failures).toEqual([
+      'render.chart: in the baseline, not measured',
+    ])
   })
 
   it('fails memory when its median is +6%, though two rounds are not', () => {
@@ -136,7 +196,7 @@ describe('compare (§9.5, §16 Budgets: ≤ 5% regression)', () => {
   it('prints one line per metric with its value, baseline and limit', () => {
     const { lines } = compare(baseline, result(rounds()))
     expect(lines).toContain(
-      'render.table: 2.600 ms (fastest of 5 rounds), baseline 2.600 ms (+0.0%), §9.5 limit 30 ms',
+      'render.table: ratio 2.600 (current over reference, 2nd percentiles; fastest of 5 rounds 2.600 ms), baseline ratio 2.600 (+0.0%), §9.5 limit 30 ms',
     )
     expect(lines).toContain(
       'memory.visual: 0.500 MB (median of 5 rounds), baseline 0.500 MB (+0.0%), §9.5 limit 8 MB',
@@ -172,20 +232,20 @@ describe('makeBaseline', () => {
       runs: 1,
       loads: [HARDWARE.load],
       metrics: { ...METRICS, 'memory.visual': Math.round(1.2 * 0.5 * MB) },
+      ms: { 'render.table': 2.6, 'render.doc20': 1, 'render.chart': 4 },
     })
   })
 
-  it('merges runs: a timing is the fastest round of all of them, memory the median of all', () => {
-    const loaded = result(rounds([1.08, 1.07, 1.09, 1.1, 1.08]), { ...HARDWARE, load: [14, 9, 9] })
+  it('merges runs: a timing is the median run ratio, memory the median of all rounds', () => {
     const quiet = result(rounds([1.01, 1.0, 1.02, 1.0, 1.03]), { ...HARDWARE, load: [3, 5, 8] })
-    const { baseline: next, findings } = makeBaseline([quiet, loaded], 'd')
+    const busy = { ...underLoad(rounds(), 2), hardware: { ...HARDWARE, load: [14, 9, 9] } }
+    const slower = result(rounds([1.04, 1.04, 1.04, 1.04, 1.04]))
+    const { baseline: next, findings } = makeBaseline([quiet, busy, slower], 'd')
     expect(findings).toEqual([])
     expect(next.metrics['render.table']).toBe(2.6)
-    expect(next.runs).toBe(2)
-    expect(next.loads).toEqual([
-      [3, 5, 8],
-      [14, 9, 9],
-    ])
+    expect(next.ms?.['render.table']).toBe(2.6)
+    expect(next.runs).toBe(3)
+    expect(next.loads).toEqual([[3, 5, 8], [14, 9, 9], HARDWARE.load])
   })
 
   it('refuses runs from different machines', () => {
@@ -206,7 +266,7 @@ describe('makeBaseline', () => {
 })
 
 describe('sensitivity on a recorded run of e2e/budgets.spec.ts', () => {
-  // A real result (2026-11-10, load 14). Tightening a baseline by 6% is a 6% regression seen
+  // A real result of the A/B spec (2026-11-10). Tightening a baseline by 6% is a 6% regression seen
   // from the other side: the check must fail on it.
   const recorded = JSON.parse(
     readFileSync(`${repoRoot}scripts/test/fixtures/perf-run.json`, 'utf8'),
@@ -245,7 +305,9 @@ describe('check-perf-budgets', () => {
     const fine = write(folder, 'fine.json', result(rounds([1.04, 1.04, 1.04, 1.04, 1.04])))
     const bad = run('check-perf-budgets.mjs', '--result', worse, '--baseline', base)
     expect(bad.code).toBe(1)
-    expect(bad.out).toContain('render.table: 2.756 ms, baseline 2.600 ms (+6.0%, allowed +5%)')
+    expect(bad.out).toContain(
+      'render.table: ratio 2.756, baseline ratio 2.600 (+6.0%, allowed +5%)',
+    )
     const good = run('check-perf-budgets.mjs', '--result', fine, '--baseline', base)
     expect(good.code).toBe(0)
     expect(good.out).toContain('check-perf-budgets: 4 metrics within 5% of the baseline')
@@ -273,18 +335,29 @@ describe('check-perf-budgets', () => {
     expect(JSON.parse(readFileSync(base, 'utf8')).metrics['render.table']).toBe(1.3)
   })
 
-  it('updates from several recorded runs, keeping the fastest round of all', () => {
+  it('updates from several recorded runs, keeping the median run', () => {
     const folder = dir()
     const base = write(folder, 'base.json', baseline)
     const slow = write(folder, 'slow.json', result(rounds([1.1, 1.1, 1.1, 1.1, 1.1])))
     const fast = write(folder, 'fast.json', result(rounds([1.02, 1.0, 1.03, 1.01, 1.02])))
     const args = ['--baseline', base, '--update', '--result', slow, '--result', fast]
-    const out = run('check-perf-budgets.mjs', ...args)
+    const out = run('check-perf-budgets.mjs', ...[...args, '--result', fast])
     expect(out.code).toBe(0)
-    expect(out.out).toContain('from 2 run(s)')
+    expect(out.out).toContain('from 3 run(s)')
     const written = JSON.parse(readFileSync(base, 'utf8'))
     expect(written.metrics['render.table']).toBe(2.6)
-    expect(written.runs).toBe(2)
+    expect(written.runs).toBe(3)
+  })
+
+  it('refuses --runs below 1 or not a number', () => {
+    const folder = dir()
+    const base = write(folder, 'base.json', baseline)
+    for (const runs of ['0', 'x', '-2']) {
+      const out = run('check-perf-budgets.mjs', '--baseline', base, '--update', '--runs', runs)
+      expect(out.code).toBe(1)
+      expect(out.out).toContain(`--runs must be a whole number of 1 or more, not ${runs}`)
+    }
+    expect(JSON.parse(readFileSync(base, 'utf8'))).toEqual(baseline)
   })
 
   it('has a committed baseline with every metric and the hardware it was measured on', () => {
@@ -293,6 +366,8 @@ describe('check-perf-budgets', () => {
     expect(typeof committed.chromium).toBe('string')
     expect(committed.hardware.cores).toBeGreaterThan(0)
     expect(committed.hardware.load).toHaveLength(3)
+    // The build the baseline was measured against, committed with it.
+    expect(existsSync(`${repoRoot}scripts/perf-reference.vui.min.js`)).toBe(true)
   })
 
   it('runs last in pnpm check', () => {
