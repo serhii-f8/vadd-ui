@@ -1273,3 +1273,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: `writeDoc` answers `507 {ok: false, error: 'storage'}` when `store.add` throws a Node file-system error (an `Error` with a string `code` and a `syscall`); it broadcasts nothing and the Viewer keeps serving. Any other throw stays on the 500 path, so a bug is not reported as a disk fault. `postDocument` maps 507 to `CliError(EXIT.io, 'io', 'the Viewer cannot store documents')`. The contract suite is unchanged (no case added), so a host with its own store may answer 500 and still pass; `VADD_INTEGRATION.md` section 6 step 2 recommends 507. Tests: handler (chmod 0o500 on `docs/`), client table row, and a real-process test that makes the running Viewer's `docs/` read-only; all skip as root.
 - Alternatives: map every 5xx to exit 5; rejected, a 500 or 503 is not known to be storage.
 - Spec sections: §4.1, §11.4.
+
+## VD-161 — The shareable page drops `meta.cwd` and `meta.branch`
+- Date: 2026-11-10 · Task: 20
+- Context: VD-123 keeps a local path out of a file; `/docs/<id>.html` is the same kind of shareable file but embedded the stored document, so a posted `meta.cwd`/`meta.branch` leaked through it.
+- Decision: `standaloneRoute` embeds a copy of the stored document without `meta.cwd` and `meta.branch`; every other field (`generator` and any other `meta` key) stays. The stored document and `GET /api/docs/<id>` are unchanged, because the local feed shows `cwd` and `branch`.
+- Rationale: same rule as `fileOverrides` in the CLI file host.
+- Spec sections: §4.1, §11.5.

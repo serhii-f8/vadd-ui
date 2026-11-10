@@ -373,6 +373,20 @@ describe('POST /api/docs', () => {
   })
 })
 
+describe('the standalone page (VD-123)', () => {
+  it('holds no local path, keeps the rest of meta, and the feed keeps cwd', async () => {
+    const { get, post } = await start()
+    const meta = { cwd: '/home/u/secret-repo', branch: 'feat/x', generator: 'vui' }
+    const { id } = (await post({ ...DOC, meta })).json()
+    const page = (await get(`/docs/${id}.html`)).text
+    expect(page).not.toContain('secret-repo')
+    expect(page).not.toContain('feat/x')
+    expect(page).toContain('vui')
+    expect(JSON.parse((await get(`/api/docs/${id}`)).text).meta).toEqual(meta)
+    expect(page).toContain('"generator":"vui"')
+  })
+})
+
 describe('an unwritable docs directory (VD-160)', () => {
   const root = process.getuid?.() === 0
 

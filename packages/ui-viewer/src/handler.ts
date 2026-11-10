@@ -234,7 +234,11 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
         return
       }
       bundle ??= readBundle()
-      const file = inlineHtml(JSON.parse(text) as VuiDocument, {
+      const stored = JSON.parse(text) as VuiDocument
+      // VD-123: the file is shared, so it holds no local path (the feed copy keeps them).
+      const { cwd: _cwd, branch: _branch, ...meta } = (stored.meta ?? {}) as Record<string, unknown>
+      const shared = stored.meta === undefined ? stored : { ...stored, meta }
+      const file = inlineHtml(shared, {
         bundle,
         generator: GENERATOR_LABEL,
       })
