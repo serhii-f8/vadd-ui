@@ -12,7 +12,7 @@ import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { isVisualFileName, ORCA_FILE_MAX_BYTES, parseDirectiveLine } from '@vadd/ui-spec/host/orca'
 import { readViewerInfo, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { slugOf } from '../src/host/file.js'
 import { OUTPUT_LIMIT } from '../src/output.js'
 import type { System } from '../src/system.js'
@@ -25,6 +25,22 @@ import {
   vui,
   vuiJson,
 } from './helpers.js'
+
+// The only way past `wx` to a failing write on a real disk is a full one, so one test swaps the write.
+const failure = vi.hoisted(() => ({ next: undefined as NodeJS.ErrnoException | undefined }))
+vi.mock('node:fs', async (importOriginal) => {
+  const real = await importOriginal<typeof import('node:fs')>()
+  return {
+    ...real,
+    writeFileSync: ((...args: Parameters<typeof real.writeFileSync>) => {
+      const error = failure.next
+      if (error === undefined) return real.writeFileSync(...args)
+      failure.next = undefined
+      real.writeFileSync(args[0], 'partial', args[2]) // the `wx` open succeeded and left a file
+      throw error
+    }) as typeof real.writeFileSync,
+  }
+})
 
 const DOC = '{"title":"Test run — auth module","body":["hello"]}'
 
@@ -407,6 +423,19 @@ describe('file names', () => {
       'test-run-auth-module-bbbb.html',
     ])
     expect(readFileSync(join(dir, 'test-run-auth-module-aaaa.html'), 'utf8')).toBe('mine')
+  })
+
+  it('removes its own file when a write fails', async () => {
+    const dir = tempDir()
+    failure.next = Object.assign(new Error('no space left'), { code: 'ENOSPC' })
+    const { exit, stderr } = await vui(['show', '--host', 'file', '--dir', dir], {
+      stdin: DOC,
+      system: system(),
+    })
+    expect(failure.next).toBeUndefined()
+    expect(exit).toBe(5)
+    expect(stderr).toContain('ENOSPC')
+    expect(readdirSync(dir)).toEqual([])
   })
 
   it('gives up with exit 5 and leaves what is there', async () => {

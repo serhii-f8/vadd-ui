@@ -1251,3 +1251,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision, VD-155: merge task 19 as delivered. The worker's scope for `ratio.md` (every case whose markdown is a GFM table) and per-case worst values stay; reading `ratio.md` as the `table` case alone, or `ratio.html` as a corpus total, would pass or narrow the gate by choosing a reading from the result, and is declined. Both misses stay in the baseline's `unmet`, so drift and new misses still fail the gate. Closing them is added to task 20 (its "budgets" scope): try format-level fixes at the cause, chiefly a positional form for `stats` and `kv` items, measured through `vui bench`; anything still unmet after task 20 is listed as an open release-gate DEVIATION in the final summary, not hidden.
 - Pending the user (release checks, not blockers): one `vui bench` run with a real `ANTHROPIC_API_KEY`, which also checks VD-149's framing assumption; the ratios may move under a real Claude count.
 - Spec sections: §14.2, §14.3.
+
+## VD-158 — The watchdog mark test reads the best of 5 renders
+- Date: 2026-11-10 · Task: 20
+- Context: "takes a long mark list in its stride" (`code.test.ts`) renders 1,500 lines against 500,000 marks and expects no `.vui-card-error`. On a loaded machine one render can trip the render watchdog even with a constant-time lookup.
+- Decision: render the same document up to 5 times and pass on the first render without an error card (still exactly one `mark`). A linear lookup trips the watchdog on every render, so the mutant (an array and `.includes`) still fails. The same task adds `removes its own file when a write fails` (a `node:fs` write that leaves a file and throws `ENOSPC`; the file is gone, exit 5) and a `safe` test for the warning line. No production seam was added: the file test wraps `writeFileSync` with `vi.mock`.
+- Rationale: VD-087's fastest-of-N pattern, applied to a pass/fail watchdog instead of a time.
+- Spec sections: §16.

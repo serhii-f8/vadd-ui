@@ -41,6 +41,14 @@ describe('safe', () => {
   })
 })
 
+describe('safe on the warning line', () => {
+  it('leaves no control character in a reason that holds some', () => {
+    const line = safe('vui: warning: the Viewer did not take a copy (a\u001b[31mb\nc\u0007)')
+    expect(line).not.toMatch(/[\u0000-\u001f\u007f-\u009f]/)
+    expect(line).toBe('vui: warning: the Viewer did not take a copy (a\\u001b[31mb\\u000ac\\u0007)')
+  })
+})
+
 describe('safeJson', () => {
   it('matches JSON.stringify on plain values', () => {
     const value = { a: ['</', '\n', ' ', 'é'], b: 1 }
