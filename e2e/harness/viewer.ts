@@ -32,6 +32,18 @@ interface LaunchOptions {
   port?: number
 }
 
+/** A port the OS calls free now, for a test that restarts a Viewer on one port. */
+export function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer()
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address() as AddressInfo
+      server.close(() => resolve(port))
+    })
+  })
+}
+
 export async function launchViewer(options: LaunchOptions = {}): Promise<LiveViewer> {
   const state = options.state ?? mkdtempSync(join(tmpdir(), 'vui-e2e-state-'))
   const cwd = options.cwd ?? mkdtempSync(join(tmpdir(), 'vui-e2e-work-'))

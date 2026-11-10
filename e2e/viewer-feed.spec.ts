@@ -1,5 +1,12 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
-import { dropProxy, type LiveViewer, launchViewer, postDoc, watchProblems } from './harness/viewer'
+import {
+  dropProxy,
+  freePort,
+  type LiveViewer,
+  launchViewer,
+  postDoc,
+  watchProblems,
+} from './harness/viewer'
 
 const ATTACK = '</script><img src=x onerror=window.pwned=1><script>window.pwned=2</script>'
 
@@ -243,9 +250,9 @@ test('a dropped stream reconnects with backoff and fills the gap', async ({ page
 
 test('a Viewer restarted under new tokens is reported as gone, and the page stops', async ({
   page,
-}, testInfo) => {
-  // Its own port: another worker's Viewer could take a shared one in the restart's gap.
-  const port = 47_300 + testInfo.workerIndex
+}) => {
+  // An OS-chosen port: a fixed one can be held by another run's Viewer on this machine.
+  const port = await freePort()
   await viewer.stop()
   viewer = await launchViewer({ port })
   await post({ title: 'Kept', body: ['still here'] })
