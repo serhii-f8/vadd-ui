@@ -217,6 +217,7 @@ Slug `hardening`. Depends on: 15, 18, 19. Spec: §9.5 timing and memory, §15.1 
   - axe-core over all visual-regression pages: zero serious or critical.
   - Visual regression covers every core component and all §19 examples at 360, 720, 1100 px, light and dark, pixel diff ≤ 0.1%.
   - Timing and memory budgets from §9.5 are measured in headless Chromium and gated with ≤ 5% regression. The hardware differs from the spec's reference laptop: record it.
+  - §14.2 ratio budgets left unmet by task 19 (VD-155, VD-157): fix at the cause where the format allows it (for example a positional form for `stats` and `kv` items), remeasure with `vui bench`, update the baseline, and record whatever remains unmet as a DEVIATION. Never pad or re-scope the measurement.
 
 ### 21 — Host matrix and release preparation
 Slug `release-prep`. Depends on: 20. Spec: §1 goals audit, §10.3, §15.1 CDN controls, §16 agent eval and Orca end-to-end, §16.1, §17.2, §17.3 contract job, §17.4.

@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-07T10:01:14Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-10T10:12:39Z · Mode: manual
 
 ## Summary
-Done 18 / 22 · In progress: none · Blocked: none · Next: 19 — vui bench, corpus, token budgets
+Done 19 / 22 · In progress: none · Blocked: none · Next: 20 — Hardening
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -46,7 +46,7 @@ Recorded 2026-11-04 during bootstrap.
 | 16 | orca-chat adapter and file host | §3, §4.2, §10.2, §11.2, §11.5, §17.3 | 15 | done | removed | ctx_4d1d7dc57557 | [design](docs/superpowers/specs/2026-11-06-orca-chat-design.md) | [plan](docs/superpowers/plans/2026-11-06-orca-chat.md) | 53a5319 | 2026-11-06 |
 | 17 | Agent skill | §12.1 | 16 | done | removed | ctx_8fd8d4955071, ctx_1b30618a57dd | [design](docs/superpowers/specs/2026-11-06-agent-skill-design.md) | [plan](docs/superpowers/plans/2026-11-06-agent-skill.md) | 8f1fecd, fix f7a4267 | 2026-11-06 |
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | done | removed | ctx_22d6938816d6 | [design](docs/superpowers/specs/2026-11-07-ui-react-design.md) | [plan](docs/superpowers/plans/2026-11-07-ui-react.md) | b41f419 | 2026-11-07 |
-| 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | todo | | | | | | |
+| 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | done | removed | ctx_6c182ecb9dfb | [design](docs/superpowers/specs/2026-11-10-vui-bench-design.md) | [plan](docs/superpowers/plans/2026-11-10-vui-bench.md) | bb2c492 | 2026-11-10 |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | todo | | | | | | |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | todo | | | | | | |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
@@ -246,3 +246,12 @@ none
 - Found in the Orca pane and fixed: `auto` followed the OS when `<html class="">`, which is what VADD's ThemeProvider leaves in light mode (VD-145).
 - Review: no Critical issues. The Important one, a contract loop against servers that ignore `after`, is fixed, along with five minors. Two were declined (VD-147).
 - Follow-ups: whether Tailwind v4 in VADD's build emits `--font-sans` on `:root` cannot be checked here; it affects only the font inside visuals. Wiring VADD itself stays with the user (VD-004).
+
+### 19 — vui bench, corpus, token budgets
+- Built: `vui bench [dir]` in `@vadd/ui-cli` with a 24-case corpus (`packages/ui-cli/corpus/`, one case led by each core component, VUI, GFM markdown and Orca-style HTML each); Anthropic `count_tokens` counter when `ANTHROPIC_API_KEY` is set, otherwise VD-136's offline estimate, now in one place in `ui-cli` (`js-tiktoken` 1.0.21, pure JS, lazy import, a `ui-cli` dependency only); catalog field lines without indent (VD-153); `scripts/check-token-budgets.mjs` with `scripts/token-baseline.json`, last in `pnpm check`.
+- Decisions: VD-148 to VD-156 (worker), VD-157 (coordinator ruling). VD-155 and VD-157 are DEVIATIONs: two §14.2 budgets unmet.
+- Evidence (coordinator rerun on `main` at bb2c492): `pnpm gate` exit 0. Vitest 115 files, 7,102 tests. Playwright 432. Lines 99.66% (5429/5447), statements 99.04%. Bundle 109.9 KiB / 37.5 KiB gzip, unchanged. `check-token-budgets`: 29 metrics within 5% of the baseline, offline counter. The first coordinator gate run failed one `ui-render` 200 ms timing test (`code.test.ts`, long mark list) at load average 23.8 from other projects' `eslint` and `docker compose build`; the file passed 3/3 alone and the full rerun was green. Task 19 does not touch `ui-render`.
+- Coordinator probe, `vui bench` on `main`: fixed.show 23 ≤ 30, fixed.cdn 65 ≤ 70, skill 1,706 ≤ 1,800, catalog ≤ 286 ≤ 300 (largest `chart`), all ok; ratio.md 2.007 > 1.2 (worst `stats-weekly-metrics`, 9 table cases; `table` itself 1.009), ratio.html 0.425 > 0.2 (worst `stack-release-notes`); corpus totals 1.423 and 0.255; orca-chat with its directive line 42 (info, VD-150). Exit 1 as designed. The worst cases' encodings were read and are honest.
+- Worker evidence, not rerun: the API path against a 127.0.0.1 stub (framing subtraction, 401/500 exit 5, 429/529 retries, key validated and scrubbed, no redirects); the 5% gate tests (+6% fails, +4% and exactly 5% pass, a fall over 5% fails); a real-CLI +9.9% failed and +3.8% passed; bench evidence through `vui show` in Orca's pane.
+- Review: fresh reviewer found no Critical issues and 6 Important ones; 4 fixed with tests, among them a way for the API key to leak through a `fetch` header error; 2 declined with reasons (VD-156).
+- Follow-ups: task 20 now owns closing ratio.md and ratio.html at the cause (VD-157, TASKS.md). Pending the user: one `vui bench` run with a real API key (VD-149 framing check).
