@@ -1,0 +1,8 @@
+{title: 'Dependency advisory', body: [
+  {type: 'callout', tone: 'err', title: 'GHSA-7x4q-2m9c: prototype pollution in json-merge 2.1.0', text: 'Reachable from `src/config/load.ts` through user-supplied YAML. Upgrade to **2.1.4** before the next release.'},
+  {type: 'list', ordered: true, items: [
+    'Run `pnpm up json-merge@2.1.4`',
+    'Re-run the config loader tests',
+    'Ship in 2026.11.3',
+  ]},
+]}

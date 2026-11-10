@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout request path</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  svg { width: 100%; height: auto; display: block; }
+  .node rect { fill: var(--card, #fff); stroke: var(--border, #d4d4d4); stroke-width: 1.5; rx: 6; }
+  .node text { fill: var(--foreground, #171717); font-size: 12px; text-anchor: middle; dominant-baseline: middle; }
+  .node.ok rect { stroke: var(--chart-2, #16a34a); }
+  .node.fail rect { stroke: var(--destructive, #dc2626); stroke-width: 2; }
+  .node.warn rect { stroke: var(--chart-4, #d97706); }
+  .edge { stroke: var(--muted-foreground, #a3a3a3); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+  .edge-label { fill: var(--muted-foreground, #737373); font-size: 11px; text-anchor: middle; }
+  #arrow path { fill: var(--muted-foreground, #a3a3a3); }
+</style>
+</head>
+<body>
+<h1>Checkout request path</h1>
+<svg viewBox="0 0 640 200" role="img" aria-label="CDN to API gateway; gateway to Cart service and Payment service; both to Postgres">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+  <path class="edge" d="M110,100 L160,100"/>
+  <path class="edge" d="M280,90 C320,50 330,50 370,50"/>
+  <path class="edge" d="M280,110 C320,150 330,150 370,150"/>
+  <text class="edge-label" x="325" y="168">POST /pay</text>
+  <path class="edge" d="M490,50 C520,50 520,90 530,95"/>
+  <path class="edge" d="M490,150 C520,150 520,110 530,105"/>
+  <text class="edge-label" x="512" y="140">timeouts</text>
+  <g class="node ok"><rect x="10" y="80" width="100" height="40"/><text x="60" y="100">CDN</text></g>
+  <g class="node ok"><rect x="160" y="80" width="120" height="40"/><text x="220" y="100">API gateway</text></g>
+  <g class="node ok"><rect x="370" y="30" width="120" height="40"/><text x="430" y="50">Cart service</text></g>
+  <g class="node fail"><rect x="370" y="130" width="120" height="40"/><text x="430" y="150">Payment service</text></g>
+  <g class="node warn"><rect x="530" y="80" width="100" height="40"/><text x="580" y="100">Postgres</text></g>
+</svg>
+</body>
+</html>

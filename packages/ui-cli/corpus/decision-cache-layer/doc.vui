@@ -1,0 +1,9 @@
+{title: 'Cache layer for catalog queries', body: [
+  {type: 'decision', question: 'Which cache should front the catalog queries?', pick: 1,
+   context: 'p95 is 212 ms on `searchSku`; the SLO is 100 ms.',
+   options: [
+    {label: 'In-process LRU', pros: ['No infra', 'Sub-millisecond hits'], cons: ['Per-pod, cold after deploys'], effort: 'S', reversible: true, risk: 'low'},
+    {label: 'Redis', pros: ['Shared across pods', 'Survives deploys'], cons: ['New dependency'], effort: 'M', reversible: true, risk: 'med', verify: 'p95 < 80 ms in the bench'},
+    {label: 'Materialized view', pros: ['No cache invalidation'], cons: ['Refresh lag of 5 min'], effort: 'L', reversible: false, risk: 'med'},
+  ]},
+]}

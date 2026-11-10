@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Refresh-token rotation</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  .summary { color: var(--muted-foreground, #737373); margin-bottom: 8px; }
+  .bar { height: 6px; background: var(--muted, #f5f5f5); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+  .bar span { display: block; height: 100%; width: 28.6%; background: var(--chart-2, #16a34a); }
+  ul { list-style: none; margin: 0; padding: 0; }
+  ul ul { padding-left: 24px; }
+  li { padding: 4px 0; }
+  .icon { display: inline-block; width: 18px; text-align: center; margin-right: 6px; }
+  .ok .icon { color: var(--chart-2, #16a34a); }
+  .run .icon { color: var(--chart-1, #2563eb); }
+  .wait .icon, .skip .icon { color: var(--muted-foreground, #a3a3a3); }
+  .skip > .text { text-decoration: line-through; color: var(--muted-foreground, #737373); }
+  .note { display: block; margin-left: 24px; font-size: 12px; color: var(--muted-foreground, #737373); }
+</style>
+</head>
+<body>
+<h1>Refresh-token rotation</h1>
+<div class="summary">2 of 7 done</div>
+<div class="bar"><span></span></div>
+<ul>
+  <li class="ok"><span class="icon">✓</span><span class="text">Add rotation table and repository</span></li>
+  <li class="ok"><span class="icon">✓</span><span class="text">Issue a new refresh token on every refresh</span></li>
+  <li class="run"><span class="icon">◐</span><span class="text">Invalidate the previous token</span><span class="note">replay test still passes the old token</span></li>
+  <li class="wait"><span class="icon">○</span><span class="text">Replay protection</span>
+    <ul>
+      <li class="wait"><span class="icon">○</span><span class="text">Detect reuse of a rotated token</span></li>
+      <li class="wait"><span class="icon">○</span><span class="text">Revoke the whole token family on reuse</span></li>
+    </ul>
+  </li>
+  <li class="skip"><span class="icon">–</span><span class="text">Document the rotation in the API guide</span><span class="note">next release</span></li>
+</ul>
+</body>
+</html>

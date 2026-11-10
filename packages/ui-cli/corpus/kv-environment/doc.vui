@@ -1,0 +1,12 @@
+{title: 'Deploy target', body: [
+  {type: 'kv', pairs: [
+    ['Environment', 'staging-eu'],
+    ['Branch', 'release/2026.11'],
+    ['Commit', '4f2c1a9', 'sha'],
+    ['Node', '22.11.0'],
+    ['Region', 'eu-central-1'],
+    ['Replicas', 3, 'int'],
+    ['Image size', 184320000, 'bytes'],
+    ['Deployed', '2026-11-10T09:42:00Z', 'date'],
+  ]},
+]}

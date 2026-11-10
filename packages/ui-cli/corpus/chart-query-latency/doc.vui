@@ -1,0 +1,6 @@
+{title: 'Catalog query latency', body: [
+  {type: 'chart', kind: 'line', yFormat: 'ms',
+   x: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30', '10:35'],
+   series: {p50: [42, 40, 45, 41, 39, 44, 43, 40], p95: [120, 180, 95, 88, 84, 131, 97, 90]},
+   refLines: [{y: 100, label: 'SLO', tone: 'err'}]},
+]}

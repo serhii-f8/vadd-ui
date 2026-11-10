@@ -1,0 +1,10 @@
+{title: 'Release 2026.11.2 rollout', body: [
+  {type: 'timeline', items: [
+    {at: '09:02', text: 'Build 2318 passed', status: 'ok'},
+    {at: '09:10', text: 'Canary at 5% in eu-central-1', status: 'ok'},
+    {at: '09:25', text: 'Error rate 0.9% on checkout, above the 0.5% gate', status: 'warn'},
+    {at: '09:27', text: 'Canary rolled back automatically', status: 'fail'},
+    {at: '09:48', text: 'Hotfix 2319 deployed to canary', status: 'run'},
+    {at: '10:30', text: 'Full rollout, if the canary holds', status: 'wait'},
+  ]},
+]}

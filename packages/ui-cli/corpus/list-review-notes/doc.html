@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review of PR #482</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border, #e5e5e5); }
+  .icon { width: 18px; flex: none; text-align: center; font-weight: 700; }
+  .ok .icon { color: var(--chart-2, #16a34a); }
+  .warn .icon { color: var(--chart-4, #d97706); }
+  .fail .icon { color: var(--destructive, #dc2626); }
+  .skip .icon { color: var(--muted-foreground, #a3a3a3); }
+  .note { color: var(--muted-foreground, #737373); font-size: 12px; margin-left: auto; }
+  code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; background: var(--muted, #f5f5f5); padding: 0 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Review of PR #482</h1>
+<ul>
+  <li class="ok"><span class="icon">✓</span><span>Token family revocation is covered by tests</span></li>
+  <li class="ok"><span class="icon">✓</span><span>Rotation runs inside the refresh transaction</span></li>
+  <li class="warn"><span class="icon">!</span><span><code>issuedAt</code> is computed but never stored</span><span class="note">src/auth/refresh.ts:41</span></li>
+  <li class="fail"><span class="icon">✕</span><span>Old tokens stay valid after rotation</span><span class="note">auth.spec.ts:88 reproduces it</span></li>
+  <li class="warn"><span class="icon">!</span><span>Migration has no down step</span></li>
+  <li class="skip"><span class="icon">–</span><span>Load test not run</span></li>
+</ul>
+</body>
+</html>

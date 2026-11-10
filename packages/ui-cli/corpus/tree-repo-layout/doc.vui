@@ -1,0 +1,14 @@
+{title: 'Files touched by the rotation work', body: [
+  {type: 'tree', items: [
+    {name: 'src', children: [
+      {name: 'auth', children: [
+        {name: 'refresh.ts', status: 'ok', note: 'rotates on refresh'},
+        {name: 'rotation.repo.ts', status: 'ok', note: 'new'},
+        {name: 'session.ts', status: 'warn', note: 'legacy path removed'},
+      ]},
+      {name: 'db', children: [{name: 'pool.ts', status: 'ok'}]},
+    ]},
+    {name: 'migrations', children: [{name: '0042_token_rotation.sql', status: 'ok', note: 'new'}]},
+    {name: 'test', children: [{name: 'auth', children: [{name: 'refresh.test.ts', status: 'fail', note: '2 failing'}]}]},
+  ]},
+]}

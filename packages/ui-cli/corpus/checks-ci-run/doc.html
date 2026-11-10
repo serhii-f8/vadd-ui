@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CI run #2318 — feature/rotation</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  .check { border: 1px solid var(--border, #e5e5e5); border-radius: var(--radius, 8px); padding: 10px 12px; margin-bottom: 8px; background: var(--card, #fff); }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .name { font-weight: 600; flex: 1; }
+  .cmd { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; color: var(--muted-foreground, #737373); }
+  .time { font-variant-numeric: tabular-nums; color: var(--muted-foreground, #737373); font-size: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .ok .dot { background: var(--chart-2, #16a34a); }
+  .warn .dot { background: var(--chart-4, #d97706); }
+  .fail .dot { background: var(--destructive, #dc2626); }
+  .skip .dot { background: var(--muted-foreground, #a3a3a3); }
+  .fail { border-color: var(--destructive, #dc2626); }
+  pre { margin: 8px 0 0; padding: 8px; background: var(--muted, #f5f5f5); border-radius: 6px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>CI run #2318 — feature/rotation</h1>
+<div class="check ok"><div class="row"><span class="dot"></span><span class="name">Install</span><span class="cmd">pnpm install --frozen-lockfile</span><span class="time">18.4 s</span></div></div>
+<div class="check ok"><div class="row"><span class="dot"></span><span class="name">Typecheck</span><span class="cmd">pnpm tsc -b</span><span class="time">9.1 s</span></div></div>
+<div class="check warn"><div class="row"><span class="dot"></span><span class="name">Lint</span><span class="cmd">pnpm lint</span><span class="time">4.3 s</span></div>
+<pre>src/auth/refresh.ts:41  unused variable "issuedAt"</pre></div>
+<div class="check ok"><div class="row"><span class="dot"></span><span class="name">Unit tests</span><span class="cmd">pnpm vitest run</span><span class="time">21.4 s</span></div></div>
+<div class="check fail"><div class="row"><span class="dot"></span><span class="name">E2E</span><span class="cmd">pnpm e2e</span><span class="time">17.7 s</span></div>
+<pre>auth.spec.ts:88  expected 401, got 200
+auth.spec.ts:112  expected token to be revoked</pre></div>
+<div class="check skip"><div class="row"><span class="dot"></span><span class="name">Build</span><span class="cmd">pnpm build</span><span class="time">skipped</span></div></div>
+</body>
+</html>

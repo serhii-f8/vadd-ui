@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>nightly-reindex failed</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  dl { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 12px; }
+  dt { color: var(--muted-foreground, #737373); }
+  dd { margin: 0 0 0 6px; font-weight: 500; }
+  dl div { display: flex; }
+  pre { margin: 0; padding: 10px 12px; background: var(--muted, #f5f5f5); border-radius: var(--radius, 8px); font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; line-height: 1.6; overflow-x: auto; }
+  .warn { color: var(--chart-4, #d97706); }
+  .error { color: var(--destructive, #dc2626); }
+  .fatal { color: var(--destructive, #dc2626); font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>nightly-reindex failed</h1>
+<dl>
+  <div><dt>Job</dt><dd>nightly-reindex</dd></div>
+  <div><dt>Run</dt><dd>#9041</dd></div>
+  <div><dt>Exit</dt><dd>code 1 after 14m 02s</dd></div>
+</dl>
+<pre>02:00:01 INFO  start reindex catalog_v7
+02:03:44 INFO  batch 120/400 done
+<span class="warn">02:09:12 WARN  slow batch 233 (8.1 s)</span>
+<span class="error">02:13:58 ERROR batch 287: duplicate key value violates unique constraint "sku_pkey"</span>
+<span class="error">02:13:58 ERROR rollback batch 287</span>
+<span class="fatal">02:14:03 FATAL aborting after 3 failed batches</span></pre>
+</body>
+</html>

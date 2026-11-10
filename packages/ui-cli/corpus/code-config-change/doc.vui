@@ -1,0 +1,4 @@
+{title: 'Connection pool fix', body: [
+  {type: 'callout', tone: 'info', text: 'The pool was capped at 10 while the worker runs 32 jobs; raise it and fail fast on exhaustion.'},
+  {type: 'code', lang: 'ts', mark: [3, 4, 5], text: "export const pool = new Pool({\n  connectionString: env.DATABASE_URL,\n  max: 40,\n  idleTimeoutMillis: 30_000,\n  connectionTimeoutMillis: 2_000,\n})"},
+]}

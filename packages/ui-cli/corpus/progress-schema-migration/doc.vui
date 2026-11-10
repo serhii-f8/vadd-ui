@@ -1,0 +1,8 @@
+{title: 'Schema migration 0042', body: [
+  {type: 'progress', value: 7340000, max: 12000000, label: 'Rows migrated', segments: [
+    {value: 7100000, tone: 'ok', label: 'Copied'},
+    {value: 240000, tone: 'warn', label: 'Retried'},
+    {value: 12400, tone: 'err', label: 'Failed'},
+  ]},
+  {type: 'md', text: 'ETA 38 min at 2,050 rows/s. Failed rows are logged to `migration_0042_errors`.'},
+]}

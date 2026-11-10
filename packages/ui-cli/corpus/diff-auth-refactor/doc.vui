@@ -1,0 +1,12 @@
+{title: 'Auth refactor — changes', body: [
+  {type: 'diff', files: [
+    ['src/auth/refresh.ts', 64, 12, 'M'],
+    ['src/auth/rotation.repo.ts', 88, 0, 'A'],
+    ['src/auth/session.ts', 9, 31, 'M'],
+    ['src/auth/legacy-token.ts', 0, 142, 'D'],
+    ['migrations/0042_token_rotation.sql', 21, 0, 'A'],
+    ['test/auth/refresh.test.ts', 75, 8, 'M'],
+  ], hunks: {
+    'src/auth/session.ts': '@@ -40,7 +40,4 @@\n-  const legacy = decodeLegacy(raw)\n-  if (legacy) return upgrade(legacy)\n+  return decode(raw)',
+  }},
+]}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auth refactor — changes</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--border, #e5e5e5); }
+  td.path { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; width: 48px; }
+  .add { color: var(--chart-2, #16a34a); }
+  .del { color: var(--destructive, #dc2626); }
+  .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--muted, #f5f5f5); color: var(--muted-foreground, #737373); }
+  .total { margin: 8px 0 16px; color: var(--muted-foreground, #737373); font-size: 12px; }
+  h2 { font-size: 13px; font-family: var(--font-mono, ui-monospace, monospace); margin: 0 0 6px; }
+  pre { margin: 0; padding: 8px; background: var(--muted, #f5f5f5); border-radius: 6px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Auth refactor — changes</h1>
+<table>
+  <tr><td><span class="tag">M</span></td><td class="path">src/auth/refresh.ts</td><td class="num add">+64</td><td class="num del">−12</td></tr>
+  <tr><td><span class="tag">A</span></td><td class="path">src/auth/rotation.repo.ts</td><td class="num add">+88</td><td class="num del">−0</td></tr>
+  <tr><td><span class="tag">M</span></td><td class="path">src/auth/session.ts</td><td class="num add">+9</td><td class="num del">−31</td></tr>
+  <tr><td><span class="tag">D</span></td><td class="path">src/auth/legacy-token.ts</td><td class="num add">+0</td><td class="num del">−142</td></tr>
+  <tr><td><span class="tag">A</span></td><td class="path">migrations/0042_token_rotation.sql</td><td class="num add">+21</td><td class="num del">−0</td></tr>
+  <tr><td><span class="tag">M</span></td><td class="path">test/auth/refresh.test.ts</td><td class="num add">+75</td><td class="num del">−8</td></tr>
+</table>
+<div class="total">6 files, +257 −193</div>
+<h2>src/auth/session.ts</h2>
+<pre>@@ -40,7 +40,4 @@
+<span class="del">-  const legacy = decodeLegacy(raw)</span>
+<span class="del">-  if (legacy) return upgrade(legacy)</span>
+<span class="add">+  return decode(raw)</span></pre>
+</body>
+</html>

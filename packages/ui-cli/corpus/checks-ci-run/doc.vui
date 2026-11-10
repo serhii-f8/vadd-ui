@@ -1,0 +1,10 @@
+{title: 'CI run #2318 — feature/rotation', body: [
+  {type: 'checks', items: [
+    {name: 'Install', status: 'ok', cmd: 'pnpm install --frozen-lockfile', ms: 18400},
+    {name: 'Typecheck', status: 'ok', cmd: 'pnpm tsc -b', ms: 9100},
+    {name: 'Lint', status: 'warn', cmd: 'pnpm lint', ms: 4300, output: 'src/auth/refresh.ts:41  unused variable "issuedAt"'},
+    {name: 'Unit tests', status: 'ok', cmd: 'pnpm vitest run', ms: 21400},
+    {name: 'E2E', status: 'fail', cmd: 'pnpm e2e', ms: 17700, output: 'auth.spec.ts:88  expected 401, got 200\nauth.spec.ts:112  expected token to be revoked'},
+    {name: 'Build', status: 'skip', cmd: 'pnpm build'},
+  ]},
+]}

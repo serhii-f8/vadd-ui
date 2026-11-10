@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Connection pool fix</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  .callout { border-left: 3px solid var(--chart-1, #2563eb); background: color-mix(in srgb, var(--chart-1, #2563eb) 8%, transparent); padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; }
+  pre { margin: 0; padding: 10px 0; background: var(--muted, #f5f5f5); border-radius: var(--radius, 8px); font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; overflow-x: auto; counter-reset: line; }
+  pre span { padding: 0 12px; }
+  pre span::before { counter-increment: line; content: counter(line); display: inline-block; width: 2em; margin-right: 12px; text-align: right; color: var(--muted-foreground, #a3a3a3); }
+  pre span.mark { background: color-mix(in srgb, var(--chart-4, #d97706) 18%, transparent); }
+</style>
+</head>
+<body>
+<h1>Connection pool fix</h1>
+<div class="callout">The pool was capped at 10 while the worker runs 32 jobs; raise it and fail fast on exhaustion.</div>
+<pre><span>export const pool = new Pool({</span>
+<span>  connectionString: env.DATABASE_URL,</span>
+<span class="mark">  max: 40,</span>
+<span class="mark">  idleTimeoutMillis: 30_000,</span>
+<span class="mark">  connectionTimeoutMillis: 2_000,</span>
+<span>})</span></pre>
+</body>
+</html>

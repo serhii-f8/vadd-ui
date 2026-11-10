@@ -1,0 +1,9 @@
+{title: 'Job queue options', body: [
+  {type: 'compare', options: ['BullMQ', 'pg-boss', 'SQS'], pick: 1, criteria: [
+    {label: 'p95 enqueue', values: [4, 9, 38], format: 'ms', better: 'low'},
+    {label: 'Throughput', values: [12000, 3500, 3000], format: 'compact', better: 'high'},
+    {label: 'Monthly cost', values: [180, 0, 95], format: 'money:EUR', better: 'low'},
+    {label: 'New infra', values: ['Redis', 'none', 'AWS account']},
+    {label: 'Exactly-once', values: [false, true, false]},
+  ]},
+]}
