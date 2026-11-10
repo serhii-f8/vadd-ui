@@ -16,7 +16,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "check": "node scripts/generate-schema.mjs --check && node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs && node scripts/check-forbidden-apis.mjs packages/ui/dist/vui.min.js packages/ui/dist/index.js packages/ui-viewer/dist/app.js",
+    "check": "node scripts/generate-schema.mjs --check && node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs && node scripts/check-forbidden-apis.mjs packages/ui/dist/vui.min.js packages/ui/dist/index.js packages/ui-viewer/dist/app.js && node scripts/check-token-budgets.mjs",
     "gate": "pnpm build && pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm test:e2e && pnpm check"
   },
   "devDependencies": {
