@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "node scripts/generate-schema.mjs && tsc -b && node scripts/build-bundle.mjs",
-    "typecheck": "tsc -b && tsc -p packages/ui-viewer/tsconfig.app.json && tsc -p tsconfig.test.json && tsc -p e2e/tsconfig.json",
+    "typecheck": "tsc -b && tsc -p packages/ui-viewer/tsconfig.app.json && tsc -p tsconfig.test.json && tsc -b e2e/tsconfig.json",
     "lint": "biome check . && node scripts/check-forbidden-apis.mjs",
     "format": "biome check --write .",
     "test": "vitest run",

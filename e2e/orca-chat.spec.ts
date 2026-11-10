@@ -167,8 +167,8 @@ test.describe('the pinned contract', () => {
     let accepted = 0
     for (let run = 0; run < 20_000; run += 1) {
       const length = next(7)
-      let line = ['', '::orca-visual{', '::orca-visual{file="a.html" '][next(3)]
-      for (let index = 0; index < length; index += 1) line += pieces[next(pieces.length)]
+      let line = ['', '::orca-visual{', '::orca-visual{file="a.html" '][next(3)] ?? ''
+      for (let index = 0; index < length; index += 1) line += pieces[next(pieces.length)] ?? ''
       if (next(2) === 0) line += '}'
       const parsed = parseNativeChatVisualDirectiveLine(line)
       if (parsed !== null) accepted += 1

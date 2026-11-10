@@ -1413,3 +1413,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: a median (moves with load); single renders (below the timer's resolution); one baseline for any machine (CI would always fail or always pass); failing on improvement (flakes when the machine is quiet); a per-machine baseline directory (no second machine yet).
 - Rationale: the limits are an absolute gate on any host; the 5% is a regression gate where it can be measured, and the fastest of many batches is the code's cost, not the machine's.
 - Spec sections: §9.5, §16.
+
+## VD-172 — `e2e/` typechecks with `noUncheckedIndexedAccess`; the vendored Orca sources are their own composite project
+- Date: 2026-11-10 · Task: 20
+- Context: `e2e/tsconfig.json` had turned the flag off for all of `e2e/` because one vendored file, `native-chat-visual-directive.ts`, indexes a match and must stay byte for byte (VD-063). Task 16 follow-up.
+- Decision: the flag is on again for `e2e/` (inherited from `tsconfig.base.json`). `e2e/harness/orca/tsconfig.json` is a composite, declaration-only project with the flag off, covering `src/**/*`; it emits to `node_modules/.cache/e2e-orca`. `e2e/tsconfig.json` excludes `harness/orca` and references it, and `typecheck` runs `tsc -b e2e/tsconfig.json` (TypeScript 7.0.2 supports references and `-b`). Imports of the vendored files resolve to the declarations, so the vendored bytes are not re-checked under our settings. The one tsconfig is added next to the vendored files; none of them changed. Our own error was `orca-chat.spec.ts`'s fuzz loop (two indexed reads, now `?? ''`). Probe: `const x: string = [''][0]` in an e2e file fails `pnpm typecheck`.
+- Alternatives: `// @ts-expect-error` or edits in the vendored file (breaks byte for byte); keeping the flag off (loses the check for our 40-odd e2e files).
+- Rationale: the check applies to our code and the vendored code keeps Orca's own settings.
+- Spec sections: §16.
