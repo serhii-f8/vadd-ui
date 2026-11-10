@@ -3,6 +3,7 @@ import { COMPONENT_TYPES, type JsonValue, validate } from '../../src/index.js'
 import {
   FIELDS,
   fastestMs,
+  fuzzBinCount,
   fuzzCount,
   fuzzDocument,
   fuzzMode,
@@ -83,7 +84,11 @@ describe('the fuzz generator', () => {
   })
 
   it('reads its run size and seed from the environment', () => {
-    const saved = { cases: process.env.VUI_FUZZ_CASES, seed: process.env.VUI_FUZZ_SEED }
+    const saved = {
+      cases: process.env.VUI_FUZZ_CASES,
+      seed: process.env.VUI_FUZZ_SEED,
+      bin: process.env.VUI_FUZZ_BIN_CASES,
+    }
     try {
       delete process.env.VUI_FUZZ_CASES
       delete process.env.VUI_FUZZ_SEED
@@ -95,10 +100,19 @@ describe('the fuzz generator', () => {
       expect(fuzzSeed(9)).toBe(42)
       process.env.VUI_FUZZ_CASES = 'many'
       expect(() => fuzzCount(7)).toThrow(/VUI_FUZZ_CASES/)
+      process.env.VUI_FUZZ_SEED = '4294967295'
+      expect(fuzzSeed(9)).toBe(4_294_967_295)
+      process.env.VUI_FUZZ_SEED = '4294967296'
+      expect(() => fuzzSeed(9)).toThrow(/VUI_FUZZ_SEED must be an integer from 0 to 4294967295/)
+      process.env.VUI_FUZZ_BIN_CASES = '3'
+      expect(fuzzBinCount(20)).toBe(3)
+      process.env.VUI_FUZZ_BIN_CASES = '2.5'
+      expect(() => fuzzBinCount(20)).toThrow(/VUI_FUZZ_BIN_CASES/)
     } finally {
       for (const [key, value] of [
         ['VUI_FUZZ_CASES', saved.cases],
         ['VUI_FUZZ_SEED', saved.seed],
+        ['VUI_FUZZ_BIN_CASES', saved.bin],
       ] as const) {
         if (value === undefined) delete process.env[key]
         else process.env[key] = value

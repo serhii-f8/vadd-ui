@@ -1,4 +1,4 @@
-import { type JsonValue, normalize, validateText } from '@vadd/ui-spec'
+import { type JsonValue, normalize } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
 import {
   excerpt,
@@ -52,13 +52,11 @@ function check(document: unknown, next: unknown): string[] {
     problems.push(...failed('update'), ...badAttributes(box).map((bad) => `update: ${bad}`))
     handle.destroy()
     if (box.childElementCount !== 0) problems.push('destroy left children behind')
-    // Total on anything; and on what the CLI would accept, its catch-all must not fire.
+    // Total on anything (VD-166): its catch-all firing is a throw in disguise, inside the
+    // limits or past them.
     const { document: canonical } = normalize(document as JsonValue)
-    const accepted = validateText(JSON.stringify(document) ?? '').ok
-    const markdown = renderMarkdown(canonical)
-    const plain = renderPlain(canonical)
-    if (accepted && markdown === TEXT_FAILED) problems.push('renderMarkdown failed')
-    if (accepted && plain === TEXT_FAILED) problems.push('renderPlain failed')
+    if (renderMarkdown(canonical) === TEXT_FAILED) problems.push('renderMarkdown failed')
+    if (renderPlain(canonical) === TEXT_FAILED) problems.push('renderPlain failed')
   } catch (error) {
     problems.push(`threw: ${error instanceof Error ? (error.stack ?? error.message) : error}`)
   } finally {

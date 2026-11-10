@@ -664,7 +664,6 @@ function mutate(r: Rand, root: unknown): unknown {
   return holder.length === 0 ? null : holder[0]
 }
 
-/** Spreads `(seed, index)` over the generator's state space. */
 /** murmur3's finalizer: every input bit reaches every output bit. */
 function mix(value: number): number {
   let hash = value >>> 0
@@ -746,11 +745,13 @@ export function fuzzText(seed: number, index: number): string {
   return r.chance(0.3) ? damage(r, source) : source
 }
 
-function fromEnv(name: string, fallback: number): number {
+function fromEnv(name: string, fallback: number, max = Number.MAX_SAFE_INTEGER): number {
   const raw = process.env[name]
   if (raw === undefined || raw === '') return fallback
   const value = Number(raw)
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`${name} must be an integer ≥ 0`)
+  if (!Number.isSafeInteger(value) || value < 0 || value > max) {
+    throw new Error(`${name} must be an integer from 0 to ${max}`)
+  }
   return value
 }
 
@@ -759,9 +760,17 @@ export function fuzzCount(fallback: number): number {
   return fromEnv('VUI_FUZZ_CASES', fallback)
 }
 
-/** `VUI_FUZZ_SEED`, or `fallback`. */
+/** `VUI_FUZZ_BIN_CASES`, or `fallback`: the real-binary sample. */
+export function fuzzBinCount(fallback: number): number {
+  return fromEnv('VUI_FUZZ_BIN_CASES', fallback)
+}
+
+/**
+ * `VUI_FUZZ_SEED`, or `fallback`. A seed is 32 bits (mulberry32's state), so a larger one is
+ * refused rather than silently read as its low 32 bits, which would repeat another seed's run.
+ */
 export function fuzzSeed(fallback: number): number {
-  return fromEnv('VUI_FUZZ_SEED', fallback)
+  return fromEnv('VUI_FUZZ_SEED', fallback, 0xffff_ffff)
 }
 
 /** The first 2,000 chars of a case, for a failure message. */

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import {
   excerpt,
   fastestMs,
+  fuzzBinCount,
   fuzzCount,
   fuzzSeed,
   fuzzText,
@@ -17,7 +18,7 @@ import { vui } from './helpers.js'
 
 // §16 "Fuzzing": the CLI never crashes, and exits 0 to 5 only. `pnpm fuzz` runs the long version.
 const CASES = fuzzCount(2_000)
-const BIN_CASES = Number(process.env.VUI_FUZZ_BIN_CASES ?? 20)
+const BIN_CASES = fuzzBinCount(20)
 const SEED = fuzzSeed(process.env.VUI_FUZZ_FRESH === '1' ? Date.now() >>> 0 : 20_261_111)
 const CASE_MS = 2_000
 
