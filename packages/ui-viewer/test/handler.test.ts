@@ -395,7 +395,9 @@ describe('the standalone page (VD-123)', () => {
       const { id } = reply.json()
       const page = (await get(`/docs/${id}.html`)).text
       const embedded = /<script type="application\/vui\+json">(.*)<\/script>/.exec(page)?.[1]
-      expect(JSON.parse(embedded ?? 'null')).toEqual(JSON.parse((await get(`/api/docs/${id}`)).text))
+      expect(JSON.parse(embedded ?? 'null')).toEqual(
+        JSON.parse((await get(`/api/docs/${id}`)).text),
+      )
     },
   )
 })

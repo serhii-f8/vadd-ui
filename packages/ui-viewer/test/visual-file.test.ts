@@ -105,9 +105,12 @@ describe('inlineHtml', () => {
     expect(inline()).toContain('<title>vadd-ui</title>')
   })
 
-  it.each(['', '   ', '\u0007 ', '\x1b[2J\t\n'])('names the file when the title %j is blank', (title) => {
-    expect(inline({ title })).toContain('<title>vadd-ui</title>')
-  })
+  it.each(['', '   ', '\u0007 ', '\x1b[2J\t\n'])(
+    'names the file when the title %j is blank',
+    (title) => {
+      expect(inline({ title })).toContain('<title>vadd-ui</title>')
+    },
+  )
 
   it('keeps the spaces of a title that has text', () => {
     expect(inline({ title: ' a b ' })).toContain('<title> a b </title>')
