@@ -17,6 +17,8 @@
       "!**/dist",
       "!**/node_modules",
       "!scripts/test/fixtures",
+      "!scripts/token-baseline.json",
+      "!packages/ui-cli/corpus",
       "!e2e/harness/orca",
       "!.claude"
     ]

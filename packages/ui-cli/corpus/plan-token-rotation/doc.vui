@@ -1,0 +1,12 @@
+{title: 'Refresh-token rotation', body: [
+  {type: 'plan', items: [
+    {text: 'Add rotation table and repository', status: 'ok'},
+    {text: 'Issue a new refresh token on every refresh', status: 'ok'},
+    {text: 'Invalidate the previous token', status: 'run', note: 'replay test still passes the old token'},
+    {text: 'Replay protection', status: 'wait', children: [
+      {text: 'Detect reuse of a rotated token', status: 'wait'},
+      {text: 'Revoke the whole token family on reuse', status: 'wait'},
+    ]},
+    {text: 'Document the rotation in the API guide', status: 'skip', note: 'next release'},
+  ]},
+]}

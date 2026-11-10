@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sprint 45 wrap-up</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  p { margin: 0 0 8px; }
+  .divider { display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted-foreground, #737373); }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border, #e5e5e5); }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 3px 0; }
+  .ok::before { content: "✓ "; color: var(--chart-2, #16a34a); }
+  .wait::before { content: "○ "; color: var(--muted-foreground, #a3a3a3); }
+  .note { color: var(--muted-foreground, #737373); font-size: 12px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<h1>Sprint 45 wrap-up</h1>
+<p>Shipped rotation and the search cache; checkout retries moved to next sprint.</p>
+<div class="divider">Done</div>
+<ul><li class="ok">Refresh-token rotation</li><li class="ok">Redis cache for search</li></ul>
+<div class="divider">Carried over</div>
+<ul><li class="wait">Idempotent checkout retries<span class="note">blocked on the payments API change</span></li></ul>
+</body>
+</html>

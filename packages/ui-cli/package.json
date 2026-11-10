@@ -13,7 +13,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "corpus"
   ],
   "engines": {
     "node": ">=20"
@@ -22,7 +23,8 @@
     "@vadd/ui": "workspace:*",
     "@vadd/ui-spec": "workspace:*",
     "@vadd/ui-text": "workspace:*",
-    "@vadd/ui-viewer": "workspace:*"
+    "@vadd/ui-viewer": "workspace:*",
+    "js-tiktoken": "1.0.21"
   },
   "devDependencies": {
     "fastify": "^5.12.8"

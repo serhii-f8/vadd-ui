@@ -75,7 +75,7 @@ describe('parseArgs', () => {
 
   it('refuses an unknown command, with a suggestion', () => {
     expect(usage(['rendr'])).toContain('did you mean "render"?')
-    expect(usage(['bench'])).toContain('unknown command "bench"')
+    expect(usage(['bnech'])).toContain('did you mean "bench"?')
   })
 
   it('refuses an inherited name', () => {

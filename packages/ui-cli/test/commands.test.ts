@@ -498,15 +498,15 @@ describe('catalog', () => {
 
   it('prints fields, defaults and sub-shapes', async () => {
     const { stdout } = await vui(['catalog', 'table'])
-    expect(stdout).toContain('  columns: Column[], required')
-    expect(stdout).toContain('  pageSize: integer ≥1, default 25')
-    expect(stdout).toContain('Column:\n  key: string, required')
-    expect(stdout).toContain('common: id, title, note, tone, span, fold')
+    expect(stdout).toContain('\ncolumns: Column[], required\n')
+    expect(stdout).toContain('\npageSize: integer ≥1, default 25\n')
+    expect(stdout).toContain('\nColumn:\nkey: string, required\n')
+    expect(stdout).toContain('\n\ncommon: id, title, note, tone, span, fold\nexample: ')
   })
 
   it('tags chart fields by kind', async () => {
     const { stdout } = await vui(['catalog', 'chart'])
-    expect(stdout).toContain('  values: number[], required (spark)')
+    expect(stdout).toContain('\nvalues: number[], required (spark)\n')
   })
 
   it('answers in JSON', async () => {
@@ -711,11 +711,10 @@ describe('help and version', () => {
     const { exit, stdout } = await vui(['--help'])
     expect(exit).toBe(0)
     const commands = ['show', 'viewer', 'doctor', 'render', 'validate', 'catalog', 'schema']
-    for (const command of [...commands, 'extract']) {
+    for (const command of [...commands, 'extract', 'bench']) {
       expect(stdout).toContain(`vui ${command}`)
     }
     expect(stdout).toContain('4 no host')
-    expect(stdout).not.toContain('vui bench')
   })
 
   it('prints the version', async () => {

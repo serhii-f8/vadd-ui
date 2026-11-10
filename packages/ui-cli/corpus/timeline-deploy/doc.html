@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Release 2026.11.2 rollout</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  ol { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 2px solid var(--border, #e5e5e5); }
+  li { position: relative; padding: 0 0 12px 14px; }
+  li::before { content: ""; position: absolute; left: -23px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted-foreground, #a3a3a3); border: 2px solid var(--background, #fff); }
+  li.ok::before { background: var(--chart-2, #16a34a); }
+  li.warn::before { background: var(--chart-4, #d97706); }
+  li.fail::before { background: var(--destructive, #dc2626); }
+  li.run::before { background: var(--chart-1, #2563eb); }
+  time { display: block; font-size: 12px; color: var(--muted-foreground, #737373); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<h1>Release 2026.11.2 rollout</h1>
+<ol>
+  <li class="ok"><time>09:02</time>Build 2318 passed</li>
+  <li class="ok"><time>09:10</time>Canary at 5% in eu-central-1</li>
+  <li class="warn"><time>09:25</time>Error rate 0.9% on checkout, above the 0.5% gate</li>
+  <li class="fail"><time>09:27</time>Canary rolled back automatically</li>
+  <li class="run"><time>09:48</time>Hotfix 2319 deployed to canary</li>
+  <li class="wait"><time>10:30</time>Full rollout, if the canary holds</li>
+</ol>
+</body>
+</html>

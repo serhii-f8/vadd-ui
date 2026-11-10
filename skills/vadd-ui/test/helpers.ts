@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { getEncoding } from 'js-tiktoken'
+import { offlineCounter, type TokenEstimate } from '@vadd/ui-cli'
 
 export const readSkill = (): string => readFileSync(new URL('../SKILL.md', import.meta.url), 'utf8')
 
@@ -61,29 +61,13 @@ export function labelled(body: string, label: string): string[] {
 export const TOKEN_BUDGET = 1800
 /** VD-136: a local margin, since the estimate is not a count. Sized like §14.3's 5%. */
 export const TOKEN_GATE = Math.floor(TOKEN_BUDGET * 0.95)
-/** Anthropic glossary, read 2026-11-06: Claude 4.7 and later give about 30% more tokens. */
-const NEW_TOKENIZER_FACTOR = 1.3
-/** The same page: about 3.5 English characters per token on earlier models. */
-const CHARS_PER_TOKEN = 3.5
+/** VD-148: the same estimator `vui bench` uses, loaded once for every test file. */
+const counter = await offlineCounter()
 
-const encoding = getEncoding('cl100k_base')
-
-export interface TokenEstimate {
-  cl100k: number
-  chars: number
-  fromCl100k: number
-  fromChars: number
-  estimate: number
-}
+export type { TokenEstimate }
 
 /** VD-136: an estimate of real model tokens, not a count of them. */
-export function estimateTokens(text: string): TokenEstimate {
-  const cl100k = encoding.encode(text).length
-  const chars = [...text].length
-  const fromCl100k = Math.ceil(cl100k * NEW_TOKENIZER_FACTOR)
-  const fromChars = Math.ceil((chars * NEW_TOKENIZER_FACTOR) / CHARS_PER_TOKEN)
-  return { cl100k, chars, fromCl100k, fromChars, estimate: Math.max(fromCl100k, fromChars) }
-}
+export const estimateTokens = (text: string): TokenEstimate => counter.estimate(text)
 
 export const withinTokenGate = (text: string): boolean =>
   estimateTokens(text).estimate <= TOKEN_GATE

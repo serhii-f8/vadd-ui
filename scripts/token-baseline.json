@@ -1,0 +1,42 @@
+{
+  "counter": {
+    "kind": "offline",
+    "tokenizer": "js-tiktoken 1.0.21 cl100k_base",
+    "method": "max(cl100k × 1.3, chars × 1.3 / 3.5)"
+  },
+  "metrics": {
+    "fixed.show": 23,
+    "fixed.cdn": 65,
+    "ratio.md": 2.007,
+    "ratio.html": 0.425,
+    "skill": 1706,
+    "catalog.stack": 64,
+    "catalog.grid": 93,
+    "catalog.section": 76,
+    "catalog.card": 55,
+    "catalog.tabs": 109,
+    "catalog.divider": 51,
+    "catalog.md": 78,
+    "catalog.callout": 91,
+    "catalog.code": 105,
+    "catalog.table": 284,
+    "catalog.kv": 93,
+    "catalog.stats": 129,
+    "catalog.list": 116,
+    "catalog.progress": 133,
+    "catalog.compare": 162,
+    "catalog.chart": 286,
+    "catalog.checks": 133,
+    "catalog.plan": 123,
+    "catalog.diff": 95,
+    "catalog.tree": 112,
+    "catalog.timeline": 132,
+    "catalog.decision": 180,
+    "catalog.log": 77,
+    "catalog.flow": 138
+  },
+  "unmet": [
+    "ratio.html",
+    "ratio.md"
+  ]
+}

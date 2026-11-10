@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>API latency by endpoint</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border, #e5e5e5); margin-bottom: 10px; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 12px; color: var(--muted-foreground, #737373); font: inherit; cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--foreground, #171717); border-bottom-color: var(--primary, #2563eb); }
+  .tabs button:hover { background: var(--accent, #f5f5f5); color: var(--accent-foreground, #171717); }
+  [role="tabpanel"][hidden] { display: none; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--border, #e5e5e5); text-align: right; }
+  th:first-child, td:first-child { text-align: left; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; }
+  th { color: var(--muted-foreground, #737373); font-weight: 600; }
+  tr.warn td { background: color-mix(in srgb, var(--chart-4, #d97706) 8%, transparent); }
+  tr.err td { background: color-mix(in srgb, var(--destructive, #dc2626) 8%, transparent); }
+</style>
+</head>
+<body>
+<h1>API latency by endpoint</h1>
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="read">Read</button>
+  <button role="tab" aria-selected="false" data-tab="write">Write</button>
+</div>
+<div role="tabpanel" id="read">
+  <table>
+    <thead><tr><th>Endpoint</th><th>Calls</th><th>p50</th><th>p95</th></tr></thead>
+    <tbody>
+      <tr><td>GET /products</td><td>182,400</td><td>18 ms</td><td>64 ms</td></tr>
+      <tr><td>GET /products/:id</td><td>96,100</td><td>12 ms</td><td>41 ms</td></tr>
+      <tr><td>GET /cart</td><td>54,300</td><td>22 ms</td><td>88 ms</td></tr>
+      <tr class="warn"><td>GET /orders</td><td>12,800</td><td>35 ms</td><td>140 ms</td></tr>
+    </tbody>
+  </table>
+</div>
+<div role="tabpanel" id="write" hidden>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Calls</th><th>p50</th><th>p95</th></tr></thead>
+    <tbody>
+      <tr><td>POST /cart/items</td><td>31,200</td><td>28 ms</td><td>95 ms</td></tr>
+      <tr class="err"><td>POST /checkout</td><td>8,700</td><td>140 ms</td><td>420 ms</td></tr>
+      <tr><td>PATCH /profile</td><td>2,100</td><td>31 ms</td><td>77 ms</td></tr>
+    </tbody>
+  </table>
+</div>
+<script>
+  document.querySelectorAll('[role="tab"]').forEach((tab) => tab.addEventListener('click', () => {
+    document.querySelectorAll('[role="tab"]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+    document.querySelectorAll('[role="tabpanel"]').forEach((p) => { p.hidden = p.id !== tab.dataset.tab; });
+  }));
+</script>
+</body>
+</html>

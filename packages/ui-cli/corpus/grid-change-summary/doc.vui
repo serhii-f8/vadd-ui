@@ -1,0 +1,14 @@
+{title: 'Rotation — plan and changes', body: [
+  {type: 'grid', children: [
+    {type: 'plan', title: 'Plan', items: [
+      {text: 'Add rotation table', status: 'ok'},
+      {text: 'Invalidate on refresh', status: 'run'},
+      {text: 'Replay protection test', status: 'wait'},
+    ]},
+    {type: 'diff', title: 'Changes', files: [
+      ['src/auth/refresh.ts', 64, 12, 'M'],
+      ['src/auth/rotation.repo.ts', 88, 0, 'A'],
+      ['migrations/0042_token_rotation.sql', 21, 0, 'A'],
+    ]},
+  ]},
+]}

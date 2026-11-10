@@ -1,0 +1,7 @@
+{title: 'Sprint 45 wrap-up', body: [
+  {type: 'md', text: 'Shipped rotation and the search cache; checkout retries moved to next sprint.'},
+  {type: 'divider', label: 'Done'},
+  {type: 'list', items: [{text: 'Refresh-token rotation', status: 'ok'}, {text: 'Redis cache for search', status: 'ok'}]},
+  {type: 'divider', label: 'Carried over'},
+  {type: 'list', items: [{text: 'Idempotent checkout retries', status: 'wait', note: 'blocked on the payments API change'}]},
+]}

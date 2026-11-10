@@ -27,6 +27,7 @@ vui validate [file|-] [--strict]
 vui catalog [component]
 vui schema
 vui extract [file.html|-]
+vui bench [dir]
 
 Stdin is read when the file is - or omitted. --json works on every command.
 Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 4 no host, 5 I/O.
@@ -109,10 +110,11 @@ export async function validate(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   }
 }
 
+/** VD-153: no indent. `cl100k_base` spends a token on each one, and the headers already group. */
 function fieldLine({ name, type, required, default: value, kinds }: CatalogField): string {
   const presence = required ? ', required' : value === undefined ? '' : `, default ${value}`
   const scope = kinds === undefined ? '' : ` (${kinds.join('|')})`
-  return `  ${name}: ${type}${presence}${scope}\n`
+  return `${name}: ${type}${presence}${scope}\n`
 }
 
 function entryText(entry: CatalogEntry): string {
@@ -123,7 +125,8 @@ function entryText(entry: CatalogEntry): string {
     `${entry.name}: ${entry.summary}\n`,
     `fields:\n${entry.fields.map(fieldLine).join('')}`,
     ...shapes,
-    `common: ${COMMON_FIELDS.join(', ')}\n`,
+    // A blank line, so `common` and `example` do not read as fields of the last shape.
+    `\ncommon: ${COMMON_FIELDS.join(', ')}\n`,
     `example: ${JSON.stringify(entry.example)}\n`,
   ].join('')
 }
@@ -147,6 +150,13 @@ export function catalog(parsed: ParsedArgs): Outcome {
   const entry = findComponent(name)
   if (entry === undefined) throw unknownComponent(name)
   return { exit: EXIT.ok, stdout: entryText(entry), json: { component: entry } }
+}
+
+/** Exactly what `vui catalog <name>` prints, which §14.2 budgets. */
+export function catalogText(name: string): string {
+  const entry = findComponent(name)
+  if (entry === undefined) throw unknownComponent(name)
+  return entryText(entry)
 }
 
 export function schema(io: Io): Outcome {

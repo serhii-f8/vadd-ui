@@ -1,0 +1,15 @@
+{title: 'Checkout request path', body: [
+  {type: 'flow', nodes: [
+    {id: 'cdn', label: 'CDN', status: 'ok'},
+    {id: 'api', label: 'API gateway', status: 'ok'},
+    {id: 'cart', label: 'Cart service', status: 'ok'},
+    {id: 'pay', label: 'Payment service', status: 'fail'},
+    {id: 'db', label: 'Postgres', status: 'warn'},
+  ], edges: [
+    ['cdn', 'api'],
+    ['api', 'cart'],
+    ['api', 'pay', 'POST /pay'],
+    ['cart', 'db'],
+    ['pay', 'db', 'timeouts'],
+  ]},
+]}

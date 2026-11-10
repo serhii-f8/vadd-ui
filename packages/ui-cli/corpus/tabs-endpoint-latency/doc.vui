@@ -1,0 +1,19 @@
+{title: 'API latency by endpoint', body: [
+  {type: 'tabs', tabs: [
+    {label: 'Read', children: [
+      {type: 'table', columns: ['Endpoint', 'Calls:int', 'p50:ms', 'p95:ms'], rows: [
+        ['GET /products', 182400, 18, 64],
+        ['GET /products/:id', 96100, 12, 41],
+        ['GET /cart', 54300, 22, 88],
+        ['GET /orders', 12800, 35, 140, {tone: 'warn'}],
+      ]},
+    ]},
+    {label: 'Write', children: [
+      {type: 'table', columns: ['Endpoint', 'Calls:int', 'p50:ms', 'p95:ms'], rows: [
+        ['POST /cart/items', 31200, 28, 95],
+        ['POST /checkout', 8700, 140, 420, {tone: 'err'}],
+        ['PATCH /profile', 2100, 31, 77],
+      ]},
+    ]},
+  ]},
+]}

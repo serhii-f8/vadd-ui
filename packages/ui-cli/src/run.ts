@@ -1,4 +1,5 @@
 import { type ParsedArgs, parseArgs, wantsJson } from './args.js'
+import { bench } from './bench/command.js'
 import { catalog, extract, help, render, schema, validate, versionOutcome } from './commands.js'
 import { doctor } from './doctor.js'
 import type { Io } from './io.js'
@@ -25,6 +26,8 @@ function dispatch(parsed: ParsedArgs, io: Io): Outcome | Promise<Outcome> {
       return schema(io)
     case 'extract':
       return extract(parsed, io)
+    case 'bench':
+      return bench(parsed, io)
     case 'version':
       return versionOutcome()
     default:

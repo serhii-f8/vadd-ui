@@ -1,0 +1,17 @@
+{title: 'Slowest test files', body: [
+  {type: 'table', columns: ['File', 'Tests:int', 'Time:ms', 'Status:status'],
+   rows: [
+    ['auth/refresh.test.ts', 48, 4210, 'ok'],
+    ['auth/rotation.test.ts', 31, 3880, 'ok'],
+    ['catalog/search.test.ts', 64, 3125, 'fail', {tone: 'err'}],
+    ['catalog/variant.test.ts', 22, 2410, 'ok'],
+    ['orders/checkout.test.ts', 57, 2290, 'ok'],
+    ['orders/refund.test.ts', 19, 1985, 'warn'],
+    ['users/profile.test.ts', 26, 1520, 'ok'],
+    ['users/session.test.ts', 14, 1260, 'ok'],
+    ['billing/invoice.test.ts', 38, 1105, 'ok'],
+    ['billing/tax.test.ts', 41, 940, 'ok'],
+    ['search/index.test.ts', 12, 870, 'skip'],
+    ['shared/date.test.ts', 75, 410, 'ok'],
+  ]},
+]}

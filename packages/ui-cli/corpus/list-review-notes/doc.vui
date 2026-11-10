@@ -1,0 +1,10 @@
+{title: 'Review of PR #482', body: [
+  {type: 'list', items: [
+    {text: 'Token family revocation is covered by tests', status: 'ok'},
+    {text: 'Rotation runs inside the refresh transaction', status: 'ok'},
+    {text: '`issuedAt` is computed but never stored', status: 'warn', note: 'src/auth/refresh.ts:41'},
+    {text: 'Old tokens stay valid after rotation', status: 'fail', note: 'auth.spec.ts:88 reproduces it'},
+    {text: 'Migration has no down step', status: 'warn'},
+    {text: 'Load test not run', status: 'skip'},
+  ]},
+]}

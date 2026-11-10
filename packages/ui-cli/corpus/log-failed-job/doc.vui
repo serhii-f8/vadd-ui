@@ -1,0 +1,4 @@
+{title: 'nightly-reindex failed', body: [
+  {type: 'kv', pairs: {Job: 'nightly-reindex', Run: '#9041', Exit: 'code 1 after 14m 02s'}},
+  {type: 'log', text: "02:00:01 INFO  start reindex catalog_v7\n02:03:44 INFO  batch 120/400 done\n02:09:12 WARN  slow batch 233 (8.1 s)\n02:13:58 ERROR batch 287: duplicate key value violates unique constraint \"sku_pkey\"\n02:13:58 ERROR rollback batch 287\n02:14:03 FATAL aborting after 3 failed batches"},
+]}

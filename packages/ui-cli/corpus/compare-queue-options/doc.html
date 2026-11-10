@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job queue options</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--border, #e5e5e5); text-align: right; }
+  th:first-child, td:first-child { text-align: left; color: var(--muted-foreground, #737373); }
+  th { font-weight: 600; }
+  .pick { background: color-mix(in srgb, var(--chart-2, #16a34a) 10%, transparent); }
+  th.pick::after { content: " ✓"; color: var(--chart-2, #16a34a); }
+  .best { font-weight: 600; color: var(--chart-2, #16a34a); }
+</style>
+</head>
+<body>
+<h1>Job queue options</h1>
+<table>
+  <thead><tr><th></th><th>BullMQ</th><th class="pick">pg-boss</th><th>SQS</th></tr></thead>
+  <tbody>
+    <tr><td>p95 enqueue</td><td class="best">4 ms</td><td class="pick">9 ms</td><td>38 ms</td></tr>
+    <tr><td>Throughput</td><td class="best">12K/s</td><td class="pick">3.5K/s</td><td>3K/s</td></tr>
+    <tr><td>Monthly cost</td><td>€180</td><td class="pick best">€0</td><td>€95</td></tr>
+    <tr><td>New infra</td><td>Redis</td><td class="pick">none</td><td>AWS account</td></tr>
+    <tr><td>Exactly-once</td><td>no</td><td class="pick">yes</td><td>no</td></tr>
+  </tbody>
+</table>
+</body>
+</html>

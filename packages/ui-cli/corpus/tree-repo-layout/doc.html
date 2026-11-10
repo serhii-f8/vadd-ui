@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Files touched by the rotation work</title>
+<style>
+  body { margin: 0; padding: 16px; background: var(--background, #fff); color: var(--foreground, #171717); font-family: var(--font-sans, system-ui, sans-serif); font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+  ul { list-style: none; margin: 0; padding-left: 18px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; }
+  body > ul { padding-left: 0; }
+  li { padding: 2px 0; }
+  .dir::before { content: "▾ "; color: var(--muted-foreground, #a3a3a3); }
+  .file::before { content: "· "; color: var(--muted-foreground, #a3a3a3); }
+  .note { font-family: var(--font-sans, system-ui, sans-serif); font-size: 12px; color: var(--muted-foreground, #737373); margin-left: 8px; }
+  .ok { color: var(--chart-2, #16a34a); }
+  .warn { color: var(--chart-4, #d97706); }
+  .fail { color: var(--destructive, #dc2626); }
+</style>
+</head>
+<body>
+<h1>Files touched by the rotation work</h1>
+<ul>
+  <li><span class="dir">src</span>
+    <ul>
+      <li><span class="dir">auth</span>
+        <ul>
+          <li><span class="file ok">refresh.ts</span><span class="note">rotates on refresh</span></li>
+          <li><span class="file ok">rotation.repo.ts</span><span class="note">new</span></li>
+          <li><span class="file warn">session.ts</span><span class="note">legacy path removed</span></li>
+        </ul>
+      </li>
+      <li><span class="dir">db</span>
+        <ul><li><span class="file ok">pool.ts</span></li></ul>
+      </li>
+    </ul>
+  </li>
+  <li><span class="dir">migrations</span>
+    <ul><li><span class="file ok">0042_token_rotation.sql</span><span class="note">new</span></li></ul>
+  </li>
+  <li><span class="dir">test</span>
+    <ul><li><span class="dir">auth</span>
+      <ul><li><span class="file fail">refresh.test.ts</span><span class="note">2 failing</span></li></ul>
+    </li></ul>
+  </li>
+</ul>
+</body>
+</html>
