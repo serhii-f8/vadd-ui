@@ -1,6 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { version as packageVersion } from '@vadd/ui'
-import { LIMITS, MEDIA_TYPE, type VuiDocument, validateText } from '@vadd/ui-spec'
+import {
+  isJsonObject,
+  type JsonValue,
+  LIMITS,
+  MEDIA_TYPE,
+  type VuiDocument,
+  validateText,
+} from '@vadd/ui-spec'
 import { type FeedAssets, feedHtml, readFeedScript } from './feed.js'
 import { isAllowedHost, readBody, tokensMatch, WriteLimiter } from './request.js'
 import { SseHub } from './sse.js'
@@ -102,6 +109,12 @@ function isFsError(error: unknown): boolean {
 }
 
 /** The value of a whole-number query field, its default when absent, `undefined` when bad. */
+/** VD-123: the standalone file is shared, so it holds no local path (the feed copy keeps them). */
+function withoutPaths(document: VuiDocument): VuiDocument {
+  const { cwd: _cwd, branch: _branch, ...meta } = document.meta as Record<string, unknown>
+  return { ...document, meta }
+}
+
 function numberParam(query: URLSearchParams, name: string, fallback: number): number | undefined {
   const text = query.get(name)
   if (text === null) return fallback
@@ -235,9 +248,8 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       }
       bundle ??= readBundle()
       const stored = JSON.parse(text) as VuiDocument
-      // VD-123: the file is shared, so it holds no local path (the feed copy keeps them).
-      const { cwd: _cwd, branch: _branch, ...meta } = (stored.meta ?? {}) as Record<string, unknown>
-      const shared = stored.meta === undefined ? stored : { ...stored, meta }
+      // A `meta` that is not an object is stored as sent, and has no path to strip: it goes as is.
+      const shared = isJsonObject(stored.meta as JsonValue) ? withoutPaths(stored) : stored
       const file = inlineHtml(shared, {
         bundle,
         generator: GENERATOR_LABEL,

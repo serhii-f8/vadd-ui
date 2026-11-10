@@ -385,6 +385,19 @@ describe('the standalone page (VD-123)', () => {
     expect(JSON.parse((await get(`/api/docs/${id}`)).text).meta).toEqual(meta)
     expect(page).toContain('"generator":"vui"')
   })
+
+  it.each([['a string'], [['/home/u/a', 'b']], [null], [7]])(
+    'passes a meta that is not an object, %j, through unchanged',
+    async (meta) => {
+      const { get, post } = await start()
+      const reply = await post({ ...DOC, meta })
+      expect(reply.status).toBe(201)
+      const { id } = reply.json()
+      const page = (await get(`/docs/${id}.html`)).text
+      const embedded = /<script type="application\/vui\+json">(.*)<\/script>/.exec(page)?.[1]
+      expect(JSON.parse(embedded ?? 'null')).toEqual(JSON.parse((await get(`/api/docs/${id}`)).text))
+    },
+  )
 })
 
 describe('an unwritable docs directory (VD-160)', () => {
