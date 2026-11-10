@@ -98,6 +98,16 @@ describe('alignOf (VD-055)', () => {
     expect(alignOf(column({ align: 'center', format: 'num' }), 0, list)).toBe('center')
   })
 
+  // Fuzzer, seed 3, index 1190: a bad `align` is only a warn, so it reaches renderers, and
+  // `["center"]` or an array holding a prototype-less object was used as a key.
+  it.each([['up'], [['center']], [[Object.create(null)]], [{}], [5]])(
+    'ignores an align that is not one of the three: %j',
+    (align) => {
+      expect(alignOf(column({ align: align as never, format: 'ms' }), 0, [])).toBe('right')
+      expect(alignOf(column({ align: align as never, format: 'code' }), 0, [])).toBe('left')
+    },
+  )
+
   it('right-aligns a numeric format', () => {
     expect(alignOf(column({ format: 'ms' }), 0, [])).toBe('right')
   })

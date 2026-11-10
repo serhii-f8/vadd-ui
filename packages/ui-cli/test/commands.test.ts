@@ -133,11 +133,11 @@ describe('render', () => {
     )
   })
 
-  it('writes §10.2, line for line', async () => {
+  it('writes §10.2, line for line, with lang and title on the first (VD-168)', async () => {
     const { stdout } = await vui(['render', '--format', 'html', '--cdn'], { stdin: CLEAN })
     expect(stdout).toBe(
       [
-        '<!doctype html><meta charset="utf-8">',
+        '<!doctype html><html lang="en"><meta charset="utf-8"><title>T</title>',
         '<script src="https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js"></script>',
         `<script type="application/vui+json">${JSON.stringify(canonical(CLEAN))}</script>`,
         '',

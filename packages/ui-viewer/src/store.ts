@@ -42,10 +42,20 @@ export interface DocStoreOptions {
   warn?: (line: string) => void
 }
 
-/** §11.5. The result is safe in a path and a URL whatever the title holds. */
+const NOT_IN_SLUG = /[^a-z0-9]+/g
+const TRAILING_DASHES = /-+$/
+const STARTS_WELL = /^[a-z0-9]/
+const FALLBACK_PREFIX = 'v-'
+
+const cut = (slug: string) => slug.slice(0, SLUG_LENGTH).replace(TRAILING_DASHES, '')
+
+/**
+ * §11.5 as VD-133 reads it, and the one slug for Viewer ids and file names (VD-159). It never
+ * holds a `.`, so it is safe in a path and a URL, and Orca's device check sees `<slug>-<hex4>`.
+ */
 export function slugify(text: string): string {
-  const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-  return (/^[a-z0-9]/.test(slug) ? slug : `v-${slug}`).slice(0, SLUG_LENGTH)
+  const slug = cut(text.toLowerCase().replace(NOT_IN_SLUG, '-'))
+  return STARTS_WELL.test(slug) ? slug : cut(`${FALLBACK_PREFIX}${slug}`)
 }
 
 function stringOr(value: unknown): string | null {
@@ -101,10 +111,20 @@ export class DocStore {
     const temporary = `${file}${TEMPORARY_SUFFIX}`
     const text = JSON.stringify(document)
     const created = new Date(this.#now())
-    writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
-    // The file time is `createdAt` after a restart, so it must be this value exactly.
-    utimesSync(temporary, created, created)
-    renameSync(temporary, file)
+    try {
+      writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
+      // The file time is `createdAt` after a restart, so it must be this value exactly.
+      utimesSync(temporary, created, created)
+      renameSync(temporary, file)
+    } catch (error) {
+      // A full disk answers 507 (VD-160) and the Viewer goes on: the partial file must not stay.
+      try {
+        rmSync(temporary, { force: true })
+      } catch {
+        // Best effort: the next start removes it (`#load`).
+      }
+      throw error
+    }
     this.#lastSeq = seq
     const header = headerOf(document, seq, id, created.toISOString())
     this.#index({ header, file, bytes: Buffer.byteLength(text) })

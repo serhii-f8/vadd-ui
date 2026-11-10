@@ -277,6 +277,32 @@ function devScenes(): Scene[] {
         },
       ],
     },
+    {
+      name: 'example-19-3',
+      input: {
+        title: 'Catalog query latency',
+        body: [
+          {
+            type: 'chart',
+            kind: 'line',
+            yFormat: 'ms',
+            x: ['10:00', '10:05', '10:10', '10:15', '10:20'],
+            series: { p50: [42, 40, 45, 41, 39], p95: [120, 180, 95, 88, 84] },
+            refLines: [{ y: 100, label: 'SLO', tone: 'err' }],
+          },
+          {
+            type: 'table',
+            columns: ['Query', 'Calls:int', 'p95:ms', 'Hit rate:pct'],
+            rows: [
+              ['listProducts', 18420, 84, 0.93],
+              ['getVariant', 9310, 61, 0.88],
+              ['searchSku', 2204, 212, 0.41, { tone: 'warn' }],
+            ],
+            sort: [2, 'desc'],
+          },
+        ],
+      },
+    },
   ]
 }
 

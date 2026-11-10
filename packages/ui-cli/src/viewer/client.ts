@@ -11,6 +11,7 @@ const CREATED = 201
 const TOO_LARGE = 413
 const INVALID = 422
 const BUSY = 429
+const INSUFFICIENT_STORAGE = 507
 const UNAUTHORIZED = 401
 
 /** The §4.1 HTTP interface somewhere: `<base>/api/docs`. */
@@ -117,6 +118,10 @@ export async function postDocument(
         'limit-input-size',
         'the Viewer refused the document as too large',
       )
+    }
+    if (reply.status === INSUFFICIENT_STORAGE) {
+      // VD-160: the Viewer is up and its disk is not, so this is an I/O failure, not "no host".
+      throw new CliError(EXIT.io, 'io', 'the Viewer cannot store documents')
     }
     if (reply.status === UNAUTHORIZED) throw noHost('the Viewer refused the write token')
     if (reply.status === BUSY) throw noHost('the Viewer is refusing writes for now')

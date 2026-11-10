@@ -12,6 +12,8 @@ export interface Pane {
   pageId?: string
   /** A failed Orca call, as a printable reason. */
   failure?: string
+  /** VD-163: the pane is real, and something after it went wrong. */
+  note?: 'pane-not-recorded'
 }
 
 const isAt = (tabs: Tab[] | undefined, pageId: string | undefined, url: string) => {
@@ -19,7 +21,12 @@ const isAt = (tabs: Tab[] | undefined, pageId: string | undefined, url: string) 
 }
 
 function record(viewer: Running, pageId: string, state: PaneState): Pane {
-  updateViewerInfo(viewer.place.stateDir, viewer.info.pid, { browserPageId: pageId })
+  try {
+    updateViewerInfo(viewer.place.stateDir, viewer.info.pid, { browserPageId: pageId })
+  } catch {
+    // The pane exists by now: calling it failed would print a URL line for a reader who has one.
+    return { state, pageId, note: 'pane-not-recorded' }
+  }
   return { state, pageId }
 }
 

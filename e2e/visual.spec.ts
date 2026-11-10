@@ -1,4 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
+import { COMPONENT_TYPES } from '../packages/ui-spec/src/index.js'
+import { axeSerious } from './harness/axe.js'
 import { openVisual, settled } from './harness/host.js'
 import { SCENES, WIDTHS } from './harness/scenes.js'
 import type { Scheme } from './harness/theme.js'
@@ -34,10 +36,46 @@ for (const { name } of SCENES) {
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         )
         expect(overflow).toBeLessThanOrEqual(0)
+        expect(await axeSerious(frame)).toEqual([])
       })
     }
   }
 }
+
+test('axe sees a serious violation in a visual frame', async ({ page }) => {
+  // An unlabeled button and #bbb text on white (1.9:1), in the same sandboxed, CSP-bound frame.
+  const html = `<body><div class="vui-doc"><button></button>
+<p style="color:#bbb;background:#fff">Faint text</p></div></body>`
+  const { frame } = await openVisual(page, { input: null, html }, 'light', 720)
+  const found = await axeSerious(frame)
+  expect(found.map((line) => line.split(':')[0])).toEqual(
+    expect.arrayContaining(['button-name', 'color-contrast']),
+  )
+})
+
+const CORE_TYPES = COMPONENT_TYPES.filter((type) => type !== 'compare' && type !== 'flow')
+const CORE_KINDS = ['bar', 'hbar', 'stacked', 'line', 'area', 'donut', 'spark']
+
+/** Every `type` and chart `kind` in a scene input, however deep the nodes nest. */
+function collect(value: unknown, types: Set<string>, kinds: Set<string>) {
+  if (Array.isArray(value)) for (const item of value) collect(item, types, kinds)
+  else if (typeof value === 'object' && value !== null) {
+    const node = value as Record<string, unknown>
+    if (typeof node.type === 'string') types.add(node.type)
+    if (node.type === 'chart' && typeof node.kind === 'string') kinds.add(node.kind)
+    for (const child of Object.values(node)) collect(child, types, kinds)
+  }
+}
+
+test('every core component and kind has a scene', () => {
+  const types = new Set<string>()
+  const kinds = new Set<string>()
+  for (const scene of SCENES) collect(scene.input, types, kinds)
+  expect(CORE_TYPES.filter((type) => !types.has(type))).toEqual([])
+  expect(CORE_KINDS.filter((kind) => !kinds.has(kind))).toEqual([])
+  const names = SCENES.map((scene) => scene.name)
+  for (const name of ['example-19-1', 'example-19-2', 'example-19-3']) expect(names).toContain(name)
+})
 
 // A control compares against a baseline, so an update run must never let one write it.
 const updating = (mode: string) => mode === 'all' || mode === 'changed'

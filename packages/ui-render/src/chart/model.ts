@@ -110,7 +110,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
     const head = first.values.slice(0, MAX_SLICES - 1)
     const rest = first.values
       .slice(MAX_SLICES - 1)
-      .reduce<number>((sum, value = 0) => sum + Math.max(value, 0), 0)
+      .reduce<number>((sum, value = 0) => Math.min(sum + Math.max(value, 0), Number.MAX_VALUE), 0)
     x = [...head.map((_, index) => x[index] ?? index + 1), 'Other']
     series = [{ name: first.name, values: [...head, rest] }]
   }
@@ -148,7 +148,8 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
   const yFormat = field(node, 'yFormat')
   const xFormat = field(node, 'xFormat')
   const step = (ticks[1] as number) - (ticks[0] as number)
-  const decimals = Math.max(-Math.floor(Math.log10(step)), 0)
+  // `num` takes 0 to 20 decimals (§7); a subnormal step would ask for 324 and blame `yFormat`.
+  const decimals = Math.min(Math.max(-Math.floor(Math.log10(step)), 0), 20)
   const places = `num:${decimals}`
   const yAt = `${context.pointer}/yFormat`
   const format = (value: Value, name: JsonValue | undefined, fallback: string) =>

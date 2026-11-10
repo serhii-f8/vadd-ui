@@ -105,6 +105,17 @@ describe('inlineHtml', () => {
     expect(inline()).toContain('<title>vadd-ui</title>')
   })
 
+  it.each(['', '   ', '\u0007 ', '\x1b[2J\t\n'])(
+    'names the file when the title %j is blank',
+    (title) => {
+      expect(inline({ title })).toContain('<title>vadd-ui</title>')
+    },
+  )
+
+  it('keeps the spaces of a title that has text', () => {
+    expect(inline({ title: ' a b ' })).toContain('<title> a b </title>')
+  })
+
   it('falls back when a warning let a mistyped title or locale through', () => {
     const html = inline({ title: 5, locale: 5 })
     expect(html).toContain('<title>vadd-ui</title>')
@@ -130,13 +141,31 @@ describe('inlineHtml', () => {
 })
 
 describe('cdnHtml', () => {
-  it('writes the §10.2 template', () => {
+  it("writes the §10.2 template, with the inline file's lang and title (VD-168)", () => {
     const value = doc({ title: 'x' })
     expect(cdnHtml(value)).toBe(
-      '<!doctype html><meta charset="utf-8">\n' +
+      '<!doctype html><html lang="en"><meta charset="utf-8"><title>x</title>\n' +
         '<script src="https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js"></script>\n' +
         `<script type="application/vui+json">${JSON.stringify(value)}</script>\n`,
     )
+  })
+
+  it('reads lang and title as the inline file does', () => {
+    const first = (html: string) => html.split('\n')[0]
+    expect(first(cdnHtml(doc({ locale: 'uk-UA', title: 'a < b & c' })))).toBe(
+      '<!doctype html><html lang="uk"><meta charset="utf-8"><title>a &lt; b &amp; c</title>',
+    )
+    expect(first(cdnHtml(doc({ locale: undefined, title: undefined })))).toBe(
+      '<!doctype html><html lang="en"><meta charset="utf-8"><title>vadd-ui</title>',
+    )
+    for (const fields of [{ locale: 'pl-PL', title: 'Raport' }, {}]) {
+      const tags = (html: string) => html.match(/<html lang="[^"]*">|<title>[^<]*<\/title>/g)
+      expect(tags(cdnHtml(doc(fields)))).toEqual(tags(inline(fields)))
+    }
+  })
+
+  it.each(['', '\u0007 ', ' \n '])('names the file when the title %j is blank', (title) => {
+    expect(cdnHtml(doc({ title }))).toContain('<title>vadd-ui</title>')
   })
 
   it('escapes the document', () => {

@@ -403,6 +403,52 @@ describe('table', () => {
   })
 })
 
+describe('plain table width (§15.1)', () => {
+  const PAD_CAP = 40
+  const long = (column: number) => `${column}`.padEnd(2_000, 'x')
+
+  // §13.4's table at its limits, inside 256 KiB: 5,000 rows, a 2,000-char cell (the string
+  // limit) heading each of 12 columns. Padding every cell to the widest built 110 MB.
+  it('pads no column past the cap, so output grows with the cells and not their product', () => {
+    const cols = 12
+    const rows = Array.from({ length: 5_000 }, (_, row) =>
+      Array.from({ length: cols }, (_, column) => (row === 0 ? long(column) : row % 10)),
+    )
+    const input = {
+      type: 'table',
+      columns: Array.from({ length: cols }, (_, column) => `c${column}`),
+      rows,
+      pageSize: 5_000,
+    }
+    const text = JSON.stringify({ body: [input] })
+    expect(text.length).toBeLessThan(262_144)
+    expect(validate(JSON.parse(text)).ok).toBe(true)
+    const markdown = md(input)
+    const output = plain(input)
+    // Each cell is its own text plus at most PAD_CAP + 2 spaces: linear in the cells.
+    const cells = (rows.length + 2) * cols
+    expect(output.length).toBeLessThanOrEqual(markdown.length + cells * (PAD_CAP + 2))
+    // Content is never cut: every long cell is whole.
+    for (let column = 0; column < cols; column++) expect(output).toContain(long(column))
+  })
+
+  it('lets a cell longer than the cap overflow its column, and pads short columns as before', () => {
+    const wide = 'w'.repeat(PAD_CAP + 5)
+    expect(
+      plain({
+        type: 'table',
+        columns: ['A', 'B'],
+        rows: [
+          [wide, 'b'],
+          ['a', 'bb'],
+        ],
+      }),
+    ).toBe(
+      `${'A'.padEnd(PAD_CAP)}  B\n${'-'.repeat(PAD_CAP)}  --\n${wide}  b\n${'a'.padEnd(PAD_CAP)}  bb\n`,
+    )
+  })
+})
+
 describe('data', () => {
   it('kv takes tuples or an object', () => {
     both(

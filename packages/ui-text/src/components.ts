@@ -299,7 +299,11 @@ function framed(node: VuiNode, context: Context): Block[] {
 }
 
 function renderNode(node: VuiNode, context: Context): Block[] {
-  const type = isJsonObject(node as unknown as JsonValue) ? String(node.type) : 'unknown'
+  // Only a string names a component: `String` throws on some values and reads `["md"]` as "md".
+  const type =
+    isJsonObject(node as unknown as JsonValue) && typeof node.type === 'string'
+      ? node.type
+      : 'unknown'
   if (!hasOwn(RENDERERS, type)) return [muted([text(`Unsupported component: ${type}`)])]
   try {
     return framed(node, context)

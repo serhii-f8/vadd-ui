@@ -26,8 +26,14 @@ function inline(tokens: Inline): string {
 
 const width = (value: string) => Array.from(value).length
 
+/**
+ * §15.1: a column pads to its widest cell, but never past this. A longer cell keeps all its
+ * text and overflows its column, so the output grows with the cells, not with rows × widest.
+ */
+const PAD_CAP = 40
+
 function pad(value: string, size: number, align: Align): string {
-  const space = size - width(value)
+  const space = Math.max(size - width(value), 0)
   const before = align === 'right' ? space : align === 'center' ? space >> 1 : 0
   return ' '.repeat(before) + value + ' '.repeat(space - before)
 }
@@ -35,7 +41,7 @@ function pad(value: string, size: number, align: Align): string {
 function table(block: Extract<Block, { kind: 'table' }>): string {
   const rows = [block.header, ...block.rows].map((row) => row.map(inline))
   const sizes = block.aligns.map((_, column) =>
-    rows.reduce((size, row) => Math.max(size, width(row[column] ?? '')), 0),
+    rows.reduce((size, row) => Math.min(Math.max(size, width(row[column] ?? '')), PAD_CAP), 0),
   )
   const line = (cells: string[]) =>
     cells

@@ -229,6 +229,27 @@ describe('lenient rendering (§9.3, §17.1)', () => {
     expect(plain({ body: [{ type: '__proto__' }] })).toBe('Unsupported component: __proto__\n')
   })
 
+  // Fuzzer, seed 20261110, index 1382: `String(type)` threw on an array holding an object with
+  // no prototype, and `["md"]` was read as `"md"`.
+  it('names no component from a type that is not a string', () => {
+    const bare = Object.assign(Object.create(null), { a: 1 })
+    for (const type of [['md'], { a: 1 }, [bare], 5, null]) {
+      const after = { type: 'md', text: 'after' }
+      const document = cast({ vui: 1, body: [{ type, text: 'x' }, after] })
+      expect(renderPlain(document)).toBe('Unsupported component: unknown\n\nafter\n')
+    }
+  })
+
+  it('writes a known rule for a column whose align is wrong (a warn only)', () => {
+    const bare = Object.create(null)
+    const columns = [
+      { key: 'a', label: 'A', align: 'up' },
+      { key: 'b', label: 'B', align: [bare] },
+    ]
+    const document = documentOf({ type: 'table', columns, rows: [['x', 'y']] })
+    expect(renderMarkdown(document)).toBe('| A | B |\n| --- | --- |\n| x | y |\n')
+  })
+
   it('shows a broken node as one line and goes on', () => {
     const broken = {
       vui: 1,

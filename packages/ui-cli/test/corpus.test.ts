@@ -57,7 +57,12 @@ function contentStrings(value: JsonValue, key = '', out: string[] = []): string[
         if (Array.isArray(edge) && typeof edge[2] === 'string') out.push(edge[2])
       return out
     }
-    for (const item of value) contentStrings(item, key, out)
+    for (const item of value) {
+      // A positional `stats` item holds a label and a value; the rest is vocabulary (VD-164).
+      if (key === 'items' && Array.isArray(item) && typeof item[0] === 'string') {
+        for (const text of item.slice(0, 2)) if (typeof text === 'string') out.push(text)
+      } else contentStrings(item, key, out)
+    }
     return out
   }
   if (value !== null && typeof value === 'object') {

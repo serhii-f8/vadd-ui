@@ -51,6 +51,19 @@ test.describe('Orca shell', () => {
     ).toEqual([])
   })
 
+  test('titles the frame as the CLI does: a blank title names the file', async ({ page }) => {
+    for (const [title, expected] of [
+      ['Harness', 'Harness'],
+      ['', 'vadd-ui'],
+      ['\u0007 ', 'vadd-ui'],
+      [5, 'vadd-ui'],
+    ] as const) {
+      const { frame } = await openVisual(page, { input: { ...doc, title } }, 'light', WIDTH)
+      expect(await frame.title(), JSON.stringify(title)).toBe(expected)
+      await page.unrouteAll()
+    }
+  })
+
   test('the violation check can fail: a fetch is blocked and seen', async ({ page }) => {
     const { frame } = await openVisual(page, { input: doc }, 'light', WIDTH)
     await frame.evaluate(() => fetch('https://example.test/x').catch(() => undefined))

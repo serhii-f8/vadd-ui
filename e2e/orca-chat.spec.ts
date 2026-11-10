@@ -19,6 +19,7 @@ import {
   ORCA_VISUALS_PER_REPLY,
   parseDirectiveLine,
 } from '../packages/ui-spec/src/host/orca.js'
+import { axeSerious } from './harness/axe.js'
 import { openVisual, settled } from './harness/host.js'
 import {
   isNativeChatVisualFileName,
@@ -166,8 +167,8 @@ test.describe('the pinned contract', () => {
     let accepted = 0
     for (let run = 0; run < 20_000; run += 1) {
       const length = next(7)
-      let line = ['', '::orca-visual{', '::orca-visual{file="a.html" '][next(3)]
-      for (let index = 0; index < length; index += 1) line += pieces[next(pieces.length)]
+      let line = ['', '::orca-visual{', '::orca-visual{file="a.html" '][next(3)] ?? ''
+      for (let index = 0; index < length; index += 1) line += pieces[next(pieces.length)] ?? ''
       if (next(2) === 0) line += '}'
       const parsed = parseNativeChatVisualDirectiveLine(line)
       if (parsed !== null) accepted += 1
@@ -219,6 +220,7 @@ async function checkInShell(page: Page, html: string, scheme: 'light' | 'dark', 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
   expect(overflow).toBeLessThanOrEqual(0)
+  expect(await axeSerious(opened.frame)).toEqual([])
   const content = await opened.frame
     .locator('.vui-root')
     .evaluate((node) => node.getBoundingClientRect().height)
@@ -276,7 +278,7 @@ test.describe('vui render --cdn', () => {
     expect(result.status).toBe(0)
     const html = readFileSync(out, 'utf8')
     expect(html.split('\n').slice(0, 2)).toEqual([
-      '<!doctype html><meta charset="utf-8">',
+      `<!doctype html><html lang="en"><meta charset="utf-8"><title>${DOC.title}</title>`,
       `<script src="${CDN}"></script>`,
     ])
     expect(html.split('\n')[2]).toMatch(/^<script type="application\/vui\+json">\{/)

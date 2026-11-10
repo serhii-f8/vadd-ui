@@ -91,13 +91,19 @@ describe('code body', () => {
 
   it('takes a long mark list in its stride', () => {
     // Marks that miss make a linear lookup scan them all, and few lines keep the DOM's own cost
-    // far from the budget, so this fails for that lookup and not for a busy machine.
+    // far from the budget, so this fails for that lookup and not for a busy machine. A loaded
+    // machine can still trip the watchdog once, so the best of 5 renders counts (VD-087); a
+    // linear lookup trips it on every one.
     const lines = 1_500
     const mark = Array.from({ length: 500_000 }, (_, index) => index + lines - 1)
     const text = Array.from({ length: lines }, () => '').join('\n')
-    const { box } = show([code(text, { mark, maxLines: lines })])
-    expect(box.querySelector('.vui-card-error')).toBeNull()
-    expect(box.querySelectorAll('mark')).toHaveLength(1)
+    let box: HTMLElement | undefined
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      box = show([code(text, { mark, maxLines: lines })]).box
+      if (box.querySelector('.vui-card-error') === null) break
+    }
+    expect(box?.querySelector('.vui-card-error')).toBeNull()
+    expect(box?.querySelectorAll('mark')).toHaveLength(1)
   })
 
   it('renders empty text', () => {

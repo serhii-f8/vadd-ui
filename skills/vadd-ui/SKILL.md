@@ -19,10 +19,7 @@ user-invocable: false
 ```bash
 vui show --title "Release check" <<'EOF'
 {body: [
-  {type: 'stats', items: [
-    {label: 'Tests', value: 142, delta: -3},
-    {label: 'Coverage', value: 0.874, format: 'pct'},
-  ]},
+  {type: 'stats', items: [['Tests', 142, null, -3], ['Coverage', 0.874, 'pct']]}, // [label, value, format?, delta?, deltaFormat?, tone?]
   {type: 'checks', items: [
     {name: 'Unit', status: 'ok', ms: 21400},
     {name: 'E2E', status: 'fail', output: 'a.spec.ts:88 expected 401'},

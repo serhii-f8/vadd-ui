@@ -147,6 +147,21 @@ describe('chart fields', () => {
     expect(texts(box, '.vui-chart-tick')).toContain('500 ms')
   })
 
+  it('keeps a clipped refLine label whole in its title, which an unclipped one does not need', () => {
+    const label = 'Service level objective for p95 latency, set in Q3'
+    const { box } = line({
+      refLines: [
+        { y: 500, label, tone: 'err' },
+        { y: 100, label: 'SLO', tone: 'ok' },
+      ],
+    })
+    const [long, short] = all(box, 'text.vui-chart-ref-label')
+    expect(long?.firstChild?.textContent).toMatch(/^Service level objective.*…$/)
+    expect(long?.querySelector('title')?.textContent).toBe(label)
+    expect(short?.textContent).toBe('SLO')
+    expect(short?.querySelector('title')).toBeNull()
+  })
+
   it('skips a refLine with no number', () => {
     const { box } = line({ refLines: [{ label: 'x', tone: 'err' }, 'junk'] })
     expect(q(box, 'path.vui-chart-ref')).toBeNull()
@@ -350,6 +365,73 @@ describe('chart drawing', () => {
     expect(texts(box, 'tbody tr:last-child td')).toEqual(['144'])
     expect(texts(box, 'desc')[0]).toContain('20 points')
   })
+
+  it('draws finite shares when the sum overflows (VD-088)', () => {
+    const big = Array.from({ length: 5000 }, (_, index) => (index % 2 === 0 ? 1e308 : -1e308))
+    const x = big.map((_, index) => `c${index}`)
+    const { box } = chart({ kind: 'donut', x, series: { s: big } })
+    for (const node of all(box, 'svg *')) {
+      for (const { value } of [...node.attributes])
+        expect(value).not.toMatch(/NaN|Infinity|undefined/)
+    }
+    expect(all(box, 'circle').length).toBeGreaterThan(0)
+  })
+
+  it('splits [1e308, 1e308, 1] into two halves', () => {
+    const { box } = chart({ kind: 'donut', x: ['a', 'b', 'c'], series: { s: [1e308, 1e308, 1] } })
+    const dashes = all(box, 'circle').map((c) =>
+      Number(c.getAttribute('stroke-dasharray')?.split(' ')[0]),
+    )
+    expect(dashes).toHaveLength(3)
+    expect(dashes[0]).toBeCloseTo(49.5, 1)
+    expect(dashes[1]).toBeCloseTo(49.5, 1)
+    expect(dashes[2]).toBe(0.2)
+  })
+
+  it.each(['bar', 'hbar', 'stacked', 'line', 'area'])('keeps %s finite near 1e308', (kind) => {
+    const { box } = chart({
+      kind,
+      stackTotal: true,
+      x: ['a', 'b', 'c'],
+      series: { s: [1e308, 1e308, -1e308], t: [1e308, 1e308, -1e308] },
+    })
+    for (const node of all(box, 'svg *')) {
+      for (const { value } of [...node.attributes])
+        expect(value).not.toMatch(/NaN|Infinity|undefined/)
+    }
+  })
+
+  // Fuzzer, seed 12, index 30047: a flat domain of ±5e-324 recursed until the stack ran out.
+  // No diagnostic at all: the tick format the chart derives once asked `num` for 324 decimals
+  // and reported a `bad-format-arg` warn on a `yFormat` the document never wrote.
+  it.each([
+    { kind: 'spark', values: [5e-324] },
+    { kind: 'spark', values: [-5e-324, -5e-324] },
+    { kind: 'bar', x: ['a'], series: { s: [5e-324] } },
+    { kind: 'line', x: ['a', 'b'], series: { s: [-5e-324, -5e-324] } },
+  ])('draws a flat domain of the smallest subnormal: %j', (fields) => {
+    const { box, handle } = chart(fields)
+    expect(box.querySelector('.vui-card-error')).toBeNull()
+    expect(handle.diagnostics).toEqual([])
+    expect(box.querySelector('svg')).not.toBeNull()
+  })
+
+  // Fuzzer, seed 1, index 5211: half of each end underflowed to ±0, so the span was 0 and
+  // every share NaN, although the ends differ.
+  it.each([[[-5e-324, 5e-324]], [[5e-324, 1e-323, 0]]])(
+    'keeps a spark of subnormals finite: %j',
+    (values) => {
+      for (const { box } of [
+        chart({ kind: 'spark', values }),
+        show([{ type: 'stats', items: [{ label: 'a', value: 1, spark: values }] }]),
+      ]) {
+        expect(box.querySelector('path')).not.toBeNull()
+        for (const node of all(box, 'svg *')) {
+          for (const { value } of [...node.attributes]) expect(value).not.toMatch(/NaN|Infinity/)
+        }
+      }
+    },
+  )
 
   it('keeps a sliver a sliver', () => {
     const { box } = chart({ kind: 'donut', x: ['a', 'b'], series: { s: [1000, 1] } })

@@ -1,5 +1,7 @@
+import { chmodSync } from 'node:fs'
 import { request as httpRequest } from 'node:http'
 import { connect } from 'node:net'
+import { join } from 'node:path'
 import { version } from '@vadd/ui'
 import { LIMITS, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -369,6 +371,59 @@ describe('POST /api/docs', () => {
     expect(reply.text).not.toContain('disk full')
     expect((await get('/')).status).toBe(200)
   })
+})
+
+describe('the standalone page (VD-123)', () => {
+  it('holds no local path, keeps the rest of meta, and the feed keeps cwd', async () => {
+    const { get, post } = await start()
+    const meta = { cwd: '/home/u/secret-repo', branch: 'feat/x', generator: 'vui' }
+    const { id } = (await post({ ...DOC, meta })).json()
+    const page = (await get(`/docs/${id}.html`)).text
+    expect(page).not.toContain('secret-repo')
+    expect(page).not.toContain('feat/x')
+    expect(page).toContain('vui')
+    expect(JSON.parse((await get(`/api/docs/${id}`)).text).meta).toEqual(meta)
+    expect(page).toContain('"generator":"vui"')
+  })
+
+  it.each([['a string'], [['/home/u/a', 'b']], [null], [7]])(
+    'passes a meta that is not an object, %j, through unchanged',
+    async (meta) => {
+      const { get, post } = await start()
+      const reply = await post({ ...DOC, meta })
+      expect(reply.status).toBe(201)
+      const { id } = reply.json()
+      const page = (await get(`/docs/${id}.html`)).text
+      const embedded = /<script type="application\/vui\+json">(.*)<\/script>/.exec(page)?.[1]
+      expect(JSON.parse(embedded ?? 'null')).toEqual(
+        JSON.parse((await get(`/api/docs/${id}`)).text),
+      )
+    },
+  )
+})
+
+describe('an unwritable docs directory (VD-160)', () => {
+  const root = process.getuid?.() === 0
+
+  it.skipIf(root)(
+    'answers 507 {error: storage}, broadcasts nothing, and keeps serving',
+    async () => {
+      const { post, get, dir, port } = await start()
+      const stream = await openStream(port, `/v/${READ}/api/events`)
+      await stream.until('hello')
+      chmodSync(join(dir, 'docs'), 0o500)
+      try {
+        const reply = await post(DOC)
+        expect(reply.status).toBe(507)
+        expect(reply.json()).toEqual({ ok: false, error: 'storage' })
+        expect(stream.text()).not.toContain('event: doc')
+        expect((await get('/api/docs')).status).toBe(200)
+      } finally {
+        stream.close()
+        chmodSync(join(dir, 'docs'), 0o700)
+      }
+    },
+  )
 })
 
 describe('GET /api/events', () => {

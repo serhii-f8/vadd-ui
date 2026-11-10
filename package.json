@@ -10,13 +10,14 @@
   },
   "scripts": {
     "build": "node scripts/generate-schema.mjs && tsc -b && node scripts/build-bundle.mjs",
-    "typecheck": "tsc -b && tsc -p packages/ui-viewer/tsconfig.app.json && tsc -p tsconfig.test.json && tsc -p e2e/tsconfig.json",
+    "typecheck": "tsc -b && tsc -p packages/ui-viewer/tsconfig.app.json && tsc -p tsconfig.test.json && tsc -b e2e/tsconfig.json",
     "lint": "biome check . && node scripts/check-forbidden-apis.mjs",
     "format": "biome check --write .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "check": "node scripts/generate-schema.mjs --check && node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs && node scripts/check-forbidden-apis.mjs packages/ui/dist/vui.min.js packages/ui/dist/index.js packages/ui-viewer/dist/app.js && node scripts/check-token-budgets.mjs",
+    "check": "node scripts/generate-schema.mjs --check && node scripts/check-runtime-deps.mjs && node scripts/check-versions.mjs && node scripts/check-targets.mjs && node scripts/check-bundle-size.mjs && node scripts/check-forbidden-apis.mjs packages/ui/dist/vui.min.js packages/ui/dist/index.js packages/ui-viewer/dist/app.js packages/ui-react/dist/index.js packages/ui-react/dist/view.js packages/ui-react/dist/theme.js packages/ui-render/dist && node scripts/check-token-budgets.mjs && node scripts/check-perf-budgets.mjs",
+    "fuzz": "VUI_FUZZ_CASES=100000 VUI_FUZZ_BIN_CASES=1000 VUI_FUZZ_FRESH=1 vitest run --reporter=verbose packages/ui-render/test/fuzz.test.ts packages/ui-cli/test/fuzz.test.ts",
     "gate": "pnpm build && pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm test:e2e && pnpm check"
   },
   "devDependencies": {
@@ -25,6 +26,7 @@
     "@types/node": "^20.19.0",
     "@vitest/coverage-v8": "^4.1.10",
     "ajv": "^8.20.0",
+    "axe-core": "4.14.0",
     "esbuild": "^0.28.2",
     "jsdom": "^30.0.1",
     "typescript": "^7.0.2",

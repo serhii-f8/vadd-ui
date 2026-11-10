@@ -65,6 +65,22 @@ describe('checks', () => {
     expect(texts(one.box, 'button')[1]).not.toContain('lines')
   })
 
+  it('names each output toggle after its check, and shows only Output', () => {
+    const items = [
+      { name: 'E2E', status: 'fail', output: 'x' },
+      { name: 'Lint', status: 'ok', output: 'y' },
+    ]
+    const { box } = show([{ type: 'checks', items }])
+    const toggles = all(box, 'button')
+    expect(toggles.map((item) => item.textContent?.replace('▸', ''))).toEqual([
+      'Output, E2E',
+      'Output, Lint',
+    ])
+    for (const toggle of toggles) {
+      expect(toggle.querySelector('.vui-sr-only')?.textContent).toMatch(/^, (E2E|Lint)$/)
+    }
+  })
+
   it('keeps each fold of its own across an update', () => {
     const items = [
       { name: 'a', status: 'ok', output: 'x' },
@@ -305,6 +321,16 @@ describe('diff', () => {
     const { box } = show([{ type: 'diff', files: [['a', 1, 1, 'constructor']] }])
     expect(box.querySelector('.vui-card-error')).toBeNull()
     expect(box.querySelector('.vui-diff-mark')).toBeNull()
+  })
+
+  // Fuzzer, seed 2, index 421: `hasOwn` read `["M"]` as `"M"`, and the array became a child.
+  it('ignores a change that is not a string', () => {
+    for (const change of [['M'], ['A'], 1, { M: 1 }]) {
+      const { box } = show([{ type: 'diff', files: [['a', 1, 2, change]] }])
+      expect(box.querySelector('.vui-card-error')).toBeNull()
+      expect(box.querySelector('.vui-diff-mark')).toBeNull()
+      expect(box.querySelector('code')?.textContent).toBe('a')
+    }
   })
 
   it('reads no hunk from a prototype', () => {

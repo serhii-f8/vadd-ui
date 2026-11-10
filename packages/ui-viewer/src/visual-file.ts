@@ -61,8 +61,10 @@ function languageOf(locale: unknown): string {
   return LANGUAGE_SUBTAG.exec(locale)?.[1]?.toLowerCase() ?? DEFAULT_LANG
 }
 
+/** The `<title>` text, escaped. A title with no text left once cleaned names the file. */
 function titleOf(title: unknown): string {
-  return typeof title === 'string' ? title : DEFAULT_TITLE
+  const text = typeof title === 'string' ? cleanText(title) : ''
+  return escapeHtml(text.trim() === '' ? DEFAULT_TITLE : text)
 }
 
 function documentScript(document: VuiDocument): string {
@@ -79,7 +81,7 @@ export interface InlineOptions {
 
 /** §10.1, by concatenation: neither the bundle nor the document passes through a pattern. */
 export function inlineHtml(document: VuiDocument, { bundle, generator }: InlineOptions): string {
-  const title = escapeHtml(cleanText(titleOf(document.title)))
+  const title = titleOf(document.title)
   return [
     '<!doctype html>\n',
     `<html lang="${languageOf(document.locale)}"><head><meta charset="utf-8">\n`,
@@ -94,10 +96,15 @@ export function inlineHtml(document: VuiDocument, { bundle, generator }: InlineO
   ].join('')
 }
 
-/** §10.2. The same file an agent would write, with the same escaping. */
+/**
+ * §10.2, with the inline file's `lang` and `<title>` on the first line (VD-168): the other
+ * lines are the template an agent writes, with the same escaping.
+ */
 export function cdnHtml(document: VuiDocument): string {
+  const title = titleOf(document.title)
   return [
-    '<!doctype html><meta charset="utf-8">\n',
+    `<!doctype html><html lang="${languageOf(document.locale)}"><meta charset="utf-8">`,
+    `<title>${title}</title>\n`,
     `<script src="${CDN_URL}"></script>\n`,
     documentScript(document),
   ].join('')

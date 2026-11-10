@@ -83,7 +83,9 @@ export function alignOf(
   index: number,
   rows: readonly ParsedRow[],
 ): 'left' | 'right' | 'center' {
-  if (column.align !== undefined) return column.align
+  // A bad `align` is only a warn (§13.3), so a renderer meets any value here.
+  const { align } = column as { align?: unknown }
+  if (align === 'left' || align === 'right' || align === 'center') return align
   const name = formatName(column)
   if (isNumericFormat(name)) return 'right'
   if (name !== 'text') return 'left'

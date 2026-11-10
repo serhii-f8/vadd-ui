@@ -1,10 +1,10 @@
 {title: 'Storefront — week 45', body: [
   {type: 'stats', items: [
-    {label: 'Orders', value: 18420, format: 'int', delta: 0.064, deltaFormat: 'delta:pct'},
-    {label: 'Revenue', value: 412380, format: 'money:EUR', delta: 0.052, deltaFormat: 'delta:pct'},
-    {label: 'Conversion', value: 0.031, format: 'pct', delta: -0.002, deltaFormat: 'delta:pct'},
-    {label: 'Avg order', value: 22.39, format: 'money:EUR', delta: -0.011, deltaFormat: 'delta:pct'},
-    {label: 'p95 checkout', value: 840, format: 'ms', tone: 'warn'},
-    {label: 'Error rate', value: 0.0042, format: 'pct', tone: 'ok'},
+    ['Orders', 18420, 'int', 0.064, 'delta:pct'],
+    ['Revenue', 412380, 'money:EUR', 0.052, 'delta:pct'],
+    ['Conversion', 0.031, 'pct', -0.002, 'delta:pct'],
+    ['Avg order', 22.39, 'money:EUR', -0.011, 'delta:pct'],
+    ['p95 checkout', 840, 'ms', null, null, 'warn'],
+    ['Error rate', 0.0042, 'pct', null, null, 'ok'],
   ]},
 ]}

@@ -224,6 +224,53 @@ const shorthandCases: ValidCase[] = [
     ]),
   },
   {
+    name: 'positional stats: every position, null positions, an object beside them',
+    input: {
+      body: [
+        {
+          type: 'stats',
+          items: [
+            ['Orders', 18420, 'int', 0.064, 'delta:pct', 'ok'],
+            ['p95', 840, 'ms', null, null, 'warn'],
+            ['Build', 'green'],
+            { label: 'L', value: 1, spark: [1, 2] },
+          ],
+        },
+      ],
+    },
+    canonical: envelope([
+      {
+        type: 'stats',
+        items: [
+          {
+            label: 'Orders',
+            value: 18420,
+            format: 'int',
+            delta: 0.064,
+            deltaFormat: 'delta:pct',
+            tone: 'ok',
+          },
+          { label: 'p95', value: 840, format: 'ms', tone: 'warn' },
+          { label: 'Build', value: 'green' },
+          { label: 'L', value: 1, spark: [1, 2] },
+        ],
+      },
+    ]),
+  },
+  {
+    name: 'positional stats: relaxed text, as the skill teaches',
+    text: "[{type: 'stats', items: [['Tests', 142, null, -3], ['Coverage', 0.874, 'pct']]}]",
+    canonical: envelope([
+      {
+        type: 'stats',
+        items: [
+          { label: 'Tests', value: 142, delta: -3 },
+          { label: 'Coverage', value: 0.874, format: 'pct' },
+        ],
+      },
+    ]),
+  },
+  {
     name: 'shorthand 5: object rows with columns',
     input: { body: [{ type: 'table', columns: ['a', 'b'], rows: [{ b: 2, a: 1 }, { a: 3 }] }] },
     canonical: envelope([
@@ -358,6 +405,37 @@ const PARSE_FAILURES: [string, string][] = [
   ['bare word', '[hello]'],
   ['unterminated comment', '[] /* x'],
   ['number overflow', '[1e999]'],
+]
+
+const stat = (item: JsonValue) => ({ body: [{ type: 'stats', items: [item] }] })
+
+/** Arrays the positional `stats` form does not take stay arrays, and are reported. */
+const statsPositionalCases: DiagnosedCase[] = [
+  ...(
+    [
+      ['no label first', [null, 1]],
+      ['a number first', [1, 2]],
+      ['one entry', ['a']],
+      ['seven entries', ['a', 1, 'int', 0, 'int', 'ok', 1]],
+      ['empty', []],
+    ] as [string, JsonValue][]
+  ).map(
+    ([name, item]): DiagnosedCase => ({
+      name: `positional stats: ${name}`,
+      input: stat(item),
+      diagnostics: [error('bad-type', '/body/0/items/0')],
+    }),
+  ),
+  {
+    name: 'positional stats: a null value is an absent value',
+    input: stat(['a', null]),
+    diagnostics: [error('missing-field', '/body/0/items/0')],
+  },
+  {
+    name: 'positional stats: an object value, reported at its position',
+    input: stat(['a', {}]),
+    diagnostics: [error('bad-type', '/body/0/items/0/1')],
+  },
 ]
 
 const nodeShapeCases: DiagnosedCase[] = [
@@ -677,6 +755,11 @@ const noticeExtras: DiagnosedCase[] = [
     diagnostics: [{ severity: 'info', code: 'unknown-field', path: '/body/0/items/0/added' }],
   },
   {
+    name: 'positional stats: a bad tone, reported at its position',
+    input: stat(['a', 1, null, null, null, 'red']),
+    diagnostics: [{ severity: 'warn', code: 'bad-enum', path: '/body/0/items/0/5' }],
+  },
+  {
     name: 'unknown field in a column',
     input: { body: [{ type: 'table', columns: [{ key: 'a', label: 'A', added: 1 }], rows: [] }] },
     diagnostics: [{ severity: 'info', code: 'unknown-field', path: '/body/0/columns/0/added' }],
@@ -688,6 +771,7 @@ export const validCases: ValidCase[] = [...exampleCases, ...shorthandCases, ...t
 export const invalidCases: DiagnosedCase[] = [
   ...tableInvalidCases(),
   ...nodeShapeCases,
+  ...statsPositionalCases,
   ...limitCases,
   ...PARSE_FAILURES.map(
     ([name, text]): DiagnosedCase => ({

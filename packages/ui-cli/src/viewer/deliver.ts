@@ -81,10 +81,12 @@ function success(
   const { seq, id, url, clients } = posted
   const lines = [shownLine(document, seq), ...(urlLine ? [safe(`vui: open ${url}`)] : [])]
   const warning =
-    pane.failure === undefined
-      ? ''
-      : `${safe(`vui: warning: Orca did not open a pane (${pane.failure})`)}
+    pane.failure !== undefined
+      ? `${safe(`vui: warning: Orca did not open a pane (${pane.failure})`)}
 `
+      : pane.note === undefined
+        ? ''
+        : 'vui: warning: the Orca pane opened but could not be remembered; the next show may open another\n'
   const { title = null } = document
   return {
     exit: EXIT.ok,

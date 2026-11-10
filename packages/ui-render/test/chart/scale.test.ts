@@ -71,6 +71,15 @@ describe('niceTicks', () => {
     expect(ticks[ticks.length - 1]).toBeGreaterThan(5)
   })
 
+  // Fuzzer, seed 12, index 30047: half of 5e-324 is 0, so the widening never widened.
+  it.each([5e-324, -5e-324, 1e-323, -1e-323])('widens a flat domain at %d', (value) => {
+    const ticks = niceTicks(value, value)
+    expect(ticks.length).toBeGreaterThanOrEqual(2)
+    expect(ticks.every(Number.isFinite)).toBe(true)
+    expect(ticks[0]).toBeLessThanOrEqual(value)
+    expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(value)
+  })
+
   it.each([
     [-1.7e308, 1.7e308],
     [5e-324, 1e-323],

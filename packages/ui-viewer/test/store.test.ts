@@ -12,8 +12,42 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { VuiDocument } from '@vadd/ui-spec'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DocStore, MAX_BYTES, MAX_DOCS, slugify } from '../src/store.js'
+
+// A full disk cannot be made on demand, so one armed call on the temporary file throws (the
+// pattern of `ui-cli`'s file-host test). A failed write still leaves a partial file, as one does.
+type Step = 'writeFileSync' | 'utimesSync' | 'renameSync'
+const failure = vi.hoisted(() => ({ step: undefined as string | undefined }))
+vi.mock('node:fs', async (importOriginal) => {
+  const real = await importOriginal<typeof import('node:fs')>()
+  const armed = (step: Step, path: unknown) => {
+    if (failure.step !== step || !String(path).endsWith('.tmp')) return false
+    failure.step = undefined
+    return true
+  }
+  const full = () => Object.assign(new Error('no space left'), { code: 'ENOSPC' })
+  return {
+    ...real,
+    writeFileSync: ((...args: Parameters<typeof real.writeFileSync>) => {
+      if (!armed('writeFileSync', args[0])) return real.writeFileSync(...args)
+      real.writeFileSync(args[0], 'partial', args[2])
+      throw full()
+    }) as typeof real.writeFileSync,
+    utimesSync: ((...args: Parameters<typeof real.utimesSync>) => {
+      if (armed('utimesSync', args[0])) throw full()
+      return real.utimesSync(...args)
+    }) as typeof real.utimesSync,
+    renameSync: ((...args: Parameters<typeof real.renameSync>) => {
+      if (armed('renameSync', args[0])) throw full()
+      return real.renameSync(...args)
+    }) as typeof real.renameSync,
+  }
+})
+
+afterEach(() => {
+  failure.step = undefined
+})
 
 function temp(): string {
   return mkdtempSync(join(tmpdir(), 'vui-store-'))
@@ -25,13 +59,16 @@ function doc(title?: unknown, extra: object = {}): VuiDocument {
 
 const names = (dir: string) => readdirSync(join(dir, 'docs')).sort()
 
-describe('slugify (§11.5)', () => {
+describe('slugify (§11.5, VD-159)', () => {
   it.each([
     ['Test run — auth module', 'test-run-auth-module'],
-    ['  Hello,   World!', 'v--hello-world-'],
+    ['  Hello,   World!', 'v--hello-world'],
     ['UPPER_case.9', 'upper-case-9'],
-    ['', 'v-'],
-    ['Звіт', 'v--'],
+    ['', 'v'],
+    ['Тест', 'v'],
+    ['Звіт', 'v'],
+    ['!Hi', 'v--hi'],
+    ['Release check', 'release-check'],
     ['a'.repeat(60), 'a'.repeat(48)],
     [`!${'a'.repeat(60)}`, `v--${'a'.repeat(45)}`],
   ])('%j', (text, slug) => {
@@ -51,6 +88,10 @@ describe('DocStore.add', () => {
     expect(JSON.parse(readFileSync(join(dir, 'docs/2-second.vui.json'), 'utf8'))).toEqual(
       doc('Second'),
     )
+  })
+
+  it('gives a non-Latin title the id <seq>-v (VD-159)', () => {
+    expect(new DocStore(temp()).add(doc('Звіт')).id).toBe('1-v')
   })
 
   it('keeps documents owner-only, in an owner-only directory', () => {
@@ -76,7 +117,7 @@ describe('DocStore.add', () => {
 
   it('reads anything mistyped as null, with a valid id', () => {
     const header = new DocStore(temp()).add(doc(7, { meta: 'text' }))
-    expect(header).toMatchObject({ id: '1-v-', title: null, cwd: null, branch: null })
+    expect(header).toMatchObject({ id: '1-v', title: null, cwd: null, branch: null })
     const typed = new DocStore(temp()).add(doc(undefined, { meta: { cwd: 1, branch: {} } }))
     expect(typed).toMatchObject({ title: null, cwd: null, branch: null })
   })
@@ -236,4 +277,19 @@ describe('reload', () => {
     expect(again.after(0, 1)[0]?.seq).toBe(2)
     expect(names(dir)).not.toContain('1-n.vui.json')
   })
+
+  it.each(['writeFileSync', 'utimesSync', 'renameSync'] as const)(
+    'removes its temporary file when %s fails, and rethrows (the 507 path)',
+    (step) => {
+      const dir = temp()
+      const store = new DocStore(dir)
+      store.add(doc('kept'))
+      failure.step = step
+      expect(() => store.add(doc('lost'))).toThrow('no space left')
+      expect(failure.step).toBeUndefined()
+      expect(names(dir)).toEqual(['1-kept.vui.json'])
+      expect(store.size).toBe(1)
+      expect(store.add(doc('next')).seq).toBe(2)
+    },
+  )
 })

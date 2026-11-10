@@ -4,8 +4,6 @@
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",
-    // Orca's own settings: `native-chat-visual-directive.ts` indexes a match and cannot change.
-    "noUncheckedIndexedAccess": false,
     // The `<VuiView>` page (VD-143): React's types live with `ui-react`, its only user.
     "paths": {
       "react": ["../packages/ui-react/node_modules/@types/react"],
@@ -13,5 +11,6 @@
     }
   },
   "include": ["**/*", "../playwright.config.ts"],
-  "exclude": []
+  "exclude": ["harness/orca"],
+  "references": [{ "path": "./harness/orca" }]
 }

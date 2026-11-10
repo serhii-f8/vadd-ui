@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { cleanText } from '../../packages/ui-spec/src/dev-view.js'
 import { harnessBundle } from './bundle.js'
 import {
   buildNativeChatVisualDocument,
@@ -25,9 +26,22 @@ function scriptSafe(json: string): string {
   return json.replace(/</g, '\\u003c')
 }
 
-/** A visual file's body: what the CLI will write, with the harness bundle in place of ours. */
+/** The `<title>` text the CLI writes (§10.1): the cleaned title, else (blank too) `vadd-ui`. */
+function titleOf(input: unknown): string {
+  const title =
+    typeof input === 'object' && input !== null && 'title' in input ? input.title : undefined
+  const clean = typeof title === 'string' ? cleanText(title) : ''
+  const text = clean.trim() === '' ? 'vadd-ui' : clean
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+}
+
+/**
+ * A visual file: what the CLI will write, with the harness bundle in place of ours. Its
+ * `<html lang>` and `<title>` land in the shell's document as the real file's do (VD-167).
+ */
 function visualHtml(visual: Visual): string {
-  return `<body>
+  return `<html lang="en"><head><title>${titleOf(visual.input)}</title></head>
+<body>
 <div id="vui" class="vui-root"></div>
 <script type="application/json" id="vui-input">${scriptSafe(JSON.stringify(visual))}</script>
 <script>${harnessBundle()}</script>

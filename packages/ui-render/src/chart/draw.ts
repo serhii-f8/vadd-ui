@@ -44,33 +44,43 @@ export function sparkPath(values: readonly number[]): string {
   const low = values.reduce((least, value) => Math.min(least, value))
   const high = values.reduce((most, value) => Math.max(most, value))
   const last = values.length - 1
+  // Halves keep ±1e308 finite, but halve ±5e-324 to ±0; so the full span when it is finite.
+  const span = high - low
+  const share = (value: number) =>
+    low === high
+      ? 0.5
+      : Number.isFinite(span)
+        ? (value - low) / span
+        : (value / 2 - low / 2) / (high / 2 - low / 2)
   const points = lttb(
     values.map((_, index) => index),
     values,
     MAX_DRAWN,
   ).map((index) => {
-    const share =
-      low === high ? 0.5 : ((values[index] as number) / 2 - low / 2) / (high / 2 - low / 2)
     const x = last === 0 ? 0.5 : index / last
-    return `${round(x * SPARK_WIDTH)} ${round(SPARK_HEIGHT - 1 - share * (SPARK_HEIGHT - 2))}`
+    const y = SPARK_HEIGHT - 1 - share(values[index] as number) * (SPARK_HEIGHT - 2)
+    return `${round(x * SPARK_WIDTH)} ${round(y)}`
   })
   return linePath(points)
 }
 
 function donut(model: Model, width: number): Drawing {
-  const values = (model.series[0]?.values ?? []).map((value) => Math.max(value ?? 0, 0))
+  const raw = (model.series[0]?.values ?? []).map((value) => Math.max(value ?? 0, 0))
+  // Scaled by the largest, so the sum cannot overflow; shares do not depend on the scale.
+  const top = Math.max(...raw, Number.MIN_VALUE)
+  const values = raw.map((value) => value / top)
   const whole = values.reduce((sum, value) => sum + value, 0)
   const cx = width / 2
   const cy = model.height / 2
   const thickness = round(cy * 0.36)
   const r = round(cy - 4 - thickness / 2)
-  const many = values.filter((value) => value > 0).length > 1
+  const many = raw.filter((value) => value > 0).length > 1
   const ends: number[] = []
   const nodes: SVGElement[] = []
   let start = 0
   values.forEach((value, index) => {
     const share = (value / whole) * FULL
-    if (value > 0) {
+    if ((raw[index] as number) > 0) {
       nodes.push(
         svg('circle', {
           class: 'vui-chart-slice',
@@ -182,16 +192,17 @@ function cartesian(model: Model, width: number): Drawing {
 
   for (const { y, label, tone } of refLines) {
     const b = across(y)
-    nodes.push(
-      svg('path', { class: `vui-chart-ref ${toneClass(tone)}`, d: rule(b) }),
-      textMark(
-        swapped ? b : a1,
-        swapped ? a0 - 4 : b - 4,
-        swapped && b < (b0 + b1) / 2 ? 'start' : 'end',
-        `vui-chart-ref-label ${toneClass(tone)}`,
-        clip(label, 2 * MAX_LABEL),
-      ),
+    const clipped = clip(label, 2 * MAX_LABEL)
+    const mark = textMark(
+      swapped ? b : a1,
+      swapped ? a0 - 4 : b - 4,
+      swapped && b < (b0 + b1) / 2 ? 'start' : 'end',
+      `vui-chart-ref-label ${toneClass(tone)}`,
+      clipped,
     )
+    // No data table row holds a ref line, so a clipped label keeps its whole text here.
+    if (clipped !== label) mark.append(svg('title', {}, label))
+    nodes.push(svg('path', { class: `vui-chart-ref ${toneClass(tone)}`, d: rule(b) }), mark)
   }
 
   const placed = axis(labels, (order) => along(shown[order] as number), swapped, 'vui-chart-label')

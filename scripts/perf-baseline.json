@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-10",
+  "chromium": "156.0.8078.4",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X3D 16-Core Processor",
+    "cores": 8,
+    "memGiB": 35.2,
+    "load": [
+      9.2,
+      6.57,
+      8.67
+    ]
+  },
+  "referenceSha256": "88ca4a159c2cd59403bf5bd4c9dcf722a025fe5b1a91099fbc6984d4a8f8ba15",
+  "runs": 5,
+  "loads": [
+    [
+      3.72,
+      5.38,
+      9.05
+    ],
+    [
+      4.07,
+      5.19,
+      8.79
+    ],
+    [
+      4.71,
+      5.18,
+      8.59
+    ],
+    [
+      4.65,
+      5.14,
+      8.4
+    ],
+    [
+      9.2,
+      6.57,
+      8.67
+    ]
+  ],
+  "metrics": {
+    "render.table": 1,
+    "render.doc20": 1,
+    "render.chart": 1.0017,
+    "memory.visual": 2036188
+  },
+  "ms": {
+    "render.table": 2.035,
+    "render.doc20": 1.685,
+    "render.chart": 5.625
+  }
+}

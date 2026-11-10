@@ -63,7 +63,8 @@ function checkOutput(item: JsonObject, context: NodeContext): HTMLElement[] {
           pre(earlier.join('\n')),
           false,
         )
-  return context.fold(`output ${name}`, 'Output', [...before, pre(last.join('\n'))], false)
+  const label = ['Output', el('span', { class: 'vui-sr-only' }, `, ${name}`)]
+  return context.fold(`output ${name}`, label, [...before, pre(last.join('\n'))], false)
 }
 
 export const checks: Component = {
@@ -169,7 +170,8 @@ function runs(lines: string[], toneOf: (line: string) => Tone | undefined): Chil
 }
 
 function fileRow({ path, added, removed, change }: DiffEntry): HTMLElement {
-  const mark = change !== undefined && hasOwn(CHANGES, change) ? CHANGES[change] : undefined
+  // A warn-level change can be any value, and `hasOwn` would read `["M"]` as `"M"`.
+  const mark = typeof change === 'string' && hasOwn(CHANGES, change) ? CHANGES[change] : undefined
   return el('span', { class: 'vui-row' }, [
     mark === undefined
       ? null

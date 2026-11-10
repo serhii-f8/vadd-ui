@@ -9,5 +9,19 @@ export default defineConfig({
   expect: {
     toHaveScreenshot: { maxDiffPixelRatio: 0.001, threshold: 0.1, animations: 'disabled' },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], headless: true } }],
+  projects: [
+    {
+      name: 'chromium',
+      testIgnore: /budgets\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], headless: true },
+    },
+    // §9.5 timings run after every other test, alone, so the suite's own workers do not contend
+    // with them (VD-171).
+    {
+      name: 'budgets',
+      testMatch: /budgets\.spec\.ts$/,
+      dependencies: ['chromium'],
+      use: { ...devices['Desktop Chrome'], headless: true },
+    },
+  ],
 })
