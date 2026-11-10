@@ -168,28 +168,7 @@ describe('dist/bin.js show', () => {
   })
 
   it('opens one pane for five simultaneous shows, through a stub Orca', async () => {
-    const dir = tempDir()
-    const calls = join(dir, 'calls')
-    const tabs = join(dir, 'tabs')
-    const stub = join(dir, 'orca-stub')
-    writeFileSync(
-      stub,
-      `#!${process.execPath}
-const { appendFileSync, existsSync, readFileSync, writeFileSync } = require('node:fs')
-const args = process.argv.slice(2)
-appendFileSync(${JSON.stringify(calls)}, args.join(' ') + '\\n')
-// As Orca does, list what was created: a late show must find the pane and keep it.
-const tabs = ${JSON.stringify(tabs)}
-const known = existsSync(tabs) ? JSON.parse(readFileSync(tabs, 'utf8')) : []
-if (args[1] !== 'list') {
-  known.push({ browserPageId: 'page-' + (known.length + 1), url: args[args.indexOf('--url') + 1] })
-  writeFileSync(tabs, JSON.stringify(known))
-}
-const result = args[1] === 'list' ? { tabs: known } : known[known.length - 1]
-console.log(JSON.stringify({ ok: true, result }))
-`,
-    )
-    chmodSync(stub, 0o755)
+    const { stub, calls } = orcaStub()
     const place = workspace({ ORCA_CLI_COMMAND: stub })
     const results = await Promise.all([1, 2, 3, 4, 5].map(() => vui(place, ['show'], DOC)))
     expect(results.every(({ exit }) => exit === 0)).toBe(true)
@@ -197,7 +176,66 @@ console.log(JSON.stringify({ ok: true, result }))
     expect(created).toHaveLength(1)
     expect(info(place).browserPageId).toBe('page-1')
   })
+
+  it('moves the pane to a restarted Viewer, and the next show keeps it', async () => {
+    const { stub, calls } = orcaStub()
+    const place = workspace({ ORCA_CLI_COMMAND: stub })
+    expect(await json(place)).toMatchObject({ pane: 'opened', browserPageId: 'page-1' })
+    process.kill(info(place).pid, 'SIGKILL')
+    expect(await json(place)).toMatchObject({ pane: 'moved', browserPageId: 'page-1' })
+    expect(await json(place)).toMatchObject({ pane: 'kept', browserPageId: 'page-1' })
+    const log = readFileSync(calls, 'utf8')
+    expect(log.match(/^tab create/gm)).toHaveLength(1)
+    expect(log.match(/^goto --page page-1 /gm)).toHaveLength(1)
+  })
 })
+
+/** `vui show --json`'s object. */
+async function json(place: Workspace): Promise<Record<string, unknown>> {
+  const { exit, stdout } = await vui(place, ['show', '--json'], DOC)
+  expect(exit).toBe(0)
+  return JSON.parse(stdout) as Record<string, unknown>
+}
+
+/**
+ * A stub `orca` that answers as Orca does from what it has done (VD-142, VD-163): `tab create`
+ * opens a numbered tab, `tab list` lists them, and `goto` moves one and answers `{ok: true}`, or
+ * fails for a page it never opened.
+ */
+function orcaStub(): { stub: string; calls: string } {
+  const dir = tempDir()
+  const calls = join(dir, 'calls')
+  const tabs = join(dir, 'tabs')
+  const stub = join(dir, 'orca-stub')
+  writeFileSync(
+    stub,
+    `#!${process.execPath}
+const { appendFileSync, existsSync, readFileSync, writeFileSync } = require('node:fs')
+const args = process.argv.slice(2)
+appendFileSync(${JSON.stringify(calls)}, args.join(' ') + '\\n')
+const tabs = ${JSON.stringify(tabs)}
+const known = existsSync(tabs) ? JSON.parse(readFileSync(tabs, 'utf8')) : []
+const url = args[args.indexOf('--url') + 1]
+if (args[0] === 'goto') {
+  const tab = known.find((one) => one.browserPageId === args[args.indexOf('--page') + 1])
+  if (tab !== undefined) {
+    tab.url = url
+    writeFileSync(tabs, JSON.stringify(known))
+  }
+  console.log(JSON.stringify(tab === undefined ? { ok: false } : { ok: true }))
+  process.exit(tab === undefined ? 1 : 0)
+}
+if (args[1] !== 'list') {
+  known.push({ browserPageId: 'page-' + (known.length + 1), url })
+  writeFileSync(tabs, JSON.stringify(known))
+}
+const result = args[1] === 'list' ? { tabs: known } : known[known.length - 1]
+console.log(JSON.stringify({ ok: true, result }))
+`,
+  )
+  chmodSync(stub, 0o755)
+  return { stub, calls }
+}
 
 describe('dist/bin.js viewer', () => {
   it('start, status, url, stop', async () => {
