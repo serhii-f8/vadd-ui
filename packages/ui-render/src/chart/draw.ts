@@ -192,16 +192,17 @@ function cartesian(model: Model, width: number): Drawing {
 
   for (const { y, label, tone } of refLines) {
     const b = across(y)
-    nodes.push(
-      svg('path', { class: `vui-chart-ref ${toneClass(tone)}`, d: rule(b) }),
-      textMark(
-        swapped ? b : a1,
-        swapped ? a0 - 4 : b - 4,
-        swapped && b < (b0 + b1) / 2 ? 'start' : 'end',
-        `vui-chart-ref-label ${toneClass(tone)}`,
-        clip(label, 2 * MAX_LABEL),
-      ),
+    const clipped = clip(label, 2 * MAX_LABEL)
+    const mark = textMark(
+      swapped ? b : a1,
+      swapped ? a0 - 4 : b - 4,
+      swapped && b < (b0 + b1) / 2 ? 'start' : 'end',
+      `vui-chart-ref-label ${toneClass(tone)}`,
+      clipped,
     )
+    // No data table row holds a ref line, so a clipped label keeps its whole text here.
+    if (clipped !== label) mark.append(svg('title', {}, label))
+    nodes.push(svg('path', { class: `vui-chart-ref ${toneClass(tone)}`, d: rule(b) }), mark)
   }
 
   const placed = axis(labels, (order) => along(shown[order] as number), swapped, 'vui-chart-label')

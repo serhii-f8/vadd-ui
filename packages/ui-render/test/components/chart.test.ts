@@ -147,6 +147,21 @@ describe('chart fields', () => {
     expect(texts(box, '.vui-chart-tick')).toContain('500 ms')
   })
 
+  it('keeps a clipped refLine label whole in its title, which an unclipped one does not need', () => {
+    const label = 'Service level objective for p95 latency, set in Q3'
+    const { box } = line({
+      refLines: [
+        { y: 500, label, tone: 'err' },
+        { y: 100, label: 'SLO', tone: 'ok' },
+      ],
+    })
+    const [long, short] = all(box, 'text.vui-chart-ref-label')
+    expect(long?.firstChild?.textContent).toMatch(/^Service level objective.*…$/)
+    expect(long?.querySelector('title')?.textContent).toBe(label)
+    expect(short?.textContent).toBe('SLO')
+    expect(short?.querySelector('title')).toBeNull()
+  })
+
   it('skips a refLine with no number', () => {
     const { box } = line({ refLines: [{ label: 'x', tone: 'err' }, 'junk'] })
     expect(q(box, 'path.vui-chart-ref')).toBeNull()
