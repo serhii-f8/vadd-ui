@@ -19,6 +19,7 @@ import {
   ORCA_VISUALS_PER_REPLY,
   parseDirectiveLine,
 } from '../packages/ui-spec/src/host/orca.js'
+import { axeSerious } from './harness/axe.js'
 import { openVisual, settled } from './harness/host.js'
 import {
   isNativeChatVisualFileName,
@@ -219,6 +220,7 @@ async function checkInShell(page: Page, html: string, scheme: 'light' | 'dark', 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
   expect(overflow).toBeLessThanOrEqual(0)
+  expect(await axeSerious(opened.frame)).toEqual([])
   const content = await opened.frame
     .locator('.vui-root')
     .evaluate((node) => node.getBoundingClientRect().height)

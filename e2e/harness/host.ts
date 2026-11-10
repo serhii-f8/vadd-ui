@@ -25,9 +25,21 @@ function scriptSafe(json: string): string {
   return json.replace(/</g, '\\u003c')
 }
 
-/** A visual file's body: what the CLI will write, with the harness bundle in place of ours. */
+/** The `<title>` text the CLI writes (§10.1): the document's title, else `vadd-ui`. */
+function titleOf(input: unknown): string {
+  const title =
+    typeof input === 'object' && input !== null && 'title' in input ? input.title : undefined
+  const text = typeof title === 'string' ? title : 'vadd-ui'
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+}
+
+/**
+ * A visual file: what the CLI will write, with the harness bundle in place of ours. Its
+ * `<html lang>` and `<title>` land in the shell's document as the real file's do (VD-167).
+ */
 function visualHtml(visual: Visual): string {
-  return `<body>
+  return `<html lang="en"><head><title>${titleOf(visual.input)}</title></head>
+<body>
 <div id="vui" class="vui-root"></div>
 <script type="application/json" id="vui-input">${scriptSafe(JSON.stringify(visual))}</script>
 <script>${harnessBundle()}</script>

@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 import { COMPONENT_TYPES } from '../packages/ui-spec/src/index.js'
+import { axeSerious } from './harness/axe.js'
 import { openVisual, settled } from './harness/host.js'
 import { SCENES, WIDTHS } from './harness/scenes.js'
 import type { Scheme } from './harness/theme.js'
@@ -35,10 +36,22 @@ for (const { name } of SCENES) {
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         )
         expect(overflow).toBeLessThanOrEqual(0)
+        expect(await axeSerious(frame)).toEqual([])
       })
     }
   }
 }
+
+test('axe sees a serious violation in a visual frame', async ({ page }) => {
+  // An unlabeled button and #bbb text on white (1.9:1), in the same sandboxed, CSP-bound frame.
+  const html = `<body><div class="vui-doc"><button></button>
+<p style="color:#bbb;background:#fff">Faint text</p></div></body>`
+  const { frame } = await openVisual(page, { input: null, html }, 'light', 720)
+  const found = await axeSerious(frame)
+  expect(found.map((line) => line.split(':')[0])).toEqual(
+    expect.arrayContaining(['button-name', 'color-contrast']),
+  )
+})
 
 const CORE_TYPES = COMPONENT_TYPES.filter((type) => type !== 'compare' && type !== 'flow')
 const CORE_KINDS = ['bar', 'hbar', 'stacked', 'line', 'area', 'donut', 'spark']
