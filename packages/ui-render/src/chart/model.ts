@@ -110,7 +110,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
     const head = first.values.slice(0, MAX_SLICES - 1)
     const rest = first.values
       .slice(MAX_SLICES - 1)
-      .reduce<number>((sum, value = 0) => sum + Math.max(value, 0), 0)
+      .reduce<number>((sum, value = 0) => Math.min(sum + Math.max(value, 0), Number.MAX_VALUE), 0)
     x = [...head.map((_, index) => x[index] ?? index + 1), 'Other']
     series = [{ name: first.name, values: [...head, rest] }]
   }

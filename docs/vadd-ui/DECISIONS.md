@@ -1280,3 +1280,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: `standaloneRoute` embeds a copy of the stored document without `meta.cwd` and `meta.branch`; every other field (`generator` and any other `meta` key) stays. The stored document and `GET /api/docs/<id>` are unchanged, because the local feed shows `cwd` and `branch`.
 - Rationale: same rule as `fileOverrides` in the CLI file host.
 - Spec sections: §4.1, §11.5.
+
+## VD-162 — Donut shares are computed on values scaled by the largest
+- Date: 2026-11-10 · Task: 20
+- Context: VD-088's repro (5,000 values alternating 1e308 and -1e308) overflowed the sum of the folded "Other" slice and the ring's `whole`, so `stroke-dasharray` read `NaN 100`. Cartesian kinds (bar, hbar, stacked, line, area, with `stackTotal`) were probed with finite values near ±1e308 and put no NaN or Infinity in any attribute (ticks clamp at 1e300, `across` clamps to the range).
+- Decision: `donut` divides each value by the largest before summing, so the sum is at most the slice count (12). The fold in `readModel` saturates its sum at `Number.MAX_VALUE`. Drawn slices are chosen by the raw value, so a tiny positive value beside a huge one stays a sliver. Negative and zero values are still clamped to zero and drawn as no slice.
+- Rationale: shares are scale-free; about 120 bytes of source, bundle stays 37.5 KiB gzip. A saturated "Other" shows as 1.8e308 in the table, which is the nearest finite value.
+- Spec sections: §6.4, §16.

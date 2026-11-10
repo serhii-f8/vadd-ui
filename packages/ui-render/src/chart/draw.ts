@@ -58,19 +58,22 @@ export function sparkPath(values: readonly number[]): string {
 }
 
 function donut(model: Model, width: number): Drawing {
-  const values = (model.series[0]?.values ?? []).map((value) => Math.max(value ?? 0, 0))
+  const raw = (model.series[0]?.values ?? []).map((value) => Math.max(value ?? 0, 0))
+  // Scaled by the largest, so the sum cannot overflow; shares do not depend on the scale.
+  const top = Math.max(...raw, Number.MIN_VALUE)
+  const values = raw.map((value) => value / top)
   const whole = values.reduce((sum, value) => sum + value, 0)
   const cx = width / 2
   const cy = model.height / 2
   const thickness = round(cy * 0.36)
   const r = round(cy - 4 - thickness / 2)
-  const many = values.filter((value) => value > 0).length > 1
+  const many = raw.filter((value) => value > 0).length > 1
   const ends: number[] = []
   const nodes: SVGElement[] = []
   let start = 0
   values.forEach((value, index) => {
     const share = (value / whole) * FULL
-    if (value > 0) {
+    if ((raw[index] as number) > 0) {
       nodes.push(
         svg('circle', {
           class: 'vui-chart-slice',

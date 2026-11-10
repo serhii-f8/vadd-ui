@@ -351,6 +351,41 @@ describe('chart drawing', () => {
     expect(texts(box, 'desc')[0]).toContain('20 points')
   })
 
+  it('draws finite shares when the sum overflows (VD-088)', () => {
+    const big = Array.from({ length: 5000 }, (_, index) => (index % 2 === 0 ? 1e308 : -1e308))
+    const x = big.map((_, index) => `c${index}`)
+    const { box } = chart({ kind: 'donut', x, series: { s: big } })
+    for (const node of all(box, 'svg *')) {
+      for (const { value } of [...node.attributes])
+        expect(value).not.toMatch(/NaN|Infinity|undefined/)
+    }
+    expect(all(box, 'circle').length).toBeGreaterThan(0)
+  })
+
+  it('splits [1e308, 1e308, 1] into two halves', () => {
+    const { box } = chart({ kind: 'donut', x: ['a', 'b', 'c'], series: { s: [1e308, 1e308, 1] } })
+    const dashes = all(box, 'circle').map((c) =>
+      Number(c.getAttribute('stroke-dasharray')?.split(' ')[0]),
+    )
+    expect(dashes).toHaveLength(3)
+    expect(dashes[0]).toBeCloseTo(49.5, 1)
+    expect(dashes[1]).toBeCloseTo(49.5, 1)
+    expect(dashes[2]).toBe(0.2)
+  })
+
+  it.each(['bar', 'hbar', 'stacked', 'line', 'area'])('keeps %s finite near 1e308', (kind) => {
+    const { box } = chart({
+      kind,
+      stackTotal: true,
+      x: ['a', 'b', 'c'],
+      series: { s: [1e308, 1e308, -1e308], t: [1e308, 1e308, -1e308] },
+    })
+    for (const node of all(box, 'svg *')) {
+      for (const { value } of [...node.attributes])
+        expect(value).not.toMatch(/NaN|Infinity|undefined/)
+    }
+  })
+
   it('keeps a sliver a sliver', () => {
     const { box } = chart({ kind: 'donut', x: ['a', 'b'], series: { s: [1000, 1] } })
     for (const slice of all(box, 'circle')) {
