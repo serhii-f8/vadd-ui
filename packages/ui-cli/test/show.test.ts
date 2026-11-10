@@ -594,6 +594,7 @@ describe('VUI_VIEWER_URL and VUI_VIEWER_TOKEN', () => {
   it.each<[string, number, unknown, number]>([
     ['401', 401, { ok: false }, 4],
     ['500', 500, {}, 4],
+    ['507 (VD-160)', 507, { ok: false, error: 'storage' }, 5],
     ['413', 413, { ok: false, error: 'too-large' }, 3],
     ['422 with no diagnostics', 422, { ok: false }, 1],
     ['a reply with no seq', 201, { id: 'x' }, 4],

@@ -133,6 +133,21 @@ describe('dist/bin.js show', () => {
     expect(info(place).readToken).not.toBe(readToken)
   })
 
+  // VD-160: a Viewer whose `docs/` cannot be written answers 507, and `vui show` exits 5.
+  it.skipIf(process.getuid?.() === 0)('exits 5 when the Viewer cannot write docs/', async () => {
+    const place = workspace()
+    expect((await vui(place, ['show'], DOC)).exit).toBe(0)
+    const docs = join(place.dir, 'docs')
+    chmodSync(docs, 0o500)
+    try {
+      const { exit, stderr } = await vui(place, ['show'], DOC)
+      expect(exit).toBe(5)
+      expect(stderr).toContain('the Viewer cannot store documents')
+    } finally {
+      chmodSync(docs, 0o700)
+    }
+  })
+
   it('ends five simultaneous shows with one Viewer and five documents', async () => {
     const place = workspace()
     const results = await Promise.all([1, 2, 3, 4, 5].map(() => vui(place, ['show'], DOC)))

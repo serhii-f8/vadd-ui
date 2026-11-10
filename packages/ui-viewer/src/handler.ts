@@ -4,7 +4,7 @@ import { LIMITS, MEDIA_TYPE, type VuiDocument, validateText } from '@vadd/ui-spe
 import { type FeedAssets, feedHtml, readFeedScript } from './feed.js'
 import { isAllowedHost, readBody, tokensMatch, WriteLimiter } from './request.js'
 import { SseHub } from './sse.js'
-import type { DocStore } from './store.js'
+import type { DocHeader, DocStore } from './store.js'
 import { GENERATOR_LABEL, inlineHtml, readBundle } from './visual-file.js'
 
 /** §15.3, exactly. */
@@ -90,6 +90,15 @@ function notFound(res: ServerResponse): void {
 
 function refuse(res: ServerResponse, status: number, error: string): void {
   sendJson(res, status, { ok: false, error })
+}
+
+/** A Node file-system error: it has a `code` and the `syscall` that failed. */
+function isFsError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'syscall' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+  )
 }
 
 /** The value of a whole-number query field, its default when absent, `undefined` when bad. */
@@ -180,7 +189,15 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       sendJson(res, 422, { ok: false, diagnostics })
       return
     }
-    const header = store.add(document)
+    let header: DocHeader
+    try {
+      header = store.add(document)
+    } catch (error) {
+      // VD-160: a failed write to `docs/` is the host's disk, not a bug; anything else stays a 500.
+      if (!isFsError(error)) throw error
+      sendJson(res, 507, { ok: false, error: 'storage' })
+      return
+    }
     hub.broadcast(header)
     onActivity?.(hub.count)
     const url = viewerUrl(port(), readToken)

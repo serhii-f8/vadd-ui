@@ -1266,3 +1266,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: keep two functions; rejected, they had already diverged.
 - Rationale: one function cannot drift, and VD-133's form is the stricter one.
 - Spec sections: §11.5.
+
+## VD-160 — A failed store write answers 507, and `vui show` exits 5
+- Date: 2026-11-10 · Task: 20
+- Context: VD-130 deferred this. An unwritable `docs/` made `store.add` throw, the handler's catch-all answered 500 `internal`, and `postDocument` sent every unknown status to `noHost`, so `vui show` exited 4 ("no host") for a Viewer that was running and whose disk was the problem. §11.4 gives exit 5 to I/O failures.
+- Decision: `writeDoc` answers `507 {ok: false, error: 'storage'}` when `store.add` throws a Node file-system error (an `Error` with a string `code` and a `syscall`); it broadcasts nothing and the Viewer keeps serving. Any other throw stays on the 500 path, so a bug is not reported as a disk fault. `postDocument` maps 507 to `CliError(EXIT.io, 'io', 'the Viewer cannot store documents')`. The contract suite is unchanged (no case added), so a host with its own store may answer 500 and still pass; `VADD_INTEGRATION.md` section 6 step 2 recommends 507. Tests: handler (chmod 0o500 on `docs/`), client table row, and a real-process test that makes the running Viewer's `docs/` read-only; all skip as root.
+- Alternatives: map every 5xx to exit 5; rejected, a 500 or 503 is not known to be storage.
+- Spec sections: §4.1, §11.4.
