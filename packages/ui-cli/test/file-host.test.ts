@@ -47,6 +47,8 @@ let farm: ViewerFarm | undefined
 const servers: ReturnType<typeof createServer>[] = []
 
 afterEach(async () => {
+  // A test that armed a failure and failed before the write must not hand it to the next one.
+  failure.next = undefined
   await farm?.stopAll()
   farm = undefined
   for (const server of servers.splice(0)) server.close()
