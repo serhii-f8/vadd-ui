@@ -1258,3 +1258,11 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Decision: render the same document up to 5 times and pass on the first render without an error card (still exactly one `mark`). A linear lookup trips the watchdog on every render, so the mutant (an array and `.includes`) still fails. The same task adds `removes its own file when a write fails` (a `node:fs` write that leaves a file and throws `ENOSPC`; the file is gone, exit 5) and a `safe` test for the warning line. No production seam was added: the file test wraps `writeFileSync` with `vi.mock`.
 - Rationale: VD-087's fastest-of-N pattern, applied to a pass/fail watchdog instead of a time.
 - Spec sections: §16.
+
+## VD-159 — One slug function; VD-133's rules win
+- Date: 2026-11-10 · Task: 20
+- Context: `slugify` (Viewer store ids, VD-112) and `slugOf` (file names, VD-133) differed: the viewer cut after prefixing and kept a trailing `-`, so `Звіт` gave `v--` and an untitled document `1-v-`. §11.5 is silent on both.
+- Decision: `slugify` in `@vadd/ui-viewer` takes VD-133's rules: lowercase, each run outside `[a-z0-9]` becomes `-`, cut to 48, trailing `-` dropped, `v-` prefixed when it does not start alphanumeric, cut and dropped again. `@vadd/ui-cli` imports it and `slugOf` is deleted (nothing else used it). Viewer ids for non-Latin or untitled documents change: `Звіт` gives `1-v`, no title gives `1-v`. Ids are opaque, and files already stored as `1-v--...` keep their stem as id. Changed expectations: `store.test.ts` slug table (`'  Hello,   World!'` now `v--hello-world`, `''` now `v`, `Звіт` now `v`), the mistyped-title header id `1-v-` to `1-v`, and `show.test.ts` file names `1-v-.vui.json` to `1-v.vui.json` (two places). No e2e expectation held the old form.
+- Alternatives: keep two functions; rejected, they had already diverged.
+- Rationale: one function cannot drift, and VD-133's form is the stricter one.
+- Spec sections: §11.5.

@@ -11,9 +11,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { isVisualFileName, ORCA_FILE_MAX_BYTES, parseDirectiveLine } from '@vadd/ui-spec/host/orca'
-import { readViewerInfo, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
+import { readViewerInfo, slugify, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { slugOf } from '../src/host/file.js'
 import { OUTPUT_LIMIT } from '../src/output.js'
 import type { System } from '../src/system.js'
 import {
@@ -126,7 +125,7 @@ function hostile(next: () => number): string {
   return text
 }
 
-describe('slugOf (§11.5)', () => {
+describe('slugify (§11.5)', () => {
   it.each([
     ['Test run — auth module', 'test-run-auth-module'],
     ['Catalog query latency', 'catalog-query-latency'],
@@ -136,20 +135,22 @@ describe('slugOf (§11.5)', () => {
     ['', 'v'],
     ['con', 'con'],
     ['a.b..c', 'a-b-c'],
+    ['Звіт', 'v'],
+    ['a'.repeat(60), 'a'.repeat(48)],
   ])('%j becomes %j', (input, output) => {
-    expect(slugOf(input)).toBe(output)
+    expect(slugify(input)).toBe(output)
   })
 
   it('stays within 48 characters', () => {
-    expect(slugOf('a'.repeat(100))).toBe('a'.repeat(48))
-    expect(slugOf(`-${'a'.repeat(100)}`)).toHaveLength(48)
-    expect(slugOf(`${'a'.repeat(47)} b`)).toBe('a'.repeat(47))
+    expect(slugify('a'.repeat(100))).toBe('a'.repeat(48))
+    expect(slugify(`-${'a'.repeat(100)}`)).toHaveLength(48)
+    expect(slugify(`${'a'.repeat(47)} b`)).toBe('a'.repeat(47))
   })
 
   it('names a file Orca takes, for anything at all', () => {
     const next = random(16)
     for (let run = 0; run < 5_000; run += 1) {
-      const slug = slugOf(hostile(next))
+      const slug = slugify(hostile(next))
       const hex = Math.floor(next() * 65536)
         .toString(16)
         .padStart(4, '0')

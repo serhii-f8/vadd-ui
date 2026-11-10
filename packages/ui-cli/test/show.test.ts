@@ -171,14 +171,14 @@ describe('vui show, without Orca', () => {
     writeFileSync(join(fixture.workspace, '.git', 'HEAD'), 'ref: refs/heads/feat\n')
     await show(fixture, [], '{"meta":{"branch":"forged"},"body":["x"]}')
     const docs = join(fixture.dir, 'docs')
-    const stored = readFileSync(join(docs, '1-v-.vui.json'), 'utf8')
+    const stored = readFileSync(join(docs, '1-v.vui.json'), 'utf8')
     expect(JSON.parse(stored).meta).toMatchObject({ cwd: fixture.workspace, branch: 'feat' })
   })
 
   it('removes a claimed branch outside git', async () => {
     const fixture = setup()
     await show(fixture, [], '{"meta":{"branch":"forged"},"body":["x"]}')
-    const stored = readFileSync(join(fixture.dir, 'docs', '1-v-.vui.json'), 'utf8')
+    const stored = readFileSync(join(fixture.dir, 'docs', '1-v.vui.json'), 'utf8')
     expect(JSON.parse(stored).meta).not.toHaveProperty('branch')
   })
 

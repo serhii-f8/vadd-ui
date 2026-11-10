@@ -25,13 +25,16 @@ function doc(title?: unknown, extra: object = {}): VuiDocument {
 
 const names = (dir: string) => readdirSync(join(dir, 'docs')).sort()
 
-describe('slugify (§11.5)', () => {
+describe('slugify (§11.5, VD-159)', () => {
   it.each([
     ['Test run — auth module', 'test-run-auth-module'],
-    ['  Hello,   World!', 'v--hello-world-'],
+    ['  Hello,   World!', 'v--hello-world'],
     ['UPPER_case.9', 'upper-case-9'],
-    ['', 'v-'],
-    ['Звіт', 'v--'],
+    ['', 'v'],
+    ['Тест', 'v'],
+    ['Звіт', 'v'],
+    ['!Hi', 'v--hi'],
+    ['Release check', 'release-check'],
     ['a'.repeat(60), 'a'.repeat(48)],
     [`!${'a'.repeat(60)}`, `v--${'a'.repeat(45)}`],
   ])('%j', (text, slug) => {
@@ -51,6 +54,10 @@ describe('DocStore.add', () => {
     expect(JSON.parse(readFileSync(join(dir, 'docs/2-second.vui.json'), 'utf8'))).toEqual(
       doc('Second'),
     )
+  })
+
+  it('gives a non-Latin title the id <seq>-v (VD-159)', () => {
+    expect(new DocStore(temp()).add(doc('Звіт')).id).toBe('1-v')
   })
 
   it('keeps documents owner-only, in an owner-only directory', () => {
@@ -76,7 +83,7 @@ describe('DocStore.add', () => {
 
   it('reads anything mistyped as null, with a valid id', () => {
     const header = new DocStore(temp()).add(doc(7, { meta: 'text' }))
-    expect(header).toMatchObject({ id: '1-v-', title: null, cwd: null, branch: null })
+    expect(header).toMatchObject({ id: '1-v', title: null, cwd: null, branch: null })
     const typed = new DocStore(temp()).add(doc(undefined, { meta: { cwd: 1, branch: {} } }))
     expect(typed).toMatchObject({ title: null, cwd: null, branch: null })
   })

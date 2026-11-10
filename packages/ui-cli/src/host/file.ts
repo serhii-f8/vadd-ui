@@ -1,5 +1,6 @@
 import { rmSync, writeFileSync } from 'node:fs'
 import { directiveLine } from '@vadd/ui-spec/host/orca'
+import { slugify } from '@vadd/ui-viewer'
 import { outputTooLarge } from '../commands.js'
 import { CliError, EXIT, noHost, type Outcome } from '../outcome.js'
 import { OUTPUT_LIMIT, renderOutput } from '../output.js'
@@ -8,21 +9,7 @@ import { formatDiagnostics, safe } from '../print.js'
 import type { System } from '../system.js'
 import { type Delivery, type Mirror, mirrorToViewer } from '../viewer/deliver.js'
 
-const MAX_SLUG = 48
-const FALLBACK_PREFIX = 'v-'
 const NAME_TRIES = 16
-
-const NOT_IN_SLUG = /[^a-z0-9]+/g
-const TRAILING_DASHES = /-+$/
-const STARTS_WELL = /^[a-z0-9]/
-
-const cut = (slug: string) => slug.slice(0, MAX_SLUG).replace(TRAILING_DASHES, '')
-
-/** §11.5. It never holds a `.`, so Orca's device check always sees `<slug>-<hex4>`. */
-export function slugOf(text: string): string {
-  const slug = cut(text.toLowerCase().replace(NOT_IN_SLUG, '-'))
-  return STARTS_WELL.test(slug) ? slug : cut(`${FALLBACK_PREFIX}${slug}`)
-}
 
 /** VD-123: a file holds no local path, not even one the document claims. */
 export function fileOverrides(): Overrides {
@@ -83,7 +70,7 @@ async function deliverFile(delivery: Delivery, host: Host): Promise<Outcome> {
   if (bytes > OUTPUT_LIMIT) return outputTooLarge(bytes, diagnostics)
 
   const title = typeof document.title === 'string' ? document.title : ''
-  const written = writeNew(host.dir, slugOf(name ?? title), output, system)
+  const written = writeNew(host.dir, slugify(name ?? title), output, system)
   const viewer = await mirrorToViewer(document, system)
   const line = host.line(written, title, bytes)
   return {
