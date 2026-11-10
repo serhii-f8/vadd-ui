@@ -1,4 +1,4 @@
-import { type JsonValue, normalize } from '@vadd/ui-spec'
+import { type JsonValue, normalize, parse } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
 import {
   excerpt,
@@ -6,6 +6,7 @@ import {
   fuzzCount,
   fuzzDocument,
   fuzzSeed,
+  fuzzText,
 } from '../../ui-spec/test/fuzz/generator.js'
 import { renderMarkdown, renderPlain } from '../../ui-text/src/index.js'
 import { render } from '../src/index.js'
@@ -15,6 +16,8 @@ import { target } from './helpers.js'
 const CASES = fuzzCount(2_000)
 const SEED = fuzzSeed(process.env.VUI_FUZZ_FRESH === '1' ? Date.now() >>> 0 : 20_261_110)
 const CASE_MS = 2_000
+/** One case in this many is `fuzzText`'s JSON, relaxed JSON or damaged text, as a string. */
+const TEXT_SHARE = 10
 const SVG = 'http://www.w3.org/2000/svg'
 const BAD = /NaN|Infinity|undefined/
 /** What `ui-text` answers when its own catch-all fired, which is a throw in disguise. */
@@ -37,7 +40,7 @@ export function badAttributes(root: Element): string[] {
   return found
 }
 
-/** What is wrong with case `index`, or nothing. */
+/** What is wrong with case `index`, an object or text, or nothing. */
 function check(document: unknown, next: unknown): string[] {
   const problems: string[] = []
   const box = target()
@@ -53,10 +56,13 @@ function check(document: unknown, next: unknown): string[] {
     handle.destroy()
     if (box.childElementCount !== 0) problems.push('destroy left children behind')
     // Total on anything (VD-166): its catch-all firing is a throw in disguise, inside the
-    // limits or past them.
-    const { document: canonical } = normalize(document as JsonValue)
-    if (renderMarkdown(canonical) === TEXT_FAILED) problems.push('renderMarkdown failed')
-    if (renderPlain(canonical) === TEXT_FAILED) problems.push('renderPlain failed')
+    // limits or past them. Text that does not parse has no document for them to render.
+    const parsed = typeof document === 'string' ? parse(document) : { ok: true, value: document }
+    if (parsed.ok) {
+      const { document: canonical } = normalize(parsed.value as JsonValue)
+      if (renderMarkdown(canonical) === TEXT_FAILED) problems.push('renderMarkdown failed')
+      if (renderPlain(canonical) === TEXT_FAILED) problems.push('renderPlain failed')
+    }
   } catch (error) {
     problems.push(`threw: ${error instanceof Error ? (error.stack ?? error.message) : error}`)
   } finally {
@@ -68,8 +74,12 @@ function check(document: unknown, next: unknown): string[] {
 describe('the renderer under fuzzing', () => {
   it(`${CASES} cases from seed ${SEED} neither throw nor draw NaN`, async () => {
     let next = fuzzDocument(SEED, 0)
+    let texts = 0
     for (let index = 0; index < CASES; index++) {
-      const document = next
+      // One case in TEXT_SHARE goes in as text, as `boot` hands a script's text to `render`.
+      const asText = index % TEXT_SHARE === TEXT_SHARE - 1
+      const document = asText ? fuzzText(SEED, index) : next
+      if (asText) texts += 1
       next = fuzzDocument(SEED, index + 1)
       const started = performance.now()
       const problems = check(document, next)
@@ -85,5 +95,6 @@ describe('the renderer under fuzzing', () => {
         )
       }
     }
+    expect(texts, 'cases rendered from text').toBe(Math.floor(CASES / TEXT_SHARE))
   }, 600_000)
 })
