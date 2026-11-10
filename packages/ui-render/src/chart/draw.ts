@@ -44,15 +44,22 @@ export function sparkPath(values: readonly number[]): string {
   const low = values.reduce((least, value) => Math.min(least, value))
   const high = values.reduce((most, value) => Math.max(most, value))
   const last = values.length - 1
+  // Halves keep ±1e308 finite, but halve ±5e-324 to ±0; so the full span when it is finite.
+  const span = high - low
+  const share = (value: number) =>
+    low === high
+      ? 0.5
+      : Number.isFinite(span)
+        ? (value - low) / span
+        : (value / 2 - low / 2) / (high / 2 - low / 2)
   const points = lttb(
     values.map((_, index) => index),
     values,
     MAX_DRAWN,
   ).map((index) => {
-    const share =
-      low === high ? 0.5 : ((values[index] as number) / 2 - low / 2) / (high / 2 - low / 2)
     const x = last === 0 ? 0.5 : index / last
-    return `${round(x * SPARK_WIDTH)} ${round(SPARK_HEIGHT - 1 - share * (SPARK_HEIGHT - 2))}`
+    const y = SPARK_HEIGHT - 1 - share(values[index] as number) * (SPARK_HEIGHT - 2)
+    return `${round(x * SPARK_WIDTH)} ${round(y)}`
   })
   return linePath(points)
 }

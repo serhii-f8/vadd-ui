@@ -148,7 +148,8 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
   const yFormat = field(node, 'yFormat')
   const xFormat = field(node, 'xFormat')
   const step = (ticks[1] as number) - (ticks[0] as number)
-  const decimals = Math.max(-Math.floor(Math.log10(step)), 0)
+  // `num` takes 0 to 20 decimals (§7); a subnormal step would ask for 324 and blame `yFormat`.
+  const decimals = Math.min(Math.max(-Math.floor(Math.log10(step)), 0), 20)
   const places = `num:${decimals}`
   const yAt = `${context.pointer}/yFormat`
   const format = (value: Value, name: JsonValue | undefined, fallback: string) =>

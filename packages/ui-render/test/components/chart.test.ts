@@ -387,6 +387,8 @@ describe('chart drawing', () => {
   })
 
   // Fuzzer, seed 12, index 30047: a flat domain of ±5e-324 recursed until the stack ran out.
+  // No diagnostic at all: the tick format the chart derives once asked `num` for 324 decimals
+  // and reported a `bad-format-arg` warn on a `yFormat` the document never wrote.
   it.each([
     { kind: 'spark', values: [5e-324] },
     { kind: 'spark', values: [-5e-324, -5e-324] },
@@ -395,9 +397,26 @@ describe('chart drawing', () => {
   ])('draws a flat domain of the smallest subnormal: %j', (fields) => {
     const { box, handle } = chart(fields)
     expect(box.querySelector('.vui-card-error')).toBeNull()
-    expect(handle.diagnostics.map(({ code }) => code)).not.toContain('render-failed')
+    expect(handle.diagnostics).toEqual([])
     expect(box.querySelector('svg')).not.toBeNull()
   })
+
+  // Fuzzer, seed 1, index 5211: half of each end underflowed to ±0, so the span was 0 and
+  // every share NaN, although the ends differ.
+  it.each([[[-5e-324, 5e-324]], [[5e-324, 1e-323, 0]]])(
+    'keeps a spark of subnormals finite: %j',
+    (values) => {
+      for (const { box } of [
+        chart({ kind: 'spark', values }),
+        show([{ type: 'stats', items: [{ label: 'a', value: 1, spark: values }] }]),
+      ]) {
+        expect(box.querySelector('path')).not.toBeNull()
+        for (const node of all(box, 'svg *')) {
+          for (const { value } of [...node.attributes]) expect(value).not.toMatch(/NaN|Infinity/)
+        }
+      }
+    },
+  )
 
   it('keeps a sliver a sliver', () => {
     const { box } = chart({ kind: 'donut', x: ['a', 'b'], series: { s: [1000, 1] } })
@@ -689,7 +708,7 @@ describe('chart robustness', () => {
     const values = Array.from({ length: LIMITS.chartPoints }, (_, index) => index)
     const { box, handle } = chart({ kind: 'line', x: values, series: { a: values, b: values } })
     expect(q(box, '.vui-chart-line')).not.toBeNull()
-    expect(handle.diagnostics.map(({ code }) => code)).not.toContain('render-failed')
+    expect(handle.diagnostics).toEqual([])
   })
 
   it('keeps document text out of markup', () => {
