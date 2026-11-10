@@ -711,11 +711,10 @@ describe('help and version', () => {
     const { exit, stdout } = await vui(['--help'])
     expect(exit).toBe(0)
     const commands = ['show', 'viewer', 'doctor', 'render', 'validate', 'catalog', 'schema']
-    for (const command of [...commands, 'extract']) {
+    for (const command of [...commands, 'extract', 'bench']) {
       expect(stdout).toContain(`vui ${command}`)
     }
     expect(stdout).toContain('4 no host')
-    expect(stdout).not.toContain('vui bench')
   })
 
   it('prints the version', async () => {

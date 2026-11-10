@@ -27,6 +27,7 @@ vui validate [file|-] [--strict]
 vui catalog [component]
 vui schema
 vui extract [file.html|-]
+vui bench [dir]
 
 Stdin is read when the file is - or omitted. --json works on every command.
 Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 4 no host, 5 I/O.

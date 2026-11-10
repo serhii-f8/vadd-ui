@@ -10,6 +10,7 @@ export type Command =
   | 'catalog'
   | 'schema'
   | 'extract'
+  | 'bench'
   | 'help'
   | 'version'
 
@@ -39,6 +40,7 @@ const SPECS: Record<Exclude<Command, 'help' | 'version'>, CommandSpec> = {
   catalog: { values: [], booleans: [], positional: 1 },
   schema: { values: [], booleans: [], positional: 0 },
   extract: { values: [], booleans: [], positional: 1 },
+  bench: { values: [], booleans: [], positional: 1 },
 }
 
 const COMMANDS = Object.keys(SPECS)
