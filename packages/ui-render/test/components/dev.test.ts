@@ -65,6 +65,22 @@ describe('checks', () => {
     expect(texts(one.box, 'button')[1]).not.toContain('lines')
   })
 
+  it('names each output toggle after its check, and shows only Output', () => {
+    const items = [
+      { name: 'E2E', status: 'fail', output: 'x' },
+      { name: 'Lint', status: 'ok', output: 'y' },
+    ]
+    const { box } = show([{ type: 'checks', items }])
+    const toggles = all(box, 'button')
+    expect(toggles.map((item) => item.textContent?.replace('▸', ''))).toEqual([
+      'Output, E2E',
+      'Output, Lint',
+    ])
+    for (const toggle of toggles) {
+      expect(toggle.querySelector('.vui-sr-only')?.textContent).toMatch(/^, (E2E|Lint)$/)
+    }
+  })
+
   it('keeps each fold of its own across an update', () => {
     const items = [
       { name: 'a', status: 'ok', output: 'x' },

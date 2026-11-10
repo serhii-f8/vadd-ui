@@ -63,7 +63,8 @@ function checkOutput(item: JsonObject, context: NodeContext): HTMLElement[] {
           pre(earlier.join('\n')),
           false,
         )
-  return context.fold(`output ${name}`, 'Output', [...before, pre(last.join('\n'))], false)
+  const label = ['Output', el('span', { class: 'vui-sr-only' }, `, ${name}`)]
+  return context.fold(`output ${name}`, label, [...before, pre(last.join('\n'))], false)
 }
 
 export const checks: Component = {
