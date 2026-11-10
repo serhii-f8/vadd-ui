@@ -108,13 +108,13 @@ function isFsError(error: unknown): boolean {
   )
 }
 
-/** The value of a whole-number query field, its default when absent, `undefined` when bad. */
 /** VD-123: the standalone file is shared, so it holds no local path (the feed copy keeps them). */
 function withoutPaths(document: VuiDocument): VuiDocument {
   const { cwd: _cwd, branch: _branch, ...meta } = document.meta as Record<string, unknown>
   return { ...document, meta }
 }
 
+/** The value of a whole-number query field, its default when absent, `undefined` when bad. */
 function numberParam(query: URLSearchParams, name: string, fallback: number): number | undefined {
   const text = query.get(name)
   if (text === null) return fallback
