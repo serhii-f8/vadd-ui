@@ -6,7 +6,6 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@vadd/ui-cli": "workspace:*",
-    "@vadd/ui-spec": "workspace:*",
-    "js-tiktoken": "1.0.21"
+    "@vadd/ui-spec": "workspace:*"
   }
 }
