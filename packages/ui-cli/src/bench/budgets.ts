@@ -24,11 +24,16 @@ export const LIMITS = {
 
 export const CATALOG_LIMIT = 300
 
-/** A GFM delimiter row: at least two cells of dashes, colons allowed, pipes between. */
-const DELIMITER_ROW = /^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)+\|?[ \t]*$/m
+/** A GFM delimiter row: cells of `:?-+:?` with at least one pipe, so `---` alone is a rule. */
+const DELIMITER_ROW = /^[ \t]*\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/
+/** Fenced code, whose lines are text and not table syntax. */
+const FENCE = /^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[ \t]*$/gm
 
 export function hasGfmTable(markdown: string): boolean {
-  return DELIMITER_ROW.test(markdown)
+  return markdown
+    .replace(FENCE, '')
+    .split('\n')
+    .some((line) => line.includes('|') && DELIMITER_ROW.test(line))
 }
 
 export interface Budget {

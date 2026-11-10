@@ -11,25 +11,43 @@ const API_VERSION = '2023-06-01'
 const TIMEOUT_MS = 30_000
 /** Counted alone to learn the framing; assumed to be one token. */
 const PROBE = '.'
+/** Rate limited (429) or overloaded (529): tried again, up to this many times. */
+const RETRIES = 3
+const RETRY_STATUSES = new Set([429, 529])
+const MAX_RETRY_DELAY_MS = 10_000
+/** What `fetch` accepts in a header; anything else would be quoted back in its error. */
+const HEADER_VALUE = /^[\x21-\x7e]+$/
 
 export interface ApiEnv {
   key: string
   baseUrl?: string
   model?: string
+  /** When the server sends no `retry-after`. Tests set 0. */
+  retryDelayMs?: number
 }
 
 function apiError(reason: string): CliError {
   return new CliError(EXIT.io, 'token-api', `token counting API: ${reason}`)
 }
 
+const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms))
+
+function retryDelay(response: Response, fallback: number): number {
+  const seconds = Number(response.headers.get('retry-after'))
+  const ms = Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : fallback
+  return Math.min(ms, MAX_RETRY_DELAY_MS)
+}
+
 export function apiCounter(env: ApiEnv, fetchImpl: typeof fetch = fetch): Counter {
   const model = env.model || DEFAULT_MODEL
   const url = `${(env.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')}/v1/messages/count_tokens`
+  const fallbackDelay = env.retryDelayMs ?? 1000
+  /** Belt and braces: no reason built here should hold the key, but none can. */
+  const scrub = (reason: string) => reason.replaceAll(env.key, '***')
 
-  async function raw(text: string): Promise<number> {
-    let response: Response
+  async function post(text: string): Promise<Response> {
     try {
-      response = await fetchImpl(url, {
+      return await fetchImpl(url, {
         method: 'POST',
         headers: {
           'x-api-key': env.key,
@@ -37,12 +55,23 @@ export function apiCounter(env: ApiEnv, fetchImpl: typeof fetch = fetch): Counte
           'content-type': 'application/json',
         },
         body: JSON.stringify({ model, messages: [{ role: 'user', content: text }] }),
+        // A redirect would carry the key to wherever it points.
+        redirect: 'error',
         signal: AbortSignal.timeout(TIMEOUT_MS),
       })
     } catch (error) {
-      // A fetch error names the cause and the URL, never the headers.
       const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error
-      throw apiError(cause instanceof Error ? cause.message : String(cause))
+      throw apiError(scrub(cause instanceof Error ? cause.message : String(cause)))
+    }
+  }
+
+  async function raw(text: string): Promise<number> {
+    // `fetch` quotes a bad header value in its error, so the key is checked before it is sent.
+    if (!HEADER_VALUE.test(env.key)) throw apiError('ANTHROPIC_API_KEY is not a valid header value')
+    let response = await post(text)
+    for (let retry = 0; retry < RETRIES && RETRY_STATUSES.has(response.status); retry++) {
+      await sleep(retryDelay(response, fallbackDelay))
+      response = await post(text)
     }
     // The body of a failure is not echoed: it is the server's text, and could quote the key.
     if (!response.ok) throw apiError(`HTTP ${response.status}`)

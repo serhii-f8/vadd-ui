@@ -4,7 +4,7 @@
 | --- | ---: | ---: |
 | Orders | 18,420 | +6.4% |
 | Revenue | €412,380 | +5.2% |
-| Conversion | 3.1% | −0.2 pp |
+| Conversion | 3.1% | −0.2% |
 | Avg order | €22.39 | −1.1% |
 | p95 checkout | 840 ms ⚠️ | |
-| Error rate | 0.42% | |
+| Error rate | 0.42% ✅ | |

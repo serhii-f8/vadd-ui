@@ -501,7 +501,7 @@ describe('catalog', () => {
     expect(stdout).toContain('\ncolumns: Column[], required\n')
     expect(stdout).toContain('\npageSize: integer ≥1, default 25\n')
     expect(stdout).toContain('\nColumn:\nkey: string, required\n')
-    expect(stdout).toContain('common: id, title, note, tone, span, fold')
+    expect(stdout).toContain('\n\ncommon: id, title, note, tone, span, fold\nexample: ')
   })
 
   it('tags chart fields by kind', async () => {

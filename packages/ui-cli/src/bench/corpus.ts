@@ -28,12 +28,12 @@ function read(path: string, shown: string): string {
   }
 }
 
-/** Every folder in `dir`, by name. Files beside them, such as a README, are ignored. */
+/** Every folder in `dir`, by name. Files beside them and hidden folders such as `.git` are ignored. */
 export function readCorpus(dir: string): BenchCase[] {
   let names: string[]
   try {
     names = readdirSync(dir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
       .map((entry) => entry.name)
       .sort()
   } catch (error) {

@@ -96,11 +96,43 @@ function normalize(text: string): string {
 const INLINE = /<\/?(strong|b|em|i|code|span|a|small|time|mark)(\s[^>]*)?>/g
 
 function htmlText(html: string): string {
+  // `<title>` repeats the heading, so it must not stand in for the body.
   const body = html
-    .replace(/<(style|script)[\s\S]*?<\/\1>/g, '\n')
+    .replace(/<(style|script|title)[\s\S]*?<\/\1>/g, '\n')
     .replace(INLINE, '')
     .replace(/<[^>]+>/g, '\n')
   return body.replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => ENTITIES[name] as string)
+}
+
+/** What a case's VUI says that a reader could check in the others, beyond its strings. */
+function rowCounts(
+  value: JsonValue,
+  out = { table: 0, chart: 0 },
+): { table: number; chart: number } {
+  if (Array.isArray(value)) for (const item of value) rowCounts(item, out)
+  else if (value !== null && typeof value === 'object') {
+    if (value.type === 'table' && Array.isArray(value.rows)) out.table += value.rows.length
+    if (value.type === 'chart' && Array.isArray(value.x)) out.chart += value.x.length
+    for (const item of Object.values(value)) rowCounts(item, out)
+  }
+  return out
+}
+
+/** GFM body rows: table lines that are neither a header nor a delimiter row. */
+function markdownRows(md: string): number {
+  const lines = md.split('\n').filter((line) => line.trimStart().startsWith('|'))
+  const delimiters = lines.filter((line) => /^[\s|:-]+$/.test(line)).length
+  return lines.length - 2 * delimiters
+}
+
+function missing(item: BenchCase): { md: string[]; html: string[] } {
+  const md = normalize(item.md)
+  const html = normalize(htmlText(item.html))
+  const strings = contentStrings(parsed(item)).map(normalize).filter(Boolean)
+  return {
+    md: strings.filter((text) => !md.includes(text)),
+    html: strings.filter((text) => !html.includes(text)),
+  }
 }
 
 const parsed = (item: BenchCase): JsonValue => {
@@ -124,12 +156,15 @@ describe('the corpus (§14.3)', () => {
   })
 
   it.each(cases.map((item) => [item.name, item]))('%s says the same in all three', (_, item) => {
-    const md = normalize(item.md)
-    const html = normalize(htmlText(item.html))
-    const strings = contentStrings(parsed(item)).map(normalize).filter(Boolean)
-    expect(strings.length).toBeGreaterThan(0)
-    expect(strings.filter((text) => !md.includes(text))).toEqual([])
-    expect(strings.filter((text) => !html.includes(text))).toEqual([])
+    expect(contentStrings(parsed(item)).length).toBeGreaterThan(0)
+    expect(missing(item)).toEqual({ md: [], html: [] })
+  })
+
+  it.each(cases.map((item) => [item.name, item]))('%s keeps every row and point', (_, item) => {
+    const { table, chart } = rowCounts(parsed(item))
+    // Numbers are written per encoding, so their rows are counted instead of their text.
+    expect(markdownRows(item.md)).toBeGreaterThanOrEqual(table + chart)
+    expect((item.html.match(/<tr[\s>]/g) ?? []).length).toBeGreaterThanOrEqual(table)
   })
 
   it.each(cases.map((item) => [item.name, item]))('%s is HTML as Orca asks for it', (_, item) => {
@@ -151,10 +186,13 @@ describe('the corpus (§14.3)', () => {
     expect(item.md).not.toMatch(/<[a-z][^>]*>/i)
   })
 
-  it('catches a case that drops content', () => {
-    const [first] = cases as [BenchCase]
-    const strings = contentStrings(parsed(first)).map(normalize)
-    expect(strings.some((text) => !normalize('## nothing').includes(text))).toBe(true)
+  it('catches a case that drops a string, a row or the body under its title', () => {
+    const table = cases.find(({ name }) => name === 'table-test-durations') as BenchCase
+    const noRow = table.md.replace(/^\| billing\/tax\.test\.ts .*\n/m, '')
+    expect(missing({ ...table, md: noRow }).md).toEqual(['billing/tax.test.ts'])
+    expect(markdownRows(noRow)).toBeLessThan(rowCounts(parsed(table)).table)
+    const titleOnly = table.html.replace(/<h1>[^<]*<\/h1>/, '')
+    expect(missing({ ...table, html: titleOnly }).html).toEqual(['Slowest test files'])
   })
 })
 

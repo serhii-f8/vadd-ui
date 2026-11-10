@@ -34,10 +34,16 @@ describe('compareToBaseline (§14.3, §16 Budgets: ≤ 5% regression)', () => {
     expect(findings).toEqual(['catalog.table: 212, baseline 200 (+6.0%, allowed +5%)'])
   })
 
-  it('passes a 4% rise, exactly 5%, and a fall', () => {
+  it('passes a 4% rise, exactly 5%, and a fall within 5%', () => {
     expect(compareToBaseline(result({ ...BASE, 'catalog.table': 208 }), baseline)).toEqual([])
     expect(compareToBaseline(result({ ...BASE, 'catalog.table': 210 }), baseline)).toEqual([])
-    expect(compareToBaseline(result({ ...BASE, 'fixed.show': 12 }), baseline)).toEqual([])
+    expect(compareToBaseline(result({ ...BASE, 'catalog.table': 192 }), baseline)).toEqual([])
+  })
+
+  it('fails a fall over 5%, so the baseline keeps up with main', () => {
+    expect(compareToBaseline(result({ ...BASE, 'fixed.show': 12 }), baseline)).toEqual([
+      'fixed.show: 12, baseline 20 (-40.0%); improved, so run with --update',
+    ])
   })
 
   it('applies the 5% to ratios too', () => {
@@ -81,6 +87,7 @@ describe('compareToBaseline (§14.3, §16 Budgets: ≤ 5% regression)', () => {
   it('fails an accepted miss that is now met, so the file stays true', () => {
     const findings = compareToBaseline(result({ ...BASE, 'ratio.html': 0.19 }), baseline)
     expect(findings).toEqual([
+      'ratio.html: 0.19, baseline 0.25 (-24.0%); improved, so run with --update',
       'ratio.html: now within its budget; remove it from unmet with --update',
     ])
   })

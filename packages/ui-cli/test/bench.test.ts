@@ -51,7 +51,9 @@ describe('vui bench (§11.1, §14)', () => {
     for (const name of ['fixed.show', 'fixed.cdn', 'ratio.md', 'ratio.html', 'skill', 'catalog']) {
       expect(stdout).toMatch(new RegExp(`^ok +${name.replace('.', '\\.')}`, 'm'))
     }
-    expect(stdout).toMatch(/^info +orca-visual line +\d+ tokens/m)
+    expect(stdout).toMatch(
+      /^info +orca-chat host: \d+ tokens with its ::orca-visual line, which §14\.2's "command line \+ envelope" leaves out$/m,
+    )
   })
 
   it('answers in JSON', async () => {
@@ -98,6 +100,9 @@ describe('vui bench (§11.1, §14)', () => {
     expect((json.info as { directive: number }).directive).toBe(
       counter.estimate(DIRECTIVE).estimate,
     )
+    expect((json.info as { showOrcaChat: number }).showOrcaChat).toBe(
+      counter.estimate(FIXED_SHOW + DIRECTIVE).estimate,
+    )
     const skill = readFileSync(json.skillPath as string, 'utf8')
     expect(metrics.skill).toBe(counter.estimate(skill).estimate)
     for (const type of COMPONENT_TYPES) {
@@ -114,7 +119,7 @@ describe('vui bench (§11.1, §14)', () => {
 
   it('fails a table case over 1.2 times its markdown', async () => {
     const md = '## Runs\n\n|Test|Time|\n|-|-|\n|login|120|\n|refresh|340|\n'
-    const dir = corpus({ a: { vui: TABLE, md: md.replace('|-|-|', '|---|---|'), html: PAGE } })
+    const dir = corpus({ a: { vui: TABLE, md, html: PAGE } })
     const { exit, stdout } = await vui(['bench', dir])
     expect(exit).toBe(1)
     expect(stdout).toMatch(/^fail +ratio\.md /m)
@@ -127,7 +132,7 @@ describe('vui bench (§11.1, §14)', () => {
       return { ...human, json: (await vuiJson(['bench', dir])).json }
     })()
     expect(exit).toBe(0)
-    expect(stdout).toMatch(/^ok +ratio\.md +not measured: no case has a markdown table/m)
+    expect(stdout).toMatch(/^n\/a +ratio\.md +not measured: no case has a markdown table/m)
     expect((json.metrics as Record<string, unknown>)['ratio.md']).toBeNull()
   })
 
@@ -146,6 +151,13 @@ describe('vui bench (§11.1, §14)', () => {
     const { exit, stderr } = await vui(['bench', dir()])
     expect(exit).toBe(5)
     expect(stderr).toMatch(message)
+  })
+
+  it('skips hidden folders, such as .git', async () => {
+    const dir = good()
+    mkdirSync(join(dir, '.git'))
+    const { json } = await vuiJson(['bench', dir])
+    expect((json.cases as { name: string }[]).map(({ name }) => name)).toEqual(['a', 'b'])
   })
 
   it('takes one folder at most', async () => {
@@ -178,7 +190,7 @@ describe('the skill file', () => {
     const outcome = await bench(parsed, io, { skills: [join(tempDir(), 'SKILL.md')] })
     expect(outcome.exit).toBe(0)
     expect((outcome.json.metrics as Record<string, unknown>).skill).toBeNull()
-    expect(outcome.stdout).toMatch(/^ok +skill +not measured: no SKILL\.md found/m)
+    expect(outcome.stdout).toMatch(/^n\/a +skill +not measured: no SKILL\.md found/m)
   })
 
   it('uses the CDN template the skill teaches', () => {
@@ -192,8 +204,11 @@ describe('the skill file', () => {
   it('spots a GFM table by its delimiter row', () => {
     expect(hasGfmTable('| a | b |\n| --- | :---: |\n| 1 | 2 |\n')).toBe(true)
     expect(hasGfmTable('a | b\n--- | ---\n1 | 2\n')).toBe(true)
+    expect(hasGfmTable('|a|b|\n|-|-|\n')).toBe(true)
+    expect(hasGfmTable('| only |\n| --- |\n| one |\n')).toBe(true)
     expect(hasGfmTable('- item\n---\n')).toBe(false)
-    expect(hasGfmTable('```\n|---|---|\n```\n')).toBe(true)
+    expect(hasGfmTable('```\n|---|---|\n```\n')).toBe(false)
+    expect(hasGfmTable('~~~md\n| a |\n| - |\n~~~\n')).toBe(false)
   })
 })
 

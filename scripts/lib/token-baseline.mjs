@@ -51,6 +51,11 @@ export function compareToBaseline(result, baseline, allowance = ALLOWANCE) {
       findings.push(
         `${name}: ${value}, baseline ${base} (${percent(rise)}, allowed +${allowance * 100}%)`,
       )
+    } else if (rise < -allowance - 1e-9) {
+      // §16 measures against main: a gain left out of the file would become room to regress.
+      findings.push(
+        `${name}: ${value}, baseline ${base} (${percent(rise)}); improved, so run with --update`,
+      )
     }
   }
   for (const [name, value] of Object.entries(result.metrics)) {

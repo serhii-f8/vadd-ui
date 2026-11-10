@@ -98,7 +98,7 @@ function worst(
 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0)
 
 function budgetLine(row: Budget, detail: string, note?: string): string {
-  const mark = row.ok ? 'ok  ' : 'fail'
+  const mark = row.value === null ? 'n/a ' : row.ok ? 'ok  ' : 'fail'
   const value =
     row.value === null ? `not measured: ${note}` : `${row.value} ≤ ${row.limit}${detail}`
   return `${mark} ${row.name.padEnd(14)} ${value}\n`
@@ -153,6 +153,7 @@ export async function bench(
   ]
   const info = {
     directive: await counter.count(DIRECTIVE),
+    showOrcaChat: await counter.count(FIXED_SHOW + DIRECTIVE),
     mdTotal: ratio(sum(results.map(({ vui }) => vui)), sum(results.map(({ md }) => md))),
     htmlTotal: ratio(sum(results.map(({ vui }) => vui)), sum(results.map(({ html }) => html))),
     tableCases: tables.length,
@@ -186,7 +187,7 @@ export async function bench(
       ` per component (largest: ${largest.name.slice('catalog.'.length)})`,
     ),
     ...catalogRows.filter(({ ok }) => !ok).map((item) => budgetLine(item, '')),
-    `info orca-visual line ${info.directive} tokens, not counted: hand-written HTML needs it too\n`,
+    `info orca-chat host: ${info.showOrcaChat} tokens with its ::orca-visual line, which §14.2's "command line + envelope" leaves out\n`,
     `info markdown total ${info.mdTotal}, HTML total ${info.htmlTotal}, over all cases\n`,
   ]
   const ok = budgets.every((item) => item.ok)

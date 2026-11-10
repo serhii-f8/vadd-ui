@@ -127,6 +127,51 @@ describe('API counter (§14.3, VD-149)', () => {
   })
 })
 
+describe('API counter hardening (review)', () => {
+  it('refuses a key that is not a header value, without printing it', async () => {
+    const { baseUrl, seen } = await stub(counting)
+    const key = 'sk-ant-SEC\nRET'
+    const error = await failure(apiCounter({ key, baseUrl }).count('x'))
+    expect(error.exit).toBe(5)
+    expect(error.message).toBe('token counting API: ANTHROPIC_API_KEY is not a valid header value')
+    expect(error.message).not.toContain('SEC')
+    expect(seen).toHaveLength(0)
+  })
+
+  it('scrubs the key from any error text', async () => {
+    const fake: typeof fetch = async () => {
+      throw new TypeError(`bad value ${KEY} here`)
+    }
+    const error = await failure(apiCounter({ key: KEY }, fake).count('x'))
+    expect(error.message).toBe('token counting API: bad value *** here')
+  })
+
+  it('retries 429 and 529, honouring retry-after', async () => {
+    let calls = 0
+    const { baseUrl } = await stub((seen) => {
+      calls++
+      if (calls === 1) return { status: 429, body: '{}' }
+      if (calls === 3) return { status: 529, body: '{}' }
+      return counting(seen)
+    })
+    expect(await apiCounter({ key: KEY, baseUrl, retryDelayMs: 0 }).count('a b')).toBe(2)
+    expect(calls).toBe(4)
+  })
+
+  it('gives up after three retries', async () => {
+    const { baseUrl, seen } = await stub(() => ({ status: 429, body: '{}' }))
+    const error = await failure(apiCounter({ key: KEY, baseUrl, retryDelayMs: 0 }).count('x'))
+    expect(error.message).toBe('token counting API: HTTP 429')
+    expect(seen).toHaveLength(4)
+  })
+
+  it('does not follow a redirect with the key', async () => {
+    const { baseUrl } = await stub(() => ({ status: 307, body: '' }))
+    const error = await failure(apiCounter({ key: KEY, baseUrl }).count('x'))
+    expect(error.exit).toBe(5)
+  })
+})
+
 describe('selectCounter', () => {
   it('uses the API when a key is set', async () => {
     const { baseUrl } = await stub(counting)

@@ -125,7 +125,8 @@ function entryText(entry: CatalogEntry): string {
     `${entry.name}: ${entry.summary}\n`,
     `fields:\n${entry.fields.map(fieldLine).join('')}`,
     ...shapes,
-    `common: ${COMMON_FIELDS.join(', ')}\n`,
+    // A blank line, so `common` and `example` do not read as fields of the last shape.
+    `\ncommon: ${COMMON_FIELDS.join(', ')}\n`,
     `example: ${JSON.stringify(entry.example)}\n`,
   ].join('')
 }
