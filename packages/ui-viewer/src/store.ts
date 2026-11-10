@@ -111,10 +111,20 @@ export class DocStore {
     const temporary = `${file}${TEMPORARY_SUFFIX}`
     const text = JSON.stringify(document)
     const created = new Date(this.#now())
-    writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
-    // The file time is `createdAt` after a restart, so it must be this value exactly.
-    utimesSync(temporary, created, created)
-    renameSync(temporary, file)
+    try {
+      writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
+      // The file time is `createdAt` after a restart, so it must be this value exactly.
+      utimesSync(temporary, created, created)
+      renameSync(temporary, file)
+    } catch (error) {
+      // A full disk answers 507 (VD-160) and the Viewer goes on: the partial file must not stay.
+      try {
+        rmSync(temporary, { force: true })
+      } catch {
+        // Best effort: the next start removes it (`#load`).
+      }
+      throw error
+    }
     this.#lastSeq = seq
     const header = headerOf(document, seq, id, created.toISOString())
     this.#index({ header, file, bytes: Buffer.byteLength(text) })

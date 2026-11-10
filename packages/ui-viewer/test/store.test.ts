@@ -12,8 +12,42 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { VuiDocument } from '@vadd/ui-spec'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DocStore, MAX_BYTES, MAX_DOCS, slugify } from '../src/store.js'
+
+// A full disk cannot be made on demand, so one armed call on the temporary file throws (the
+// pattern of `ui-cli`'s file-host test). A failed write still leaves a partial file, as one does.
+type Step = 'writeFileSync' | 'utimesSync' | 'renameSync'
+const failure = vi.hoisted(() => ({ step: undefined as string | undefined }))
+vi.mock('node:fs', async (importOriginal) => {
+  const real = await importOriginal<typeof import('node:fs')>()
+  const armed = (step: Step, path: unknown) => {
+    if (failure.step !== step || !String(path).endsWith('.tmp')) return false
+    failure.step = undefined
+    return true
+  }
+  const full = () => Object.assign(new Error('no space left'), { code: 'ENOSPC' })
+  return {
+    ...real,
+    writeFileSync: ((...args: Parameters<typeof real.writeFileSync>) => {
+      if (!armed('writeFileSync', args[0])) return real.writeFileSync(...args)
+      real.writeFileSync(args[0], 'partial', args[2])
+      throw full()
+    }) as typeof real.writeFileSync,
+    utimesSync: ((...args: Parameters<typeof real.utimesSync>) => {
+      if (armed('utimesSync', args[0])) throw full()
+      return real.utimesSync(...args)
+    }) as typeof real.utimesSync,
+    renameSync: ((...args: Parameters<typeof real.renameSync>) => {
+      if (armed('renameSync', args[0])) throw full()
+      return real.renameSync(...args)
+    }) as typeof real.renameSync,
+  }
+})
+
+afterEach(() => {
+  failure.step = undefined
+})
 
 function temp(): string {
   return mkdtempSync(join(tmpdir(), 'vui-store-'))
@@ -243,4 +277,19 @@ describe('reload', () => {
     expect(again.after(0, 1)[0]?.seq).toBe(2)
     expect(names(dir)).not.toContain('1-n.vui.json')
   })
+
+  it.each(['writeFileSync', 'utimesSync', 'renameSync'] as const)(
+    'removes its temporary file when %s fails, and rethrows (the 507 path)',
+    (step) => {
+      const dir = temp()
+      const store = new DocStore(dir)
+      store.add(doc('kept'))
+      failure.step = step
+      expect(() => store.add(doc('lost'))).toThrow('no space left')
+      expect(failure.step).toBeUndefined()
+      expect(names(dir)).toEqual(['1-kept.vui.json'])
+      expect(store.size).toBe(1)
+      expect(store.add(doc('next')).seq).toBe(2)
+    },
+  )
 })
