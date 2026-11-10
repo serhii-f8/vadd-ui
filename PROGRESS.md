@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-10T10:12:39Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-10T15:41:28Z · Mode: manual
 
 ## Summary
-Done 19 / 22 · In progress: none · Blocked: none · Next: 20 — Hardening
+Done 20 / 22 · In progress: none · Blocked: none · Next: 21 — Host matrix and release preparation
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -47,7 +47,7 @@ Recorded 2026-11-04 during bootstrap.
 | 17 | Agent skill | §12.1 | 16 | done | removed | ctx_8fd8d4955071, ctx_1b30618a57dd | [design](docs/superpowers/specs/2026-11-06-agent-skill-design.md) | [plan](docs/superpowers/plans/2026-11-06-agent-skill.md) | 8f1fecd, fix f7a4267 | 2026-11-06 |
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | done | removed | ctx_22d6938816d6 | [design](docs/superpowers/specs/2026-11-07-ui-react-design.md) | [plan](docs/superpowers/plans/2026-11-07-ui-react.md) | b41f419 | 2026-11-07 |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | done | removed | ctx_6c182ecb9dfb | [design](docs/superpowers/specs/2026-11-10-vui-bench-design.md) | [plan](docs/superpowers/plans/2026-11-10-vui-bench.md) | bb2c492 | 2026-11-10 |
-| 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | todo | | | | | | |
+| 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | done | removed | ctx_5c23eb4a2a60 | [design](docs/superpowers/specs/2026-11-10-hardening-design.md) | [plan](docs/superpowers/plans/2026-11-10-hardening.md) | bbd7e43 | 2026-11-10 |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | todo | | | | | | |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
 
@@ -255,3 +255,14 @@ none
 - Worker evidence, not rerun: the API path against a 127.0.0.1 stub (framing subtraction, 401/500 exit 5, 429/529 retries, key validated and scrubbed, no redirects); the 5% gate tests (+6% fails, +4% and exactly 5% pass, a fall over 5% fails); a real-CLI +9.9% failed and +3.8% passed; bench evidence through `vui show` in Orca's pane.
 - Review: fresh reviewer found no Critical issues and 6 Important ones; 4 fixed with tests, among them a way for the API key to leak through a `fetch` header error; 2 declined with reasons (VD-156).
 - Follow-ups: task 20 now owns closing ratio.md and ratio.html at the cause (VD-157, TASKS.md). Pending the user: one `vui bench` run with a real API key (VD-149 framing check).
+
+### 20 — Hardening
+- Built: a structure-aware fuzzer (`packages/ui-spec/test/fuzz/generator.ts`) with renderer and CLI suites, 2,000 cases per suite in the gate and 100,000 through `pnpm fuzz`; an XSS corpus of 26 payloads through every text field on four paths (CLI file, Orca shell, Viewer feed, standalone page); axe-core 4.14.0 over every visual-regression page; full visual baselines (258 PNGs, 360/720/1100 px, light and dark, every core component and the §19 examples); a §9.5 timing and memory gate in Chromium (`e2e/budgets.spec.ts`, `scripts/check-perf-budgets.mjs`, a committed reference bundle); positional `stats` items (VD-164); the deferred defects.
+- Deferred items closed: `code.test.ts` watchdog reads the best of 5 renders (VD-158); one slug function (VD-159); an unwritable store answers 507 and `vui show` exits 5 (VD-160); the shareable page drops `meta.cwd`/`meta.branch` (VD-161); donut overflow (VD-162); an unrecordable pane, and the Orca stubs audited (VD-163); task 16's two missing tests; `Output` toggle names; `e2e/` back under `noUncheckedIndexedAccess`, the vendored files in their own project (VD-172).
+- Fuzz findings: 8 defects, each fixed with a regression test in its package (VD-166), among them a `diff` change mark given as an array, and `ui-text` padding growing without bound on wide tables (§15.1 resource exhaustion).
+- Decisions: VD-158 to VD-172. DEVIATIONs: VD-165 (§14.2 ratio.md 1.582 and ratio.html 0.425 still unmet; an open release gate), VD-166 (the gate fuzzes 2,000 cases per suite and `pnpm fuzz` runs 100k), VD-168 (`vui render --cdn` adds `lang` and `<title>` to §10.2's first line), VD-171 (the 5% perf check holds only on the baseline's CPU; elsewhere only the §9.5 limits apply).
+- Evidence (coordinator rerun on `main` at bbd7e43, load 4.7–18.5): `pnpm gate` exit 0. Vitest 119 files, 7,253 tests. Playwright 475. Lines 99.67% (5472/5490), statements 99.11%. Bundle 110.4 KiB / 37.7 KiB gzip. Forbidden APIs clean on 95 source and 74 dist files. `check-token-budgets`: 29 metrics within 5%, the two ratio misses accepted. `check-perf-budgets`: 4 metrics within 5%.
+- Coordinator probes on the real CLI: a positional `stats` item renders to markdown beside an object item (`**Orders:** 18,420 (+6.4%)`), exit 0; a 7-position item exits 1 with `expected an object, got array`; an `<img onerror>` title and a `<script>` md text appear only inside the inert `application/vui+json` block, with `</script>` escaped as `<\/script>`; a fresh seed (777) at 5,000 cases passed both fuzz suites.
+- Worker evidence, not rerun: `pnpm fuzz` at 100,000 renderer cases (seed 3307608597) and 100,000 CLI cases plus 1,000 real-binary cases (seed 3307608531), exit 0; the full e2e twice and the perf check under synthetic load 17–41; ×1.06 code and CSS mutants fail the perf gate and ×1.04 passes; §9.5 raw values table 2.0 ms ≤ 30, doc20 1.7 ms ≤ 15, chart 5.6 ms ≤ 25, memory 1.94 MB ≤ 8 MB on an AMD Ryzen 9 9950X3D, 8 cores in WSL 2, 35.2 GiB RAM, Chromium 156.0.8078.4.
+- Review: a fresh final review; 8 findings fixed, minors 2–7, 9 and 11 left with reasons in the worker report.
+- Follow-ups for task 21 and the final summary: the §14.2 ratios stay an open release-gate DEVIATION (VD-155, VD-157, VD-165); no CI job runs `pnpm fuzz`, so run it before release; the spec's hand-written §10.2 CDN template lacks `lang`/`title` (VD-168); the perf baseline needs `--update` on CI hardware (VD-171). Minor: a too-long positional `stats` item says `expected an object, got array`, where naming the position count would help.
