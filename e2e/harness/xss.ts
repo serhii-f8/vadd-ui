@@ -35,18 +35,19 @@ export const PAYLOADS: readonly string[] = [
   '\u001b]8;;javascript:alert(1)\u0007link\u001b]8;;\u0007',
 ]
 
-/** What a payload stands in for in `TEMPLATE`. */
-const SLOT = '{p}'
+/** A payload's place in `TEMPLATE`: `{p}`, or `{p@name}` where two fields must be equal. */
+const SLOT = /\{p(?:@(\w+))?\}/g
 
 const leaf = { type: 'progress', value: 1, max: 2 }
 
 /**
  * All 24 components (`COMPONENT_TYPES`), with every string field of §6 and `types.ts` set.
- * `{p}` marks free text and every key that renders; a string with no `{p}` is an enum, a
- * format, `lang`, `locale` or an id. Text that must stay distinct (flow ids, record keys,
- * diff paths) carries a suffix, so the document stays valid with any payload in place.
- * Each top-level node has the id `x-<name>`, so the oracle can look inside each one.
- * Containers hold a `progress` with no label, so their own fields are all the text they show.
+ * `{p}` marks free text and every key that renders; a string with no slot is an enum, a
+ * format, `lang`, `locale` or an id. Each slot gets the payload plus its own marker `⟨n⟩`,
+ * so the oracle can tell each field apart and distinct strings stay distinct. `{p@name}`
+ * slots share one marker: a flow edge names its nodes, a hunk names its file, a `tones` key
+ * names a cell value. Each top-level node has the id `x-<name>`. Containers hold a `progress`
+ * with no label, so their own fields are all the text they show.
  */
 export const TEMPLATE = {
   vui: 1,
@@ -78,7 +79,7 @@ export const TEMPLATE = {
       active: 0,
       tabs: [
         { label: '{p}', children: [leaf] },
-        { label: '{p} 2', children: [leaf] },
+        { label: '{p}', children: [leaf] },
       ],
     },
     { type: 'divider', id: 'x-divider', label: '{p}' },
@@ -87,7 +88,7 @@ export const TEMPLATE = {
       id: 'x-md',
       title: '{p}',
       note: '{p}',
-      text: '### {p}\n\n#### {p}\n\n{p} [ok](https://example.com/{p}) ![img](https://example.com/i.png)\n\n- {p}\n- [ ] {p}\n\n1. {p}\n\n> {p}\n\n```\n{p}\n```',
+      text: '### {p}\n\n#### {p}\n\n{p} [{p}](https://example.com/{p}) ![{p}](https://example.com/i.png)\n\n- {p}\n- [ ] {p}\n\n1. {p}\n\n> {p}\n\n```\n{p}\n```',
     },
     { type: 'callout', id: 'x-callout', title: '{p}', note: '{p}', tone: 'warn', text: '{p}' },
     {
@@ -108,9 +109,9 @@ export const TEMPLATE = {
       note: '{p}',
       columns: [
         '{p}',
-        '{p} 2:ms',
+        '{p}:ms',
         {
-          key: '{p} k',
+          key: '{p}',
           label: '{p}',
           format: 'text',
           align: 'left',
@@ -118,14 +119,14 @@ export const TEMPLATE = {
           width: 'wide',
           wrap: true,
         },
-        { key: '{p} b', label: '{p}', cell: 'badge', tones: { '{p} t': 'ok' } },
-        '{p} 3:link',
-        '{p} 4:path',
-        { key: '{p} c', label: '{p}', cell: 'code' },
+        { key: '{p}', label: '{p}', cell: 'badge', tones: { '{p@tone}': 'ok' } },
+        '{p}:link',
+        '{p}:path',
+        { key: '{p}', label: '{p}', cell: 'code' },
       ],
       rows: [
-        ['{p}', 12, '{p}', '{p} t', '{p}', '{p}', '{p}', { tone: 'warn', note: '{p}' }],
-        ['{p} r', 30, '{p}', '{p}', 'https://example.com/{p}', '{p}/a', '{p}'],
+        ['{p}', 12, '{p}', '{p@tone}', '{p}', '{p}', '{p}', { tone: 'warn', note: '{p}' }],
+        ['{p}', 30, '{p}', '{p}', 'https://example.com/{p}', '{p}/{p}', '{p}'],
       ],
       totals: ['{p}', 42, '{p}', '{p}', '{p}', '{p}', '{p}'],
       sort: [1, 'asc'],
@@ -136,10 +137,10 @@ export const TEMPLATE = {
       type: 'table',
       id: 'x-table-group',
       title: '{p}',
-      columns: ['{p}', '{p} 2'],
+      columns: ['{p}', '{p}'],
       rows: [
-        ['{p}', '{p}'],
-        ['{p}', '{p} 2'],
+        ['{p@group}', '{p}'],
+        ['{p@group}', '{p}'],
       ],
       group: 0,
     },
@@ -151,12 +152,12 @@ export const TEMPLATE = {
       cols: 2,
       pairs: [
         ['{p}', '{p}'],
-        ['{p} 2', '{p}', 'text'],
-        ['{p} 3', '{p}', 'link'],
-        ['{p} 4', '{p}', 'code'],
+        ['{p}', '{p}', 'text'],
+        ['{p}', '{p}', 'link'],
+        ['{p}', '{p}', 'code'],
       ],
     },
-    { type: 'kv', id: 'x-kv-object', title: '{p}', pairs: { '{p}': '{p}', '{p} 2': 3 } },
+    { type: 'kv', id: 'x-kv-object', title: '{p}', pairs: { '{p}': '{p}', '{p} ': 3 } },
     {
       type: 'stats',
       id: 'x-stats',
@@ -172,7 +173,7 @@ export const TEMPLATE = {
           tone: 'ok',
           spark: [1, 2, 3],
         },
-        ['{p} 2', 3, 'num', -1, 'num', 'err'],
+        ['{p}', 3, 'num', -1, 'num', 'err'],
       ],
     },
     {
@@ -198,7 +199,7 @@ export const TEMPLATE = {
       id: 'x-compare',
       title: '{p}',
       note: '{p}',
-      options: ['{p}', '{p} 2'],
+      options: ['{p}', '{p}'],
       criteria: [{ label: '{p}', values: ['{p}', '{p}'], format: 'text', better: 'high' }],
       pick: 0,
     },
@@ -208,8 +209,8 @@ export const TEMPLATE = {
       title: '{p}',
       note: '{p}',
       kind: 'bar',
-      x: ['{p}', '{p} 2'],
-      series: { '{p}': [1, 2], '{p} 2': [2, 1] },
+      x: ['{p}', '{p}'],
+      series: { '{p}': [1, 2], '{p} ': [2, 1] },
       yFormat: 'num',
       height: 'sm',
       legend: 'auto',
@@ -221,15 +222,15 @@ export const TEMPLATE = {
       title: '{p}',
       kind: 'stacked',
       stackTotal: true,
-      x: ['{p}', '{p} 2'],
-      series: { '{p}': [1, 2], '{p} 2': [2, 1] },
+      x: ['{p}', '{p}'],
+      series: { '{p}': [1, 2], '{p} ': [2, 1] },
     },
     {
       type: 'chart',
       id: 'x-chart-donut',
       title: '{p}',
       kind: 'donut',
-      x: ['{p}', '{p} 2'],
+      x: ['{p}', '{p}'],
       series: { '{p}': [1, 2] },
     },
     {
@@ -238,7 +239,7 @@ export const TEMPLATE = {
       title: '{p}',
       kind: 'line',
       x: [1, 2, 3],
-      series: { '{p}': [1, 3, 2], '{p} 2': [2, 2, 1] },
+      series: { '{p}': [1, 3, 2], '{p} ': [2, 2, 1] },
       xFormat: 'num',
     },
     { type: 'chart', id: 'x-chart-spark', title: '{p}', kind: 'spark', values: [1, 3, 2] },
@@ -259,7 +260,7 @@ export const TEMPLATE = {
       note: '{p}',
       items: [
         { name: '{p}', status: 'fail', cmd: '{p}', ms: 12, output: '{p}' },
-        { name: '{p} 2', status: 'ok' },
+        { name: '{p}', status: 'ok' },
       ],
     },
     {
@@ -282,19 +283,19 @@ export const TEMPLATE = {
       title: '{p}',
       note: '{p}',
       files: [
-        ['{p}', 1, 2, 'M'],
-        ['{p} 2', 3, 0],
+        ['{p@file}', 1, 2, 'M'],
+        ['{p}', 3, 0],
       ],
-      hunks: { '{p}': '@@ -1 +1 @@\n-{p}\n+{p}' },
+      hunks: { '{p@file}': '@@ -1 +1 @@\n-{p}\n+{p}' },
     },
     {
       type: 'tree',
       id: 'x-tree',
       title: '{p}',
       note: '{p}',
-      items: [{ name: '{p}', status: 'ok', note: '{p}', children: [{ name: '{p} 2' }] }],
+      items: [{ name: '{p}', status: 'ok', note: '{p}', children: [{ name: '{p}' }] }],
     },
-    { type: 'tree', id: 'x-tree-paths', title: '{p}', paths: ['{p} 1', '{p} 2'] },
+    { type: 'tree', id: 'x-tree-paths', title: '{p}', paths: ['{p}', '{p}/{p}'] },
     {
       type: 'timeline',
       id: 'x-timeline',
@@ -319,7 +320,7 @@ export const TEMPLATE = {
           risk: 'low',
           verify: '{p}',
         },
-        { label: '{p} 2' },
+        { label: '{p}' },
       ],
       pick: 0,
     },
@@ -329,8 +330,8 @@ export const TEMPLATE = {
       id: 'x-flow',
       title: '{p}',
       note: '{p}',
-      nodes: ['{p} 1', { id: '{p} 2', label: '{p}', status: 'ok' }],
-      edges: [['{p} 1', '{p} 2', '{p}']],
+      nodes: ['{p@a}', { id: '{p@b}', label: '{p}', status: 'ok' }],
+      edges: [['{p@a}', '{p@b}', '{p}']],
     },
   ],
 } as const
@@ -340,68 +341,118 @@ export const NODE_IDS: readonly string[] = TEMPLATE.body.map(({ id }) => id)
 
 export type Mode = 'text' | 'all'
 
+/** One payload slot: its marker, and where it sits (`#<node id>/<field>`, `[key]` for a key). */
+export interface Slot {
+  marker: string
+  where: string
+}
+
 /** Node `type` stays, or every node would be the same unknown-type card. */
 const KEPT = new Set(['type'])
 
-function substitute(text: string, payload: string): string {
-  return text.split(SLOT).join(payload)
-}
+class Poisoner {
+  next = 0
+  readonly slots = new Map<string, Slot>()
 
-function poisonValue(value: unknown, payload: string, mode: Mode, field?: string): unknown {
-  if (typeof value === 'string') {
-    if (value.includes(SLOT)) return substitute(value, payload)
-    return mode === 'all' && !(field !== undefined && KEPT.has(field)) ? payload : value
+  constructor(
+    readonly payload: string,
+    readonly mode: Mode,
+  ) {}
+
+  text(text: string, where: string): string {
+    let index = 0
+    return text.replace(SLOT, (_match, name: string | undefined) => {
+      index += 1
+      const marker = `⟨${name ?? this.next++}⟩`
+      const at = (text.match(SLOT) ?? []).length > 1 ? `${where} (slot ${index})` : where
+      if (!this.slots.has(marker)) this.slots.set(marker, { marker, where: name ? `@${name}` : at })
+      return `${this.payload}${marker}`
+    })
   }
-  if (Array.isArray(value)) return value.map((item) => poisonValue(item, payload, mode))
-  if (typeof value === 'object' && value !== null) {
-    const result: Record<string, unknown> = {}
-    for (const [key, item] of Object.entries(value)) {
-      result[substitute(key, payload)] = poisonValue(item, payload, mode, key)
+
+  value(value: unknown, where: string, field?: string): unknown {
+    if (typeof value === 'string') {
+      if (value.match(SLOT)) return this.text(value, where)
+      const kept = field !== undefined && KEPT.has(field)
+      return this.mode === 'all' && !kept ? this.payload : value
     }
-    return result
+    if (Array.isArray(value)) {
+      return value.map((item, index) => {
+        const id = where === '/body' ? (item as { id?: unknown }).id : undefined
+        return this.value(item, typeof id === 'string' ? `#${id}` : `${where}/${index}`)
+      })
+    }
+    if (typeof value === 'object' && value !== null) {
+      const result: Record<string, unknown> = {}
+      for (const [index, [key, item]] of Object.entries(value).entries()) {
+        const field = key.match(SLOT) ? `${where}[key ${index}]` : `${where}/${key}`
+        result[this.text(key, field)] = this.value(item, field, key)
+      }
+      return result
+    }
+    return value
   }
-  return value
 }
 
 /**
- * `text`: every free-text string and rendered key carries the payload; enums stay valid.
- * `all`: also every other string but `type`, plus a node whose `type` is the payload.
+ * `text`: every free-text string and rendered key carries the payload and its slot's marker;
+ * enums stay valid. `all`: also every other string but `type`, plus a node whose `type`,
+ * `id` and `title` are the payload.
  */
 export function poison(document: object, payload: string, mode: Mode): Record<string, unknown> {
-  const poisoned = poisonValue(document, payload, mode) as Record<string, unknown>
+  const poisoned = new Poisoner(payload, mode).value(document, '') as Record<string, unknown>
   if (mode === 'all' && Array.isArray(poisoned.body)) {
     poisoned.body = [...poisoned.body, { type: payload, id: payload, title: payload }]
   }
   return poisoned
 }
 
-/** How rendered text compares with a payload: controls gone, whitespace collapsed. */
+/** Every slot of `TEMPLATE`, in document order. Markers do not depend on the payload. */
+export const SLOTS: readonly Slot[] = (() => {
+  const poisoner = new Poisoner('', 'text')
+  poisoner.value(TEMPLATE, '')
+  return [...poisoner.slots.values()]
+})()
+
+/**
+ * How rendered text compares with a payload: controls gone, whitespace collapsed, and the
+ * §5.5 markers `*`, `~` and `` ` `` dropped, since a pair of them, even across two fields of
+ * one paragraph, renders as emphasis, strike or code.
+ */
 export function comparable(text: string): string {
-  return cleanText(text).replace(/\s+/g, ' ').trim()
+  return cleanText(text).replace(/[*~`]/g, '').replace(/\s+/g, ' ').trim()
 }
 
 /** What the oracle saw in one frame. */
 export interface Scan {
   /** Every finding, as `<tag> <what>`. Empty when the frame is safe. */
   unsafe: string[]
-  /** All text outside `script` and `style`, through open shadow roots. */
+  /** All text outside `script` and `style`, and every `title` attribute (a tooltip), through
+   * open shadow roots. */
   text: string
-  /** The text of each element with an id, in any shadow root. A repeated id keeps each. */
-  byId: Record<string, string[]>
 }
 
 /**
- * The DOM oracle (§15.1). `ownScripts` is how many `script` elements the page itself holds.
- * A finding: one more `script`, or one inside a rendered root; an `iframe`, `frame`, `object`,
- * `embed`, `applet` or `form`; an `on*` attribute; `srcdoc`, `srcset`, `action` or
- * `formaction`; an `href`, `src` or `xlink:href` that is not `http:`, `https:`, `mailto:` or
- * a `#` fragment (Orca's `<base href="about:srcdoc">` and the feed's `data:` icon aside); a link to elsewhere without `rel="noopener"`; `alert(`, `url(` or
- * `expression(` in a `style` or `class`.
+ * The DOM oracle (§15.1), through open shadow roots. `ownScripts` is how many `script`
+ * elements the page itself holds. A finding:
+ * - one more `script` than that;
+ * - a `script`, `style`, `meta`, `base` or `link` in a rendered root (`.vui-root`, `.vui-doc`
+ *   or deeper than the top of a shadow root, where the feed puts its stylesheet);
+ * - an `iframe`, `frame`, `object`, `embed`, `applet`, `form`, or SVG `animate`, `set`,
+ *   `animateMotion`, `animateTransform`;
+ * - an `on*` attribute; `srcdoc`, `srcset`, `action`, `formaction`; `attributeName` naming a
+ *   link; `to`, `from`, `by` or `values` holding a `javascript:` or `data:` URL;
+ * - an `href`, `src` or `xlink:href` that is not `http:`, `https:`, `mailto:` or a `#`
+ *   fragment (Orca's `<base href="about:srcdoc">` and the feed's `data:` icon aside);
+ * - a link elsewhere without `rel="noopener"`;
+ * - `alert(`, `url(` or `expression(` in a `style` or `class`.
  */
-export function scan(frame: Frame, ownScripts: number): Promise<Scan> {
-  return frame.evaluate((own) => {
+export async function scan(frame: Frame, ownScripts: number): Promise<Scan> {
+  // A diff's hunks are built when their file is opened, so open each first.
+  const closed = frame.locator('[data-vui-type="diff"] .vui-fold-toggle[aria-expanded="false"]')
+  while ((await closed.count()) > 0) await closed.first().click()
+  return await frame.evaluate((own) => {
     const unsafe: string[] = []
-    const byId: Record<string, string[]> = {}
     const elements: Element[] = []
     const visit = (root: Document | ShadowRoot) => {
       for (const element of root.querySelectorAll('*')) {
@@ -414,33 +465,40 @@ export function scan(frame: Frame, ownScripts: number): Promise<Scan> {
       if (node.nodeType === Node.TEXT_NODE) return node.nodeValue ?? ''
       if (node instanceof Element && ['script', 'style'].includes(node.localName)) return ''
       let text = ''
+      // A tooltip holds what a clipped cell shows in part, such as a long `path`.
+      const title = node instanceof Element ? node.getAttribute('title') : null
+      if (title !== null) text += ` ${title} `
       if (node instanceof Element && node.shadowRoot) text += textOf(node.shadowRoot)
       for (const child of node.childNodes) text += textOf(child)
       return text
     }
     const URL_ATTRIBUTES = ['href', 'src', 'xlink:href']
     const BANNED_ATTRIBUTES = ['srcdoc', 'srcset', 'action', 'formaction']
+    const ANIMATED_VALUES = ['to', 'from', 'by', 'values']
     const BANNED_TAGS = ['iframe', 'frame', 'object', 'embed', 'applet', 'form']
+    const BANNED_SVG = ['animate', 'set', 'animatemotion', 'animatetransform']
+    const HEAD_TAGS = ['script', 'style', 'meta', 'base', 'link']
     const SAFE_SCHEMES = ['http:', 'https:', 'mailto:']
     let scripts = 0
     for (const element of elements) {
       const tag = element.localName
-      if (tag === 'script') {
-        scripts += 1
+      if (tag === 'script') scripts += 1
+      if (HEAD_TAGS.includes(tag)) {
         const root = element.getRootNode()
-        if (root instanceof ShadowRoot || element.closest('.vui-root, .vui-doc')) {
-          unsafe.push('script inside a rendered root')
+        const deep = root instanceof ShadowRoot && element.parentNode !== root
+        if (deep || element.closest('.vui-root, .vui-doc')) {
+          unsafe.push(`${tag} inside a rendered root`)
         }
       }
-      if (BANNED_TAGS.includes(tag)) unsafe.push(`${tag} element`)
-      if (element.id !== '') {
-        byId[element.id] ??= []
-        byId[element.id]?.push(textOf(element))
+      if (BANNED_TAGS.includes(tag) || BANNED_SVG.includes(tag.toLowerCase())) {
+        unsafe.push(`${tag} element`)
       }
       for (const { name, value } of element.attributes) {
         const shown = `${tag} ${name}=${JSON.stringify(value.slice(0, 60))}`
         if (name.startsWith('on')) unsafe.push(shown)
         if (BANNED_ATTRIBUTES.includes(name)) unsafe.push(shown)
+        if (name.toLowerCase() === 'attributename' && /href/i.test(value)) unsafe.push(shown)
+        if (ANIMATED_VALUES.includes(name) && /javascript:|data:/i.test(value)) unsafe.push(shown)
         if ((name === 'style' || name === 'class') && /alert\(|url\(|expression\(/i.test(value)) {
           unsafe.push(shown)
         }
@@ -465,14 +523,14 @@ export function scan(frame: Frame, ownScripts: number): Promise<Scan> {
       }
     }
     if (scripts !== own) unsafe.push(`${scripts} script elements, expected ${own}`)
-    return { unsafe, text: textOf(document), byId }
+    return { unsafe, text: textOf(document) }
   }, ownScripts)
 }
 
 /** The console line the init script prints when any dialog function runs in any frame. */
 export const RAN = 'vui-xss-ran'
 
-/** Records every dialog and every call of a dialog function, in every frame. */
+/** Records every dialog, every call of a dialog function and every page error, in any frame. */
 export async function watchExecution(page: Page): Promise<string[]> {
   const ran: string[] = []
   page.on('dialog', (dialog) => {
@@ -482,7 +540,7 @@ export async function watchExecution(page: Page): Promise<string[]> {
   page.on('console', (message) => {
     if (message.text().startsWith(RAN)) ran.push(message.text())
   })
-  page.on('pageerror', () => undefined)
+  page.on('pageerror', (error) => ran.push(`pageerror: ${error.message}`))
   // A sandboxed frame without `allow-modals` drops `alert` silently, so the call itself
   // must tell. Runs in every frame before its own scripts.
   await page.addInitScript((marker) => {
