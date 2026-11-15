@@ -12,4 +12,18 @@ const compareCss = `
 .vui-compare-best::after{content:"";display:inline-block;width:.45em;height:.45em;margin-inline-start:.35em;border-radius:50%;background:var(--vui-ok);vertical-align:.12em}
 `
 
-export const extCss = compareCss
+const flowCss = `
+.vui-flow{min-width:0;overflow-x:auto}
+.vui-flow svg{display:block;max-width:none}
+.vui-flow text{fill:var(--vui-surface-fg);font-size:12px}
+.vui-flow-node{fill:var(--vui-surface);stroke:var(--vui-tone-line,var(--vui-border));stroke-width:1.5}
+.vui-flow-box[class*="vui-tone-"] .vui-flow-node{fill:color-mix(in srgb,var(--vui-tone-line) 10%,var(--vui-surface))}
+.vui-flow-implicit .vui-flow-node{stroke-dasharray:4 3}
+.vui-flow-edge{fill:none;stroke:var(--vui-muted-fg);stroke-width:1.25}
+.vui-flow-back{stroke-dasharray:5 4}
+.vui-flow-arrows{fill:var(--vui-muted-fg)}
+.vui-flow-edge-label path{fill:var(--vui-muted)}
+.vui-flow .vui-flow-edge-label text{font-size:11px}
+`
+
+export const extCss = compareCss + flowCss

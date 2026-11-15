@@ -56,8 +56,10 @@ export const compare: Component = {
         ...options.map((_, index) => {
           const value: JsonValue = values[index] ?? null
           const name = typeof format === 'string' ? format : undefined
-          const classes = [best.has(index) ? 'vui-compare-best' : '', win(index) ?? '']
-          return el('td', { class: classes.join(' ').trim() || undefined }, [
+          const classes = [best.has(index) ? 'vui-compare-best' : '', win(index) ?? ''].filter(
+            Boolean,
+          )
+          return el('td', { class: classes.join(' ') || undefined }, [
             ...context.value(value, name, `${at}/values/${index}`),
             best.has(index) ? hidden(' best') : null,
           ])
