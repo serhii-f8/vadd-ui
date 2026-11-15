@@ -1,0 +1,41 @@
+name: Release
+
+# §10.3: publishes every @vadd/ui* package to npm with provenance. Run by hand from a tag
+# (`vX.Y.Z`) after the release checklist (docs/vadd-ui/release/RELEASE_CHECKLIST.md). Never
+# triggered by a push: a publish is a decision, not a side effect.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # npm provenance signs with the workflow's OIDC token (§15.1).
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches the shared version (§17.2)
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          test "${GITHUB_REF}" = "refs/tags/v${version}" || {
+            echo "run this from tag v${version}, not ${GITHUB_REF}"; exit 1; }
+      - name: Provenance needs a repository URL
+        run: node -e "const r=require('./packages/ui/package.json').repository; if (!r) { console.error('set repository in every package.json first'); process.exit(1) }"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm gate
+      - name: Publish
+        run: pnpm -r publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
