@@ -62,6 +62,12 @@ describe('compareWinner', () => {
     expect(compareWinner({ options: ['x', 'y'], criteria, pick: 0.5 })).toBe(0)
   })
 
+  it('counts wins over more options than an argument list may hold', () => {
+    const options = Array.from({ length: 300_000 }, () => '')
+    const values = options.map((_, index) => (index === 7 ? 0 : 1))
+    expect(compareWinner({ options, criteria: [{ values, better: 'low' }] })).toBe(7)
+  })
+
   it('has no winner on a tie or without directions', () => {
     const tie = [
       { label: 'a', values: [1, 2], better: 'low' },

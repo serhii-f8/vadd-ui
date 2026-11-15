@@ -47,6 +47,8 @@ describe('flow (§6.5)', () => {
     const shown = box.querySelector('.vui-flow-label') as SVGTextElement
     expect([...(shown.textContent ?? '')].length).toBeLessThanOrEqual(22)
     expect(box.querySelector('g.vui-flow-box > title')?.textContent).toBe(label)
+    const statused = flow().box.querySelector('g.vui-flow-box > title')?.textContent
+    expect(statused).toBe('Build the bundle (ok)')
   })
 
   it('shows a status by tone and by glyph', () => {
@@ -79,6 +81,47 @@ describe('flow (§6.5)', () => {
     expect(handle.diagnostics.some((d) => d.code === 'bad-ref')).toBe(true)
     expect(all(box, 'path.vui-flow-back')).toHaveLength(1)
     expect(all(box, 'g.vui-flow-implicit')).toHaveLength(1)
+  })
+
+  it('routes a back edge under every box, and caps the lanes many cycles need', () => {
+    const { box } = flow({
+      nodes: ['a', 'b', 'c', 'd'],
+      edges: [
+        ['a', 'b'],
+        ['a', 'c'],
+        ['b', 'd'],
+        ['d', 'a', 'retry'],
+      ],
+    })
+    const image = box.querySelector('svg') as SVGElement
+    const height = Number(image.getAttribute('height'))
+    const lowest = Math.max(
+      ...all(box, 'g.vui-flow-box').map((g) =>
+        Number(/translate\([\d.]+ ([\d.]+)\)/.exec(g.getAttribute('transform') ?? '')?.[1]),
+      ),
+    )
+    const lane = Number(
+      /L[\d.]+ ([\d.]+)/.exec(box.querySelector('.vui-flow-back')?.getAttribute('d') ?? '')?.[1],
+    )
+    expect(lane).toBeGreaterThan(lowest + 32)
+    expect(lane).toBeLessThan(height)
+    const nodes = Array.from({ length: 40 }, (_, index) => `n${index}`)
+    const edges = [
+      ...nodes.slice(1).map((id, index) => [nodes[index] ?? '', id]),
+      ...nodes.slice(1).map((id) => [id, 'n0']),
+    ]
+    const many = flow({ nodes, edges }).box.querySelector('svg') as SVGElement
+    expect(Number(many.getAttribute('height'))).toBeLessThan(200)
+  })
+
+  it('stays under the 2,000 px frame with 40 rows (§9.3)', () => {
+    const nodes = Array.from({ length: 40 }, (_, index) => `n${index}`)
+    const star = nodes.slice(1).map((id) => ['n0', id])
+    const cycles = nodes.slice(1).map((id) => [id, 'n0'])
+    for (const edges of [[], star, [...star, ...cycles]]) {
+      const image = flow({ nodes, edges }).box.querySelector('svg') as SVGElement
+      expect(Number(image.getAttribute('height'))).toBeLessThanOrEqual(1960)
+    }
   })
 
   it('lists nodes and their edges for a screen reader', () => {

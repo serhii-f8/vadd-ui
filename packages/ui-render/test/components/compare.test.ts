@@ -52,6 +52,14 @@ describe('compare (§6.3)', () => {
     expect(rows[2]).toBe('Notes')
   })
 
+  it('ignores a direction that is a prototype key', () => {
+    const { box } = compare({
+      criteria: [{ label: 'p95', values: [1, 2, 3], better: 'constructor' }],
+    })
+    expect(texts(box, 'tbody th')).toEqual(['p95'])
+    expect(all(box, '.vui-compare-best')).toEqual([])
+  })
+
   it('crowns the computed winner when there is no pick', () => {
     const { box } = compare()
     const win = all(box, '.vui-compare-win')

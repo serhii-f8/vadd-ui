@@ -1,4 +1,4 @@
-import { compareBest, compareWinner, isJsonObject, type JsonValue } from '@vadd/ui-spec'
+import { compareBest, compareWinner, hasOwn, isJsonObject, type JsonValue } from '@vadd/ui-spec'
 import type { Component } from '../context.js'
 import { el } from '../el.js'
 import { field, nodeList, text } from './fields.js'
@@ -45,7 +45,8 @@ export const compare: Component = {
       const better = field(item, 'better')
       const best = compareBest(values, better, options.length)
       const format = field(item, 'format')
-      const direction = typeof better === 'string' ? DIRECTIONS[better] : undefined
+      const direction =
+        typeof better === 'string' && hasOwn(DIRECTIONS, better) ? DIRECTIONS[better] : undefined
       return el('tr', {}, [
         el('th', { scope: 'row' }, [
           ...context.inline(text(item, 'label')),

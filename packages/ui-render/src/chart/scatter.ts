@@ -1,6 +1,7 @@
 import {
   CHART_LABELS,
   clip,
+  hasOwn,
   inlineToPlain,
   isJsonObject,
   type JsonObject,
@@ -68,7 +69,9 @@ function axis(values: number[]) {
 export function renderScatter(node: JsonObject, context: NodeContext): HTMLElement {
   const label = CHART_LABELS.scatter
   const name = inlineToPlain(parseInline(text(node, 'title'))) || label
-  const height = HEIGHTS[String(field(node, 'height'))] ?? 200
+  // No `String()` and no prototype key: past the diagnostics cap the field can be anything (VD-180).
+  const size = field(node, 'height')
+  const height = typeof size === 'string' && hasOwn(HEIGHTS, size) ? (HEIGHTS[size] as number) : 200
   const points = readPoints(node)
   const refLines: RefLine[] = nodeList(node, 'refLines').flatMap((line) => {
     const y = isJsonObject(line) ? finite(line, 'y') : undefined

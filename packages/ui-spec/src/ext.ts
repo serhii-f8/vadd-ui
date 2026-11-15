@@ -60,7 +60,7 @@ export function compareWinner(node: {
     for (const index of compareBest(values, better, count))
       wins[index] = (wins[index] as number) + 1
   }
-  const most = Math.max(0, ...wins)
+  const most = wins.reduce((top, win) => Math.max(top, win), 0)
   const leaders = wins.flatMap((win, index) => (win === most ? [index] : []))
   return most > 0 && leaders.length === 1 ? leaders[0] : undefined
 }

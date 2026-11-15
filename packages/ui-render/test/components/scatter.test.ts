@@ -122,6 +122,21 @@ describe('scatter (§6.4, §9.4)', () => {
     expect(d(one.box)).toMatch(/^M[\d.]+ [\d.]+h0$/)
   })
 
+  it('ignores a height that is an object or a prototype key, past validation (VD-180)', () => {
+    const context = {
+      pointer: '/body/0',
+      format: (value: unknown) => ({ text: String(value) }),
+      checkpoint() {},
+      onDestroy() {},
+    }
+    for (const height of [{ toString: 1 }, 'constructor', 'toString']) {
+      const node = { type: 'chart', kind: 'scatter', points: [[1, 2]], height }
+      const box = renderScatter(node as never, context as never)
+      expect(q(box, 'svg')?.getAttribute('height')).toBe('200')
+      expect(d(box)).not.toMatch(/NaN/)
+    }
+  })
+
   it('keeps coordinates finite at the ends of the number range', () => {
     const { box } = scatter({
       points: [
