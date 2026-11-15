@@ -21,8 +21,11 @@ const CASE_MS = 2_000
 const TEXT_SHARE = 10
 /** What `ui-text` answers when its own catch-all fired, which is a throw in disguise. */
 const TEXT_FAILED = 'Could not render this document\n'
-/** One case in this many sits behind `issuePad`, so no field is checked or dropped (VD-187). */
-const UNCHECKED_SHARE = 20
+/** One case in this many sits behind `issuePad`, so no field is checked or dropped (VD-187).
+ * Each costs about 100 ms, the pad's 20,000 fields, so they stay a small share. */
+const UNCHECKED_SHARE = 100
+/** About 3.5 ms per case, plus the unchecked ones, with room for a slower machine. */
+const RUN_MS = Math.max(600_000, CASES * 10)
 
 /** What is wrong with case `index`, an object or text, or nothing. */
 function check(document: unknown, next: unknown): string[] {
@@ -86,5 +89,5 @@ describe('the renderer under fuzzing', () => {
     }
     expect(texts, 'cases rendered from text').toBe(Math.floor(CASES / TEXT_SHARE))
     expect(unchecked, 'cases past the issue cap').toBe(Math.floor((CASES + 1) / UNCHECKED_SHARE))
-  }, 600_000)
+  }, RUN_MS)
 })
