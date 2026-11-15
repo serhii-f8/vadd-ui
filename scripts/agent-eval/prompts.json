@@ -1,0 +1,202 @@
+[
+  {
+    "id": "test-run-auth",
+    "component": "checks",
+    "prompt": "I just ran the auth module tests. Results: login_valid passed 120ms, login_bad_password passed 95ms, refresh_rotates passed 210ms, refresh_expired FAILED 180ms (AssertionError: expected 401, got 500 at src/auth/refresh.ts:44), logout_clears passed 60ms, session_timeout skipped (needs clock mock). Give me the summary."
+  },
+  {
+    "id": "bench-endpoints",
+    "component": "table",
+    "prompt": "Here are p50/p95/p99 latencies (ms) and RPS for our API endpoints from today's load test. GET /users: 12, 40, 95, 1800. GET /users/:id: 8, 22, 51, 2400. POST /orders: 45, 160, 410, 300. GET /orders: 30, 90, 240, 950. GET /search: 70, 310, 880, 600. DELETE /orders/:id: 25, 70, 150, 40. Summarize this for me."
+  },
+  {
+    "id": "weekly-metrics",
+    "component": "stats",
+    "prompt": "Weekly numbers for the dashboard team: active users 18,420 (up 6.2% vs last week), conversion 3.4% (down 0.3 points), revenue $142,300 (up 11%), churn 1.9% (flat), average session 7m 40s (up 20s). Can you lay these out?"
+  },
+  {
+    "id": "release-plan",
+    "component": "plan",
+    "prompt": "Status of the 2.4 release plan: 1. Freeze API — done. 2. Migrate database to v12 — done. 3. Update SDKs (JS done, Python in progress, Go not started). 4. Docs refresh — in progress. 5. Staging soak test — blocked on SDKs. 6. Production rollout — not started. Show me where we are."
+  },
+  {
+    "id": "pr-change-summary",
+    "component": "diff",
+    "prompt": "Summarize this PR's changes: src/auth/refresh.ts +42 -10 (rotate refresh tokens), src/auth/store.ts +18 -3 (add revocation list), src/auth/types.ts +6 -0, test/auth/refresh.test.ts +88 -0, docs/auth.md +12 -4, package.json +1 -1 (bump jose to 5.2)."
+  },
+  {
+    "id": "latency-trend",
+    "component": "chart",
+    "prompt": "Daily p95 latency (ms) for the checkout service over the last 14 days: 210, 205, 220, 198, 240, 260, 255, 230, 190, 185, 180, 175, 178, 172. The drop starts on day 9 when we shipped the cache. Show me the trend."
+  },
+  {
+    "id": "error-share",
+    "component": "chart",
+    "prompt": "Breakdown of last week's 5xx errors by cause: timeouts 412, database connection pool exhausted 230, upstream payment API 155, out-of-memory 48, unknown 35. What does it look like?"
+  },
+  {
+    "id": "build-times-by-package",
+    "component": "chart",
+    "prompt": "CI build time per package (seconds), before and after the esbuild switch: core 84 vs 22, web 140 vs 41, cli 36 vs 12, docs 52 vs 50, sdk 61 vs 19. Visualize the comparison."
+  },
+  {
+    "id": "db-choice",
+    "component": "decision",
+    "prompt": "Help me decide the queue backend. Option A, Postgres SKIP LOCKED: no new infra, fine up to ~2k jobs/s, but polling load. Option B, Redis Streams: fast, consumer groups, but another stateful service to run. Option C, SQS: managed, cheap at our volume, but vendor lock-in and 256KB message cap. We run on AWS, peak 600 jobs/s, team of 3. I'd lean towards one but want your recommendation laid out."
+  },
+  {
+    "id": "config-values",
+    "component": "kv",
+    "prompt": "Here's the effective config of the staging deployment: region eu-central-1, replicas 3, image tag 2.4.0-rc.2, max connections 200, request timeout 30s, feature flags: new-checkout on, beta-search off, log level info, TLS min version 1.2. Present it for review."
+  },
+  {
+    "id": "repo-tree",
+    "component": "tree",
+    "prompt": "Here's the layout of the new service I scaffolded: services/billing/ containing src/ (index.ts, handlers/charge.ts, handlers/refund.ts, db/schema.ts), test/ (charge.test.ts, refund.test.ts), Dockerfile, package.json, README.md. Show me the structure."
+  },
+  {
+    "id": "incident-timeline",
+    "component": "timeline",
+    "prompt": "Reconstruct the incident timeline for the postmortem: 09:02 alert fired for checkout error rate 8%; 09:05 on-call acknowledged; 09:11 identified bad deploy 2.3.7 (config typo in payment URL); 09:14 rollback started; 09:19 rollback done, errors back under 0.5%; 09:40 root cause confirmed; 10:30 fix 2.3.8 deployed."
+  },
+  {
+    "id": "log-excerpt",
+    "component": "log",
+    "prompt": "The worker crashed overnight. Relevant log lines: '02:14:01 INFO job 8812 started', '02:14:03 WARN retrying S3 upload (attempt 2)', '02:14:09 WARN retrying S3 upload (attempt 3)', '02:14:15 ERROR upload failed: RequestTimeout', '02:14:15 ERROR job 8812 failed after 3 attempts', '02:14:16 FATAL unhandled rejection in queue consumer, exiting'. Summarize what happened and show the important lines."
+  },
+  {
+    "id": "migration-progress",
+    "component": "progress",
+    "prompt": "Backfill status: 1,240,000 of 3,100,000 rows migrated in the users table, orders table done (820,000 of 820,000), events table 2,000,000 of 9,500,000. Show me the progress."
+  },
+  {
+    "id": "lint-findings",
+    "component": "list",
+    "prompt": "Lint run results for the web package: 3 errors (no-unused-vars in src/cart.ts:14, no-floating-promises in src/api.ts:88, react-hooks/exhaustive-deps in src/Checkout.tsx:41), 2 warnings (prefer-const in src/util.ts:7, no-console in src/debug.ts:3), and 112 files clean. Summarize."
+  },
+  {
+    "id": "coverage-by-package",
+    "component": "table",
+    "prompt": "Test coverage by package (lines, branches, functions %): core 96.2, 91.0, 98.1; api 88.4, 79.5, 90.2; web 71.3, 60.8, 75.0; cli 93.7, 88.1, 95.5; shared 99.1, 97.4, 100. Which packages are below 85% lines? Show the table too."
+  },
+  {
+    "id": "security-audit",
+    "component": "checks",
+    "prompt": "npm audit and our security checks came back: secrets scan passed, dependency audit FAILED (2 high: lodash prototype pollution in lodash@4.17.15 via old-reporter, minimist in mkdirp@0.5.1), CSP header check passed, TLS config passed, container runs as root WARNING (Dockerfile has no USER line). Give me the report."
+  },
+  {
+    "id": "cost-by-service",
+    "component": "chart",
+    "prompt": "Monthly AWS cost by service (USD): EC2 12,400, RDS 6,900, S3 2,100, CloudFront 1,800, Lambda 650, other 1,150. Where is the money going?"
+  },
+  {
+    "id": "sprint-summary",
+    "component": "stats",
+    "prompt": "Sprint 42 wrap-up: 34 story points committed, 29 completed (85%), 3 bugs carried over, cycle time median 2.6 days (was 3.1), 2 incidents. Give me a quick overview I can paste into standup."
+  },
+  {
+    "id": "api-compat-matrix",
+    "component": "table",
+    "prompt": "SDK compatibility with API versions: JS SDK 3.x supports v1 yes, v2 yes, v3 partial. Python SDK 2.x: v1 yes, v2 yes, v3 no. Go SDK 1.x: v1 yes, v2 partial, v3 no. Java SDK 4.x: v1 no, v2 yes, v3 yes. Lay out the matrix."
+  },
+  {
+    "id": "memory-over-time",
+    "component": "chart",
+    "prompt": "Heap usage (MB) of the indexer, sampled hourly since restart: 210, 260, 300, 345, 390, 430, 480, 520, 575, 610, 660, 700. And RSS: 320, 380, 420, 470, 520, 560, 610, 655, 710, 750, 800, 845. Is it leaking? Show me."
+  },
+  {
+    "id": "code-review-findings",
+    "component": "list",
+    "prompt": "Review findings for PR #318: (1) critical: SQL built by string concat in src/db/search.ts:52, (2) important: missing await on cache.set in src/cache.ts:19, (3) important: no test for the empty-cart path, (4) minor: rename `tmp2` in src/cart.ts:88, (5) minor: typo in a comment. Summarize them by severity."
+  },
+  {
+    "id": "deploy-checklist",
+    "component": "checks",
+    "prompt": "Pre-deploy checks for 2.4.0: migrations applied on staging passed, smoke tests passed (42/42), canary error rate 0.2% passed (threshold 1%), canary p95 410ms WARNING (threshold 400ms), feature flags reviewed passed, rollback plan documented passed. Can we ship? Summarize."
+  },
+  {
+    "id": "snippet-fix",
+    "component": "code",
+    "prompt": "The bug is in this function; lines 4 and 5 are the problem because the cache key ignores the locale:\n\nfunction cacheKey(req) {\n  const user = req.user.id\n  const page = req.query.page ?? 1\n  const key = `${user}:${page}`\n  return key\n}\n\nShow me the function with those lines highlighted and explain the fix briefly."
+  },
+  {
+    "id": "warning-note",
+    "component": "callout",
+    "prompt": "Heads up for the team: the staging database will be read-only from 18:00 to 20:00 UTC today for the v12 upgrade; writes will fail with 503; the deploy pipeline is paused during that window. Also, 3 services need a restart afterwards: billing, search, notifications. Format this announcement with the details."
+  },
+  {
+    "id": "onboarding-steps",
+    "component": "md",
+    "prompt": "Write up the local setup for a new developer: 1. install Node 22 and pnpm 11, 2. clone the repo and run pnpm install, 3. copy .env.example to .env and fill DATABASE_URL, 4. run pnpm db:migrate, 5. run pnpm dev and open http://localhost:3000. Current status of our onboarding doc checks: Node version check ok, env template ok, migration script failing on Windows, dev server ok. Show both the steps and the status."
+  },
+  {
+    "id": "region-dashboard",
+    "component": "grid",
+    "prompt": "Per-region health right now: eu-west requests 4.2k/s, errors 0.3%, p95 180ms; us-east 6.8k/s, 1.2%, 240ms; ap-south 1.1k/s, 0.1%, 320ms. Error trend last 6 hours for us-east: 0.4, 0.5, 0.6, 0.9, 1.1, 1.2 %. Build me a compact dashboard."
+  },
+  {
+    "id": "two-envs",
+    "component": "tabs",
+    "prompt": "Compare staging and production config side by side: staging has replicas 2, log level debug, cache TTL 60s, image 2.4.0-rc.2; production has replicas 6, log level info, cache TTL 600s, image 2.3.9. Also show the 4 pending migrations on staging: 0041_add_index, 0042_drop_legacy, 0043_orders_status, 0044_users_locale. Organize it so I can flip between environments."
+  },
+  {
+    "id": "verification-report",
+    "component": "section",
+    "prompt": "Final verification for objective #14 (refresh-token rotation): typecheck passed, lint passed, unit tests 212/212 passed, e2e 38/40 passed (2 flaky: checkout-retry, session-expiry), coverage 94.1% lines. Changed files: src/auth/refresh.ts +42 -10, src/auth/store.ts +18 -3, test/auth/refresh.test.ts +88. Remaining: fix the two flaky e2e tests. Give me the full report."
+  },
+  {
+    "id": "bundle-sizes",
+    "component": "table",
+    "prompt": "Bundle sizes after the refactor (KiB, raw and gzip): main.js 412 → 298 raw, 128 → 94 gzip; vendor.js 860 → 860, 270 → 270; checkout.js 145 → 88, 44 → 27; admin.js 230 → 241, 70 → 73. Show the before/after and the deltas."
+  },
+  {
+    "id": "queue-depth-spark",
+    "component": "stats",
+    "prompt": "Queue health snapshot: emails queue depth 1,240 (last hour samples: 300, 450, 800, 1100, 1240), webhooks 85 (90, 88, 86, 85, 85), exports 12 (40, 30, 20, 15, 12). Show me each with its recent trend."
+  },
+  {
+    "id": "flaky-tests",
+    "component": "table",
+    "prompt": "Flaky test report from the last 200 CI runs: checkout-retry failed 23 times (11.5%), session-expiry 14 (7%), search-pagination 9 (4.5%), upload-large-file 6 (3%), websocket-reconnect 4 (2%), email-preview 2 (1%). Rank them and show the failure rates."
+  },
+  {
+    "id": "dependency-updates",
+    "component": "table",
+    "prompt": "Outdated dependencies: react 18.2.0 → 19.1.0 (major), vite 5.4.2 → 6.0.1 (major), zod 3.22.4 → 3.23.8 (minor), typescript 5.4.5 → 5.6.2 (minor), eslint 8.57.0 → 9.12.0 (major), lodash 4.17.20 → 4.17.21 (patch). Show which are majors I need to plan for."
+  },
+  {
+    "id": "uptime-by-month",
+    "component": "chart",
+    "prompt": "Uptime % per month this year for the public API: Jan 99.98, Feb 99.95, Mar 99.71, Apr 99.99, May 99.97, Jun 99.62, Jul 99.99, Aug 99.96, Sep 99.94, Oct 99.99. Our SLO is 99.9%. Show me which months missed it."
+  },
+  {
+    "id": "stacked-traffic",
+    "component": "chart",
+    "prompt": "Traffic by client type per weekday (thousands of requests): Mon web 120 mobile 80 api 40; Tue 130, 85, 42; Wed 125, 90, 45; Thu 140, 95, 50; Fri 150, 100, 48; Sat 90, 120, 20; Sun 85, 115, 18. Show the mix over the week."
+  },
+  {
+    "id": "experiment-results",
+    "component": "stats",
+    "prompt": "A/B test 'one-page checkout' after 14 days: control 48,200 visitors, 3.10% conversion; variant 47,900 visitors, 3.52% conversion; relative lift +13.5%, p-value 0.004, revenue per visitor $4.12 vs $4.61. Summarize the outcome."
+  },
+  {
+    "id": "on-call-schedule",
+    "component": "table",
+    "prompt": "Next month's on-call rotation: week 1 Alice (primary), Bob (secondary); week 2 Bob, Chen; week 3 Chen, Dana; week 4 Dana, Alice. Alice is out Nov 20-22, so week 4 needs a swap. Lay out the schedule and flag the conflict."
+  },
+  {
+    "id": "rollout-status",
+    "component": "progress",
+    "prompt": "Feature flag rollout for new-search: 25% of users in eu-west, 10% in us-east, 0% in ap-south; target is 100% everywhere by Friday. Error rate in the enabled cohort 0.4% vs 0.5% baseline. Show me the rollout state."
+  },
+  {
+    "id": "refactor-plan",
+    "component": "plan",
+    "prompt": "Plan for splitting the monolith's billing module, with status: 1. Map billing call sites — done. 2. Extract BillingService interface — done. 3. Move invoice generation — in progress (2 of 5 endpoints moved). 4. Move payment webhooks — not started. 5. Separate database schema — not started, blocked by 4. 6. Remove old code paths — not started. Show the plan."
+  },
+  {
+    "id": "perf-regression",
+    "component": "section",
+    "prompt": "Perf comparison between v2.3 and v2.4 on the same hardware: cold start 820ms vs 640ms, p95 render 31ms vs 29ms, memory 210MB vs 245MB, bundle 412KiB vs 298KiB. Memory regressed by 16.7%. Benchmarks ran 30 times each. Give me the full comparison with a chart of the four metrics as percent change."
+  }
+]
