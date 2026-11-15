@@ -104,9 +104,9 @@ describe('score', () => {
 })
 
 describe('summarize', () => {
-  const row = (firstValid: boolean, validAfterRetry = true, handHtml = 0) => ({
+  const row = (firstValid: boolean, validAfterRetry = true, handHtml = 0, showCalls = 1) => ({
     id: 'x',
-    showCalls: 1,
+    showCalls,
     firstValid,
     validAfterRetry,
     handHtml,
@@ -125,6 +125,20 @@ describe('summarize', () => {
     })
     expect(summarize([row(true, true, 1)]).gate.html).toBe(false)
     expect(summarize([row(false, false)]).gate.retry).toBe(false)
+  })
+
+  it('judges validity over the runs that showed, and reports the runs that did not', () => {
+    const rows = [
+      ...Array.from({ length: 33 }, () => row(true)),
+      ...Array.from({ length: 7 }, () => row(false, false, 0, 0)),
+    ]
+    const summary = summarize(rows)
+    expect(summary.shown).toBe(33)
+    expect(summary.visualRate).toBe(33 / 40)
+    expect(summary.firstValidRate).toBe(1)
+    expect(summary.retryValidRate).toBe(1)
+    expect(summary.firstValidRateAll).toBe(33 / 40)
+    expect(summary.gate).toEqual({ first: true, retry: true, html: true })
   })
 })
 

@@ -45,28 +45,35 @@ export function score({ calls, htmlFiles, shimFiles, toolWrites, finalText }) {
 }
 
 /**
+ * The §16 rates. "Valid on first `vui show`" presupposes a show, so validity is judged over the
+ * runs that called `vui show`; a run that answered in markdown is a decision the skill makes
+ * (§12.2 step 2), reported as `visualRate` and judged by reading it (VD-178).
+ *
  * @param {(Score & {id: string})[]} rows
  */
 export function summarize(rows) {
   const n = rows.length
-  const rate = (/** @type {(row: Score) => boolean} */ test) =>
-    n === 0 ? 0 : rows.filter(test).length / n
-  const firstValidRate = rate((row) => row.firstValid)
-  const retryValidRate = rate((row) => row.validAfterRetry)
+  const shownRows = rows.filter((row) => row.showCalls > 0)
+  const shown = shownRows.length
+  const share = (/** @type {Score[]} */ of, /** @type {(row: Score) => boolean} */ test) =>
+    of.length === 0 ? 0 : of.filter(test).length / of.length
+  const firstValidRate = share(shownRows, (row) => row.firstValid)
+  const retryValidRate = share(shownRows, (row) => row.validAfterRetry)
   const handHtmlTotal = rows.reduce((sum, row) => sum + row.handHtml, 0)
   const pasted = rows.filter((row) => row.directivePasted !== null)
   return {
     n,
+    shown,
+    visualRate: n === 0 ? 0 : shown / n,
     firstValidRate,
     retryValidRate,
+    firstValidRateAll: share(rows, (row) => row.firstValid),
     handHtmlTotal,
     directivePastedRate:
-      pasted.length === 0
-        ? null
-        : pasted.filter((row) => row.directivePasted).length / pasted.length,
+      pasted.length === 0 ? null : share(pasted, (row) => row.directivePasted === true),
     gate: {
-      first: firstValidRate >= GATE.first,
-      retry: retryValidRate >= GATE.retry,
+      first: shown > 0 && firstValidRate >= GATE.first,
+      retry: shown > 0 && retryValidRate >= GATE.retry,
       html: handHtmlTotal === 0,
     },
   }

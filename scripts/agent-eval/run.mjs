@@ -169,7 +169,7 @@ const summary = { model, withSkill, date: new Date().toISOString(), ...summarize
 writeFileSync(join(out, 'report.json'), `${JSON.stringify({ summary, rows }, null, 2)}\n`)
 const pct = (/** @type {number | null} */ v) => (v === null ? 'n/a' : `${(v * 100).toFixed(1)}%`)
 console.log(
-  `agent-eval (${withSkill ? 'skill' : 'no skill'}, ${model}): ${summary.n} prompts; first show valid ${pct(summary.firstValidRate)} (gate 98%), valid after one retry ${pct(summary.retryValidRate)} (gate 100%), hand-written HTML ${summary.handHtmlTotal} (gate 0), directive pasted ${pct(summary.directivePastedRate)}`,
+  `agent-eval (${withSkill ? 'skill' : 'no skill'}, ${model}): ${summary.n} prompts, ${summary.shown} showed a visual (${pct(summary.visualRate)}); of those, first show valid ${pct(summary.firstValidRate)} (gate 98%), valid after one retry ${pct(summary.retryValidRate)} (gate 100%); hand-written HTML ${summary.handHtmlTotal} (gate 0); directive pasted ${pct(summary.directivePastedRate)}`,
 )
 console.log(`agent-eval: report in ${join(out, 'report.json')}`)
 process.exitCode = summary.gate.first && summary.gate.retry && summary.gate.html ? 0 : 1
