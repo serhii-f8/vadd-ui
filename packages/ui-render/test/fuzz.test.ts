@@ -59,35 +59,39 @@ function check(document: unknown, next: unknown): string[] {
 }
 
 describe('the renderer under fuzzing', () => {
-  it(`${CASES} cases from seed ${SEED} neither throw nor draw NaN`, async () => {
-    let next = fuzzDocument(SEED, 0)
-    let texts = 0
-    let unchecked = 0
-    for (let index = 0; index < CASES; index++) {
-      // One case in TEXT_SHARE goes in as text, as `boot` hands a script's text to `render`.
-      const asText = index % TEXT_SHARE === TEXT_SHARE - 1
-      const raw = index % UNCHECKED_SHARE === UNCHECKED_SHARE - 2
-      const document = asText ? fuzzText(SEED, index) : raw ? fuzzUnchecked(SEED, index) : next
-      if (asText) texts += 1
-      if (raw) unchecked += 1
-      next = fuzzDocument(SEED, index + 1)
-      const started = performance.now()
-      const problems = check(document, next)
-      const once = performance.now() - started
-      const ms = await fastestMs(once, CASE_MS, () => check(document, next))
-      if (ms > CASE_MS) problems.push(`took ${Math.round(ms)} ms at best, over ${CASE_MS}`)
-      if (problems.length > 0) {
-        const updated = problems.some((problem) => problem.startsWith('update'))
-        expect.fail(
-          `seed ${SEED}, index ${index} (VUI_FUZZ_SEED=${SEED}):\n${problems.slice(0, 10).join('\n')}\n` +
-            (raw
-              ? `case, after issuePad(): ${excerpt((document as { body: unknown[] }).body.slice(1))}`
-              : `case: ${excerpt(document)}`) +
-            (updated ? `\nupdated to index ${index + 1}: ${excerpt(next)}` : ''),
-        )
+  it(
+    `${CASES} cases from seed ${SEED} neither throw nor draw NaN`,
+    async () => {
+      let next = fuzzDocument(SEED, 0)
+      let texts = 0
+      let unchecked = 0
+      for (let index = 0; index < CASES; index++) {
+        // One case in TEXT_SHARE goes in as text, as `boot` hands a script's text to `render`.
+        const asText = index % TEXT_SHARE === TEXT_SHARE - 1
+        const raw = index % UNCHECKED_SHARE === UNCHECKED_SHARE - 2
+        const document = asText ? fuzzText(SEED, index) : raw ? fuzzUnchecked(SEED, index) : next
+        if (asText) texts += 1
+        if (raw) unchecked += 1
+        next = fuzzDocument(SEED, index + 1)
+        const started = performance.now()
+        const problems = check(document, next)
+        const once = performance.now() - started
+        const ms = await fastestMs(once, CASE_MS, () => check(document, next))
+        if (ms > CASE_MS) problems.push(`took ${Math.round(ms)} ms at best, over ${CASE_MS}`)
+        if (problems.length > 0) {
+          const updated = problems.some((problem) => problem.startsWith('update'))
+          expect.fail(
+            `seed ${SEED}, index ${index} (VUI_FUZZ_SEED=${SEED}):\n${problems.slice(0, 10).join('\n')}\n` +
+              (raw
+                ? `case, after issuePad(): ${excerpt((document as { body: unknown[] }).body.slice(1))}`
+                : `case: ${excerpt(document)}`) +
+              (updated ? `\nupdated to index ${index + 1}: ${excerpt(next)}` : ''),
+          )
+        }
       }
-    }
-    expect(texts, 'cases rendered from text').toBe(Math.floor(CASES / TEXT_SHARE))
-    expect(unchecked, 'cases past the issue cap').toBe(Math.floor((CASES + 1) / UNCHECKED_SHARE))
-  }, RUN_MS)
+      expect(texts, 'cases rendered from text').toBe(Math.floor(CASES / TEXT_SHARE))
+      expect(unchecked, 'cases past the issue cap').toBe(Math.floor((CASES + 1) / UNCHECKED_SHARE))
+    },
+    RUN_MS,
+  )
 })
