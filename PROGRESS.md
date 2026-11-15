@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T17:06:42Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T19:45:14Z · Mode: manual
 
 ## Summary
-Done 22 / 22 · In progress: none · Blocked: none · Next: none (all tasks done; release checks pending the user)
+Done 22 / 23 · In progress: 23 — core chart robustness · Blocked: none · Next: none
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -50,9 +50,10 @@ Recorded 2026-11-04 during bootstrap.
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | done | removed | ctx_5c23eb4a2a60 | [design](docs/superpowers/specs/2026-11-10-hardening-design.md) | [plan](docs/superpowers/plans/2026-11-10-hardening.md) | bbd7e43 | 2026-11-10 |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | done | removed | ctx_43252fda1845 | [design](docs/superpowers/specs/2026-11-15-release-prep-design.md) | [plan](docs/superpowers/plans/2026-11-15-release-prep.md) | b9c4b7e | 2026-11-15 |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | done | removed | ctx_66c52ba79c76 | [design](docs/superpowers/specs/2026-11-15-components-ext-design.md) | [plan](docs/superpowers/plans/2026-11-15-components-ext.md) | 63395b0 | 2026-11-15 |
+| 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | in_progress | | | | | | |
 
 ## Current task log
-none
+- 2026-11-15T19:45:14Z 23 added by the coordinator (VD-180/VD-184 follow-up from task 22) and selected
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding

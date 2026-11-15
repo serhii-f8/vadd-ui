@@ -236,6 +236,14 @@ Slug `components-ext`. Depends on: 21. Spec: §6.3 `compare`, §6.4 `scatter`, �
   - Text rendering, corpus, visual, axe and fuzz coverage extended.
   - All bundle and timing budgets still hold; if a budget cannot hold, `ext` ships in a separate lazily embedded build and the decision is logged.
 
+### 23 — Core chart robustness
+Slug `chart-robustness`. Depends on: 22. Spec: §9.3, §9.4, §16. Added by the coordinator after task 22 (follow-up of VD-180 and VD-184).
+- Acceptance:
+  - A core `chart` whose `height` is an object, array or other non-string (for example an object with a non-callable own `toString`) renders at the default height instead of throwing `render-failed`; tests are seen failing first.
+  - No other spot in the core renderer coerces a document value with `String()`, template interpolation, `+` or arithmetic before checking its type; each one found is fixed the same way, or logged as safe with the reason.
+  - `vui.min.js` stays within §9.5 (≤ 120 KiB minified, ≤ 38 KiB gzip; about 260 bytes of gzip headroom at the start).
+  - The fuzz run covers the new cases, and `pnpm gate` is green.
+
 ## Coverage (spec requirement → one task)
 
 | Spec | Requirement | Task |
@@ -267,6 +275,7 @@ Slug `components-ext`. Depends on: 21. Spec: §6.3 `compare`, §6.4 `scatter`, �
 | §6.4 | `scatter` | 22 |
 | §6.5 | Dev workflow (core) | 10 |
 | §6.5 | `flow` | 22 |
+| §9.3, §9.4 | Core chart robustness on hostile field values (VD-180 follow-up) | 23 |
 | §6.6 | Table | 08 |
 | §6.7 | Decision | 10 |
 | §7 | Format functions, null and invalid values | 04 |
