@@ -71,9 +71,15 @@ function readSeries(node: JsonObject): { name: string; values: Value[] }[] {
 function positionsOf(bars: boolean, x: JsonValue[], size: number): number[] {
   const order = Array.from({ length: size }, (_, index) => index)
   if (bars) return order.map((index) => (index + 0.5) / size)
+  // Only numbers and ISO dates have positions; anything else is NaN, which spaces evenly below.
+  // Arithmetic on an object would call its `toString`, which a document may set to data.
   const stamps = x.map((value) =>
-    typeof value === 'string' && ISO_DATE.test(value) ? Date.parse(value) : value,
-  ) as number[]
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && ISO_DATE.test(value)
+        ? Date.parse(value)
+        : Number.NaN,
+  )
   const first = stamps[0] as number
   const span = (stamps[size - 1] as number) - first
   return size > 1 &&
