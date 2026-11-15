@@ -32,10 +32,15 @@ describe('a core component past the issue cap', () => {
     expect(box.querySelector('.vui-chart svg')?.getAttribute('height')).toBe('300')
   })
 
-  it.each([[H()], [[H()]]])('renders a chart whose kind is %j', (kind) => {
-    const { handle } = showUnchecked([{ ...bar, kind }])
-    expect(failed(handle)).toEqual([])
-  })
+  it.each([[H()], [[H()]], ['__proto__'], ['constructor'], ['pie']])(
+    'renders a chart whose kind is %j, labelled as a chart',
+    (kind) => {
+      const { box, handle } = showUnchecked([{ ...bar, kind }])
+      expect(failed(handle)).toEqual([])
+      expect(box.querySelector('.vui-chart title')?.textContent).toBe('Chart')
+      expect(box.querySelector('.vui-chart desc')?.textContent).toMatch(/^Chart, 1 series/)
+    },
+  )
 
   it.each([[H()], [[H()]]])('prints a kv key of %j', (key) => {
     const { box, handle } = showUnchecked([{ type: 'kv', pairs: [[key, 1]] }])
@@ -70,7 +75,7 @@ describe('a core component past the issue cap', () => {
       {
         type: 'table',
         columns: [{ key: 'a', label: 'A' }],
-        rows: [['b'], [cell], ['a']],
+        rows: [['b'], [cell, 'z'], ['a']],
         sort: [0, 'asc'],
       },
     ])
@@ -129,14 +134,45 @@ function sampleNodes(): Record<string, unknown>[] {
 const SAMPLE_SEEDS = 800
 const PER_KIND = 12
 const MAX_PLACES = 120
-/** Under §13.4's 400 nodes with the pad, so nothing is cut. */
-const BATCH = 350
+/** Nodes per render with the pad, under §13.4's 400, so the body is never cut. */
+const NODE_BUDGET = 390
 const STAND_INS: [string, () => unknown][] = [
   ['H', H],
   ['[H]', () => [H()]],
   ['"x"', () => 'x'],
   ['null', () => null],
+  ['"__proto__"', () => '__proto__'],
+  ['"constructor"', () => 'constructor'],
+  ['1e308', () => 1e308],
+  ['true', () => true],
+  ['{}', () => ({})],
 ]
+
+/** About the nodes `case` holds: every object with a `type`, wherever it sits. */
+function nodeCount(value: unknown): number {
+  if (Array.isArray(value)) return value.reduce((sum: number, item) => sum + nodeCount(item), 0)
+  if (value === null || typeof value !== 'object') return 0
+  const own = typeof (value as { type?: unknown }).type === 'string' ? 1 : 0
+  return Object.values(value).reduce((sum: number, item) => sum + nodeCount(item), own)
+}
+
+/** Consecutive runs of `cases` that should fit `NODE_BUDGET` with the pad. */
+function batches(cases: unknown[]): [number, number][] {
+  const runs: [number, number][] = []
+  let start = 0
+  let nodes = 1
+  cases.forEach((item, index) => {
+    const size = Math.max(nodeCount(item), 1)
+    if (nodes + size > NODE_BUDGET && index > start) {
+      runs.push([start, index])
+      start = index
+      nodes = 1
+    }
+    nodes += size
+  })
+  runs.push([start, cases.length])
+  return runs
+}
 
 describe('every field of every core component, past the issue cap', () => {
   it('neither fails a node nor draws NaN', () => {
@@ -153,19 +189,36 @@ describe('every field of every core component, past the issue cap', () => {
         }
       }
     }
-    expect(cases.length).toBeGreaterThan(10_000)
+    expect(cases.length).toBeGreaterThan(25_000)
     const problems: string[] = []
-    for (let start = 0; start < cases.length; start += BATCH) {
-      const { box, handle } = showUnchecked(cases.slice(start, start + BATCH))
+    let rendered = 0
+    // A batch the node limit cuts is split, so each case renders whole exactly once.
+    const pending = batches(cases)
+    for (let run = pending.pop(); run !== undefined; run = pending.pop()) {
+      const [start, end] = run
+      const { box, handle } = showUnchecked(cases.slice(start, end))
+      if (handle.diagnostics.some(({ code }) => code === 'limit-nodes')) {
+        box.remove()
+        const middle = Math.ceil((start + end) / 2)
+        if (end - start === 1) problems.push(`${labels[start]} alone is over the node limit`)
+        else pending.push([start, middle], [middle, end])
+        continue
+      }
       for (const path of failed(handle)) {
         problems.push(`render-failed: ${labels[start + Number(path.split('/')[2]) - 1]}`)
       }
-      const drawn = [...box.querySelectorAll('.vui-doc > .vui-node')].slice(1)
-      drawn.forEach((element, index) => {
+      // One element per body entry, the pad first: a node or its error card.
+      const drawn = [...box.querySelectorAll('.vui-doc > :is(.vui-node, .vui-card-error)')]
+      if (drawn.length !== end - start + 1) {
+        problems.push(`batch at ${start} drew ${drawn.length - 1} of ${end - start} cases`)
+      }
+      drawn.slice(1).forEach((element, index) => {
         for (const bad of badAttributes(element)) problems.push(`${labels[start + index]}: ${bad}`)
       })
+      rendered += end - start
       box.remove()
     }
+    expect(rendered).toBe(cases.length)
     expect(problems).toEqual([])
   }, 60_000)
 })

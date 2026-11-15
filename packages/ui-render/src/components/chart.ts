@@ -1,4 +1,4 @@
-import { CHART_LABELS, inlineToPlain, type JsonObject, parseInline } from '@vadd/ui-spec'
+import { CHART_LABELS, hasOwn, inlineToPlain, type JsonObject, parseInline } from '@vadd/ui-spec'
 import { placeholderCard } from '../cards.js'
 import { type Drawing, draw, SPARK_HEIGHT, SPARK_WIDTH } from '../chart/draw.js'
 import { type Model, readModel } from '../chart/model.js'
@@ -101,7 +101,8 @@ export const chart: Component = {
     const kind = text(node, 'kind') as ChartKind
     if (kind === 'scatter') return placeholderCard('chart', node, false, () => {})
     const model = readModel(node, context)
-    const label = CHART_LABELS[kind]
+    // An own key only: past VD-066's cap `kind` can be `__proto__` (VD-187).
+    const label = hasOwn(CHART_LABELS, kind) ? CHART_LABELS[kind] : 'Chart'
     const name = inlineToPlain(parseInline(text(node, 'title'))) || label
     const spark = kind === 'spark'
     const height = spark ? SPARK_HEIGHT : model.height
