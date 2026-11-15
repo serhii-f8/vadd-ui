@@ -1,4 +1,4 @@
-import { isJsonObject, type JsonObject, type JsonValue, type Tone } from '@vadd/ui-spec'
+import { hasOwn, isJsonObject, type JsonObject, type JsonValue, type Tone } from '@vadd/ui-spec'
 import { field, finite, nodeList, text } from '../components/fields.js'
 import type { NodeContext } from '../context.js'
 import { toneOf } from '../inline.js'
@@ -10,6 +10,13 @@ const MAX_DRAWN = 1000
 export const MAX_SLICES = 12
 const HEIGHTS: Readonly<Record<string, number>> = { sm: 120, md: 200, lg: 300 }
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/
+
+/** `height` as an own key of the size table, or 200: past VD-066's cap it can be anything, and
+ * `String()` on an object whose `toString` is data throws (VD-187). `scatter` reads it too. */
+export const heightOf = (node: JsonObject): number => {
+  const size = field(node, 'height')
+  return typeof size === 'string' && hasOwn(HEIGHTS, size) ? (HEIGHTS[size] as number) : 200
+}
 
 export type Value = number | undefined
 
@@ -176,7 +183,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
         : undefined,
     tops: up,
     ticks,
-    height: HEIGHTS[String(node.height)] ?? 200,
+    height: heightOf(node),
     refLines,
     range,
     label(index) {

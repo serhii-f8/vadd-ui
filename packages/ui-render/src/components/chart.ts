@@ -98,7 +98,7 @@ function fillTip(tip: HTMLElement, model: Model, index: number): void {
 
 export const chart: Component = {
   render(node: JsonObject, context) {
-    const kind = node.kind as ChartKind
+    const kind = text(node, 'kind') as ChartKind
     if (kind === 'scatter') return placeholderCard('chart', node, false, () => {})
     const model = readModel(node, context)
     const label = CHART_LABELS[kind]

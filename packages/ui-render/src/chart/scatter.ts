@@ -1,7 +1,6 @@
 import {
   CHART_LABELS,
   clip,
-  hasOwn,
   inlineToPlain,
   isJsonObject,
   type JsonObject,
@@ -12,6 +11,7 @@ import type { NodeContext } from '../context.js'
 import { el, svg } from '../el.js'
 import { fillOf } from '../fill.js'
 import { toneClass, toneOf } from '../inline.js'
+import { heightOf } from './model.js'
 import { watchWidth } from './resize.js'
 import { lttb, niceTicks } from './scale.js'
 
@@ -20,7 +20,6 @@ import { lttb, niceTicks } from './scale.js'
 // The points are one path of zero-length segments with round caps, so the DOM stays small.
 
 const WIDTH = 640
-const HEIGHTS: Readonly<Record<string, number>> = { sm: 120, md: 200, lg: 300 }
 const CHAR = 6.2
 const LINE = 14
 const TOP = 16
@@ -69,9 +68,7 @@ function axis(values: number[]) {
 export function renderScatter(node: JsonObject, context: NodeContext): HTMLElement {
   const label = CHART_LABELS.scatter
   const name = inlineToPlain(parseInline(text(node, 'title'))) || label
-  // No `String()` and no prototype key: past the diagnostics cap the field can be anything (VD-180).
-  const size = field(node, 'height')
-  const height = typeof size === 'string' && hasOwn(HEIGHTS, size) ? (HEIGHTS[size] as number) : 200
+  const height = heightOf(node)
   const points = readPoints(node)
   const refLines: RefLine[] = nodeList(node, 'refLines').flatMap((line) => {
     const y = isJsonObject(line) ? finite(line, 'y') : undefined

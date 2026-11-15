@@ -1,5 +1,5 @@
 import type { Formatted } from './format.js'
-import { isNumericFormat, parseFormat } from './format-spec.js'
+import { isNumericFormat, parseFormat, rawText } from './format-spec.js'
 import { inlineToPlain, parseInline } from './inline.js'
 import { hasOwn, isJsonObject, type JsonValue } from './json.js'
 import {
@@ -41,7 +41,8 @@ function formatName(column: Column): string {
 function sortKey(value: JsonValue | undefined, column: Column): SortKey {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
-  const raw = String(value)
+  // Past VD-066's cap a cell can be any value, and `String()` throws on some (VD-187).
+  const raw = rawText(value)
   return formatName(column) === 'text' ? inlineToPlain(parseInline(raw)) : raw
 }
 
