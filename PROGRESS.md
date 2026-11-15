@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T13:38:32Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T16:11:00Z · Mode: manual
 
 ## Summary
-Done 21 / 22 · In progress: none · Blocked: none · Next: 22 — ext components
+Done 21 / 22 · In progress: 22 — ext components · Blocked: none · Next: none
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -49,10 +49,11 @@ Recorded 2026-11-04 during bootstrap.
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | done | removed | ctx_6c182ecb9dfb | [design](docs/superpowers/specs/2026-11-10-vui-bench-design.md) | [plan](docs/superpowers/plans/2026-11-10-vui-bench.md) | bb2c492 | 2026-11-10 |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | done | removed | ctx_5c23eb4a2a60 | [design](docs/superpowers/specs/2026-11-10-hardening-design.md) | [plan](docs/superpowers/plans/2026-11-10-hardening.md) | bbd7e43 | 2026-11-10 |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | done | removed | ctx_43252fda1845 | [design](docs/superpowers/specs/2026-11-15-release-prep-design.md) | [plan](docs/superpowers/plans/2026-11-15-release-prep.md) | b9c4b7e | 2026-11-15 |
-| 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
+| 22 | ext components | §6.3, §6.4, §6.5 | 21 | in_progress | vui-22-components-ext | ctx_66c52ba79c76 | | | | |
 
 ## Current task log
-none
+- 2026-11-15T16:11:00Z 22 selected
+- 22 dispatched: worktree `vui-22-components-ext` (`28b6546a-…::…\\vui-22-components-ext`), dispatch ctx_66c52ba79c76, terminal term_06321398 (first terminal exited before its shell came up; recreated)
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding
