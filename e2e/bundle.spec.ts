@@ -349,3 +349,69 @@ test('the bundle runs inline in the Orca shell with no CSP violation', async ({ 
   await opened.switchTheme('light')
   await expect.poll(color).not.toBe(dark)
 })
+
+// VD-182: the ext tier ships in `vui-ext.min.js`, a whole boot script of its own, which a
+// writer embeds in place of `vui.min.js` for a document that uses that tier.
+test.describe('vui-ext.min.js', () => {
+  const EXT_BUNDLE = fileURLToPath(new URL('../packages/ui/dist/vui-ext.min.js', import.meta.url))
+  const EXT_DOC = {
+    vui: 1,
+    body: [
+      {
+        type: 'compare',
+        options: ['A', 'B'],
+        criteria: [{ label: 'p95', values: [80, 120], format: 'ms', better: 'low' }],
+      },
+      {
+        type: 'chart',
+        kind: 'scatter',
+        points: [
+          [1, 2, 'a'],
+          [3, 5],
+        ],
+      },
+      { type: 'flow', nodes: ['plan', 'build'], edges: [['plan', 'build']] },
+      { type: 'chart', kind: 'bar', x: ['a'], series: { n: [1] } },
+    ],
+  }
+  const page = (script: string) => `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>ext</title>
+${script}
+</head><body>
+${embedded(canonical(EXT_DOC))}
+</body></html>`
+
+  test('draws every ext component, inline and from a script URL, offline', async ({
+    page: tab,
+  }) => {
+    const dir = test.info().outputDir
+    mkdirSync(dir, { recursive: true })
+    copyFileSync(EXT_BUNDLE, join(dir, 'vui-ext.min.js'))
+    const inline = `<script>${readFileSync(EXT_BUNDLE, 'utf8')}</script>`
+    writeFileSync(join(dir, 'inline.html'), page(inline))
+    writeFileSync(join(dir, 'cdn.html'), page('<script src="vui-ext.min.js"></script>'))
+    const seen = watch(tab)
+    for (const name of ['inline.html', 'cdn.html']) {
+      await tab.goto(fileUrl(dir, name))
+      await expect(tab.locator('.vui-compare .vui-compare-win')).toHaveCount(2)
+      await expect(tab.locator('.vui-chart[data-vui-kind="scatter"] .vui-chart-dot')).toHaveCount(1)
+      await expect(tab.locator('.vui-flow .vui-flow-box')).toHaveCount(2)
+      await expect(tab.locator('.vui-chart[data-vui-kind="bar"]')).toHaveCount(1)
+      await expect(tab.locator('.vui-card-placeholder, .vui-card-error')).toHaveCount(0)
+      expect(
+        await tab.evaluate(() => Object.keys((window as unknown as { VUI: object }).VUI).sort()),
+      ).toEqual(['render', 'version'])
+    }
+    expect(seen.errors).toEqual([])
+    expect(seen.requests.filter((url) => !url.startsWith(`file://${dir}/`))).toEqual([])
+  })
+
+  test('the core bundle shows the §9.3 placeholder for the same document', async ({
+    page: tab,
+  }) => {
+    const dir = write('core.html', page(`<script>${bundleText()}</script>`))
+    await tab.goto(fileUrl(dir, 'core.html'))
+    await expect(tab.locator('.vui-card-placeholder')).toHaveCount(3)
+    await expect(tab.locator('.vui-chart[data-vui-kind="bar"]')).toHaveCount(1)
+  })
+})

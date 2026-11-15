@@ -972,6 +972,16 @@ exports[`valid corpus snapshots (§16) > chart scatter valid 12: {"points":[]} >
 "
 `;
 
+exports[`valid corpus snapshots (§16) > chart scatter valid 13: {"points":[[5,5]],"xFormat":"ms","yForma > markdown 1`] = `
+"_Scatter chart: 1 points; L 100%._
+"
+`;
+
+exports[`valid corpus snapshots (§16) > chart scatter valid 13: {"points":[[5,5]],"xFormat":"ms","yForma > plain 1`] = `
+"Scatter chart: 1 points; L 100%.
+"
+`;
+
 exports[`valid corpus snapshots (§16) > chart spark valid 0: {} > markdown 1`] = `
 "_Sparkline: ▁█._
 "
@@ -1575,14 +1585,14 @@ exports[`valid corpus snapshots (§16) > compare valid 4: {"criteria":[]} > plai
 `;
 
 exports[`valid corpus snapshots (§16) > compare valid 5: {"criteria":[{"label":"C","values":[1,nu > markdown 1`] = `
-"|  | a | b |
+"|  | a ✓ | b |
 | --- | --- | --- |
-| C ↓ | 1 ms | — |
+| C ↓ | **1 ms** | — |
 "
 `;
 
 exports[`valid corpus snapshots (§16) > compare valid 5: {"criteria":[{"label":"C","values":[1,nu > plain 1`] = `
-"     a     b
+"     a ✓   b
 ---  ----  -
 C ↓  1 ms  —
 "
@@ -1599,6 +1609,22 @@ exports[`valid corpus snapshots (§16) > compare valid 6: {"criteria":[{"label":
 "     a  b
 ---  -  ----
 C ↑  x  true
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 7: {"options":["a","b","c"],"criteria":[{"l > markdown 1`] = `
+"|  | a | b ✓ | c |
+| --- | --- | --- | --- |
+| p95 ↓ | 80 ms | **60 ms** | **60 ms** |
+| RPS ↑ | 1,000 | **1,200** | 900 |
+"
+`;
+
+exports[`valid corpus snapshots (§16) > compare valid 7: {"options":["a","b","c"],"criteria":[{"l > plain 1`] = `
+"       a      b ✓    c
+-----  -----  -----  -----
+p95 ↓  80 ms  60 ms  60 ms
+RPS ↑  1,000  1,200  900
 "
 `;
 
@@ -2105,6 +2131,28 @@ exports[`valid corpus snapshots (§16) > flow valid 5: {"nodes":["a",{"id":"b","
 "- a
   - → B
 - ✓ B
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 6: {"nodes":["a","b","c"],"edges":[["a","b" > markdown 1`] = `
+"- a
+  - → b
+- b
+  - → c (next)
+- c
+  - → a (retry)
+  - → c
+"
+`;
+
+exports[`valid corpus snapshots (§16) > flow valid 6: {"nodes":["a","b","c"],"edges":[["a","b" > plain 1`] = `
+"- a
+  - → b
+- b
+  - → c (next)
+- c
+  - → a (retry)
+  - → c
 "
 `;
 

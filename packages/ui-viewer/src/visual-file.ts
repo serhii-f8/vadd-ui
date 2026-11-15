@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { version } from '@vadd/ui'
-import { cleanText, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
+import { cleanText, MEDIA_TYPE, usesExt, type VuiDocument } from '@vadd/ui-spec'
 
 export const GENERATOR = 'vadd-ui'
 
@@ -12,13 +12,17 @@ export const GENERATOR_LABEL = `${GENERATOR} ${version}`
 // by a path that only holds inside this monorepo.
 const require = createRequire(import.meta.url)
 
-/** `vui.min.js`, as §10.1 inlines it. */
-export function readBundle(): string {
-  return readFileSync(require.resolve('@vadd/ui/vui.min.js'), 'utf8')
+/**
+ * `vui.min.js`, as §10.1 inlines it, or `vui-ext.min.js` for a document that uses the §6 `ext`
+ * tier (VD-182): embedded in the file, so inline mode stays offline.
+ */
+export function readBundle(ext = false): string {
+  return readFileSync(require.resolve(`@vadd/ui/${ext ? 'vui-ext' : 'vui'}.min.js`), 'utf8')
 }
 
 /** §10.2. Pinned to the format's major for the whole line (§10.3). */
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js'
+const CDN_EXT_URL = 'https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui-ext.min.js'
 const DEFAULT_TITLE = 'vadd-ui'
 const DEFAULT_LANG = 'en'
 
@@ -73,7 +77,7 @@ function documentScript(document: VuiDocument): string {
 }
 
 export interface InlineOptions {
-  /** `vui.min.js`. It holds no `</script` or `<!--`; `check-bundle-size` proves that. */
+  /** `vui.min.js` or `vui-ext.min.js`. Neither holds `</script` or `<!--` (`check-bundle-size`). */
   bundle: string
   /** The text of the generator `<meta>`, such as `vadd-ui 1.0.0`. */
   generator: string
@@ -105,7 +109,7 @@ export function cdnHtml(document: VuiDocument): string {
   return [
     `<!doctype html><html lang="${languageOf(document.locale)}"><meta charset="utf-8">`,
     `<title>${title}</title>\n`,
-    `<script src="${CDN_URL}"></script>\n`,
+    `<script src="${usesExt(document) ? CDN_EXT_URL : CDN_URL}"></script>\n`,
     documentScript(document),
   ].join('')
 }

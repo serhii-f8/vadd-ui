@@ -9,6 +9,8 @@ import { finish, rootArg } from './lib/cli.mjs'
 import { readJson } from './lib/workspace.mjs'
 
 const CDN_FILE = 'dist/vui.min.js'
+/** VD-182: the CDN path of the boot script with the `ext` tier. */
+const CDN_EXT_FILE = 'dist/vui-ext.min.js'
 
 /** @type {string[]} */
 const findings = []
@@ -35,6 +37,9 @@ for (const entry of readdirSync(join(root, 'packages'))) {
     }
     if (manifest.exports?.['./vui.min.js'] !== `./${CDN_FILE}`) {
       findings.push(`${name}: exports["./vui.min.js"] must be "./${CDN_FILE}"`)
+    }
+    if (manifest.exports?.['./vui-ext.min.js'] !== `./${CDN_EXT_FILE}`) {
+      findings.push(`${name}: exports["./vui-ext.min.js"] must be "./${CDN_EXT_FILE}"`)
     }
   }
 }

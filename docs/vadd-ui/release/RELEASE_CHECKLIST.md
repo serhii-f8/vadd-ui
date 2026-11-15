@@ -6,13 +6,13 @@ Ordered steps for the user. Everything a machine could do here is done and recor
 
 - `pnpm gate` green on this WSL host (counts in the task 21 report in `PROGRESS.md`).
 - §16.1: two cells run for real and pass (`HOST_MATRIX.md`); the rest are CI jobs (written, never run) or manual steps.
-- Publish configuration in place and checked by `scripts/check-publish.mjs` in `pnpm check`; `pnpm pack` of `@vadd/ui` holds `dist/vui.min.js` with `workspace:*` rewritten.
+- Publish configuration in place and checked by `scripts/check-publish.mjs` in `pnpm check`; `pnpm pack` of `@vadd/ui` holds `dist/vui.min.js` and `dist/vui-ext.min.js` (VD-182) with `workspace:*` rewritten.
 - Open release-gate deviations, for the spec owner (not re-scoped here):
   - **§14.2 ratio budgets unmet**: spec vs markdown worst 1.582 (≤ 1.2), spec vs hand-written HTML worst 0.425 (≤ 0.2); offline estimator (VD-155, VD-157, VD-165).
   - **§16 agent eval first-show validity 97.0%** against 98% (32 of 33; one run of 40 prompts; `AGENT_EVAL.md`).
   - **VD-129**: the first show in Orca exceeds §16.1's 1 s while Orca creates the pane (1.6–3.4 s here); warm delivery 67–78 ms.
   - **§17.4 Chromium 110** lacks `color-mix()`, which §8.1 requires; full fidelity needs Chromium 111 (VD-177, `RUNTIME_SUPPORT.md`).
-- Bundle: `vui.min.js` 37.9 KiB gzip of the 38 KiB budget (§9.5) after task 21's two fixes; about 100 bytes of headroom. Task 22 will need its `ext` build split if it adds to the core bundle.
+- Bundles: `vui.min.js` 37.9 KiB gzip of the 38 KiB budget (§9.5), unchanged by task 22; about 100 bytes of headroom. The §6 `ext` tier ships in `vui-ext.min.js` (core plus ext, 123.5 KiB min, 42.6 KiB gzip, budget 132/45 KiB), embedded only for documents that use `compare`, `flow` or a `scatter` chart (VD-182).
 
 ## 1. Repository and CI
 
@@ -40,7 +40,7 @@ Ordered steps for the user. Everything a machine could do here is done and recor
 11. Tag `v1.0.0` and push the tag.
 12. npm: an organization or user owning the `@vadd` scope, with **2FA required for publishing** (§15.1). Create an automation token (or configure npm trusted publishing for the repository) and store it as the `NPM_TOKEN` secret in a GitHub environment named `npm`, with required reviewers.
 13. Run the **Release** workflow by hand on the tag. It checks the tag against the version, requires `repository`, runs `pnpm gate`, then `pnpm -r publish --access public` with provenance (`id-token: write`, `NPM_CONFIG_PROVENANCE`).
-14. Verify: the package page on npmjs.com shows the provenance badge for each package; `https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js` serves the bundle (§10.3; the CDN path promised for all of 1.x, §17.2); then `ORCA_E2E_CHECKLIST.md` steps 10 and 15.
+14. Verify: the package page on npmjs.com shows the provenance badge for each package; `https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js` serves the bundle (§10.3; the CDN path promised for all of 1.x, §17.2), and so does `…/dist/vui-ext.min.js` (VD-182); then `ORCA_E2E_CHECKLIST.md` steps 10 and 15.
 
 ## 4. Known gaps carried into 1.0
 
@@ -48,4 +48,4 @@ Ordered steps for the user. Everything a machine could do here is done and recor
 - Firefox 115 prints four-digit `pl-PL` money without a group separator (VD-043, VD-177).
 - After `vui viewer stop` or an idle exit, the next show opens a new pane beside the dead one (VD-125).
 - A Windows `EACCES` port ends the Viewer's port search (VD-118).
-- `compare`, `scatter` and `flow` render as placeholders until task 22.
+- A CDN-mode page written by hand that loads `vui.min.js` for a document with `compare`, `flow` or `scatter` shows §9.3 placeholders for those nodes; the skill and `vui render --cdn` use `vui-ext.min.js` instead (VD-182).

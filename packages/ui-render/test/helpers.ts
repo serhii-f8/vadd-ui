@@ -1,9 +1,11 @@
+import { EXT_COMPONENTS } from '../src/components/ext.js'
 import { COMPONENTS } from '../src/components/index.js'
 import type { Registry } from '../src/context.js'
 import { el } from '../src/el.js'
 import { createRenderer } from '../src/renderer.js'
 
 const realRender = createRenderer(COMPONENTS)
+const fullRender = createRenderer(EXT_COMPONENTS)
 
 export function target(): HTMLElement {
   const element = document.createElement('div')
@@ -27,5 +29,12 @@ export const testRegistry: Registry = new Map([
 export function show(body: unknown[], fields: Record<string, unknown> = {}) {
   const box = target()
   const handle = realRender({ vui: 1, ...fields, body } as never, box)
+  return { box, handle }
+}
+
+/** A render of `body` with the whole catalog, the §6 `ext` tier included (VD-182). */
+export function showExt(body: unknown[], fields: Record<string, unknown> = {}) {
+  const box = target()
+  const handle = fullRender({ vui: 1, ...fields, body } as never, box)
   return { box, handle }
 }

@@ -13,7 +13,7 @@ export type LinkHandler = (url: string) => void
 
 // VD-051: the same marks as the text renderer. `none` has no mark there, but §15.2 wants an
 // icon on every status.
-const STATUS_ICONS: Readonly<Record<Status, string>> = {
+export const STATUS_ICONS: Readonly<Record<Status, string>> = {
   ok: '✓',
   fail: '✗',
   warn: '⚠',

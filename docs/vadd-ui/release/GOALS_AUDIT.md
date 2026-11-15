@@ -43,7 +43,7 @@ Audit of §1 against the code on `main` plus task 21, written 2026-11-15. Verdic
 
 "Viewer, Orca chat, plain browser and VADD web share a single implementation."
 
-- `@vadd/ui-render` is the only DOM renderer. The Viewer feed renders each document with it in a shadow root (task 14); visual files inline `vui.min.js`, which bundles it (tasks 11 and 12, VD-097, VD-115); `<VuiView>` mounts it in a shadow root (task 18, VD-145). Canonical form comes from `@vadd/ui-spec` everywhere (§3 pipeline).
+- `@vadd/ui-render` is the only DOM renderer. The Viewer feed renders each document with it in a shadow root (task 14); visual files inline `vui.min.js`, or `vui-ext.min.js` for a document with an ext component (VD-182), which bundle it (tasks 11 and 12, VD-097, VD-115); `<VuiView>` mounts it in a shadow root (task 18, VD-145). Canonical form comes from `@vadd/ui-spec` everywhere (§3 pipeline).
 - `scripts/check-runtime-deps.mjs` holds the §3 dependency graph in `pnpm check`.
 
 ## Non-goals
@@ -68,4 +68,4 @@ Audit of §1 against the code on `main` plus task 21, written 2026-11-15. Verdic
 
 ## Scope (§1 "Scope of this spec")
 
-Every normative section has an owning task (`docs/vadd-ui/TASKS.md`, coverage table). Task 22 (`compare`, `scatter`, `flow` rendering) is still to come; until then those render as §9.3 placeholders.
+Every normative section has an owning task (`docs/vadd-ui/TASKS.md`, coverage table). Task 22 draws `compare`, `scatter` and `flow` in `vui-ext.min.js` and every ESM build; `vui.min.js` keeps the core tier only, held to §9.5 (VD-182).

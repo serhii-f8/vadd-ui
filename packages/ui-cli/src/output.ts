@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs'
-import type { VuiDocument } from '@vadd/ui-spec'
+import { usesExt, type VuiDocument } from '@vadd/ui-spec'
 import { renderMarkdown, renderPlain } from '@vadd/ui-text'
 import { cdnHtml, GENERATOR_LABEL, inlineHtml } from '@vadd/ui-viewer'
 import { CliError, EXIT } from './outcome.js'
@@ -13,12 +13,13 @@ export type OutputFormat = (typeof FORMATS)[number]
 export interface OutputOptions {
   format: OutputFormat
   cdn?: boolean
-  readBundle: () => string
+  /** `vui.min.js`, or `vui-ext.min.js` when `ext` is true (VD-182). */
+  readBundle: (ext?: boolean) => string
 }
 
-function bundleOf(readBundle: () => string): string {
+function bundleOf(readBundle: OutputOptions['readBundle'], ext: boolean): string {
   try {
-    return readBundle()
+    return readBundle(ext)
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
     throw new CliError(EXIT.io, 'io', `cannot read the renderer bundle: ${reason}`)
@@ -31,7 +32,10 @@ export function renderOutput(document: VuiDocument, options: OutputOptions): str
   if (format === 'md') return renderMarkdown(document)
   if (format === 'text') return renderPlain(document)
   if (cdn === true) return cdnHtml(document)
-  return inlineHtml(document, { bundle: bundleOf(readBundle), generator: GENERATOR_LABEL })
+  return inlineHtml(document, {
+    bundle: bundleOf(readBundle, usesExt(document)),
+    generator: GENERATOR_LABEL,
+  })
 }
 
 export function writeOutput(path: string, text: string): void {

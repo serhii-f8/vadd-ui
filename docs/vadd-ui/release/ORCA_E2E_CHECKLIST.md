@@ -57,7 +57,7 @@ Takes about 30 minutes. Record each step as pass, fail (with a screenshot), or n
 12. **Directive during streaming:** watch a reply stream in. The visual appears once the directive line is complete; a half-streamed line never shows as broken text or a broken frame.
 13. **Electron frame registration:** open Orca's developer tools (if available) on a visual: no CSP violation and no "frame not registered" error in the console.
 14. **WebViews:** repeat steps 5.1, 5.6 and 7 on the other desktop OS (macOS if you ran Windows, or the reverse), and on Orca mobile if you support it.
-15. **Real jsDelivr:** after publishing, open `https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js`: it returns the bundle (check that it is the version you published, for example in the response headers), and step 10 renders.
+15. **Real jsDelivr:** after publishing, open `https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui.min.js` and `…/dist/vui-ext.min.js`: each returns its bundle (check that it is the version you published, for example in the response headers), and step 10 renders.
 
 ## Result
 

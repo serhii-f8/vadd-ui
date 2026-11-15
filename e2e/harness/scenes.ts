@@ -353,6 +353,22 @@ function chartScenes(): Scene[] {
       },
     ],
     ['spark', { title: 'Trend', values: wave(10, 1) }],
+    [
+      'scatter',
+      {
+        title: 'Bundle size vs render time',
+        xFormat: 'bytes',
+        yFormat: 'ms',
+        points: [
+          ...DAYS.map((_, index): [number, number] => [
+            2048 + index * 1700 + ((index * 37) % 11) * 300,
+            4 + ((index * 53) % 17) + index / 2,
+          ]),
+          [61_000, 31, 'vui-ext.min.js'],
+        ],
+        refLines: [{ y: 25, label: 'Budget', tone: 'warn' }],
+      },
+    ],
   ]
   const scenes: Scene[] = kinds.map(([kind, fields]) => ({
     name: `chart-${kind}`,
@@ -767,4 +783,54 @@ export const SCENES: Scene[] = [
   },
   ...chartScenes(),
   ...devScenes(),
+  {
+    name: 'compare',
+    input: [
+      {
+        type: 'compare',
+        title: 'Cache options',
+        options: ['Redis', 'In-process LRU', 'No cache'],
+        criteria: [
+          { label: 'p95 latency', values: [12, 8, 140], format: 'ms', better: 'low' },
+          { label: 'Hit rate', values: [0.92, 0.81, 0], format: 'pct:0', better: 'high' },
+          { label: 'Memory per pod', values: [0, 268_435_456, 0], format: 'bytes', better: 'low' },
+          { label: 'Ops burden', values: ['New service', 'None', 'None'] },
+        ],
+      },
+      {
+        type: 'compare',
+        title: 'Picked against the numbers',
+        options: ['A', 'B'],
+        pick: 0,
+        criteria: [{ label: 'Score', values: [3, 5], better: 'high' }],
+      },
+    ],
+  },
+  {
+    name: 'flow',
+    input: [
+      {
+        type: 'flow',
+        title: 'Release pipeline',
+        nodes: [
+          { id: 'plan', label: 'Plan', status: 'ok' },
+          { id: 'build', label: 'Build bundles', status: 'ok' },
+          { id: 'unit', label: 'Unit tests', status: 'ok' },
+          { id: 'e2e', label: 'Playwright', status: 'fail' },
+          { id: 'fix', label: 'Fix and retry', status: 'run' },
+          { id: 'publish', label: 'Publish to npm with provenance', status: 'wait' },
+        ],
+        edges: [
+          ['plan', 'build'],
+          ['build', 'unit'],
+          ['build', 'e2e'],
+          ['unit', 'publish', 'green'],
+          ['e2e', 'fix', 'red'],
+          ['fix', 'build', 'retry'],
+          ['e2e', 'publish'],
+          ['publish', 'announce'],
+        ],
+      },
+    ],
+  },
 ]

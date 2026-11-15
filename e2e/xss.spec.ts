@@ -44,13 +44,9 @@ const SILENT: Record<string, string> = {
   '#x-table/columns/2/key': 'column key',
   '#x-table/columns/3/key': 'column key',
   '#x-table/columns/6/key': 'column key',
+  // A flow node object is named by its `label`; its `id` is how edges refer to it (§6.5).
+  '@b': 'flow node id',
 }
-
-/**
- * Slots in a §9.3 placeholder, which shows its raw node as JSON: `compare` and `flow` until
- * task 22, and `scatter`, which `vui.min.js` does not draw (§6.4 tier `ext`).
- */
-const PLACEHOLDER = /^#x-(compare|flow|chart-scatter)\b|^@(a|b)$/
 
 /** Slots in a `tree`'s `paths`, which split at `/` into one item per segment (§6.5). */
 const SPLIT = /^#x-tree-paths\/paths\//
@@ -72,8 +68,9 @@ function shows(text: string, payload: string, slot: Slot): boolean {
   if (SPLIT.test(slot.where)) {
     return marked.split('/').every((part) => seen.includes(comparable(part)))
   }
-  if (seen.includes(comparable(marked))) return true
-  return PLACEHOLDER.test(slot.where) && text.includes(JSON.stringify(marked).slice(1, -1))
+  // No placeholder slots any more: every writer embeds the ext tier when a document uses it,
+  // so `compare`, `flow` and `scatter` show their text as text (VD-182).
+  return seen.includes(comparable(marked))
 }
 
 /** The slots of `text` mode whose payload is not in `text`. */

@@ -7,7 +7,7 @@ export interface Io {
   stderr: (text: string) => void
   /** `generatedAt` comes from here (§5.2). */
   now: () => Date
-  readBundle: () => string
+  readBundle: (ext?: boolean) => string
   readSchema: () => string
   system: System
 }

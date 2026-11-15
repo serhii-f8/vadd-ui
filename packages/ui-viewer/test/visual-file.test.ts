@@ -1,6 +1,6 @@
 import { parse, type VuiDocument } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
-import { cdnHtml, embedJson, escapeHtml, inlineHtml } from '../src/visual-file.js'
+import { cdnHtml, embedJson, escapeHtml, inlineHtml, readBundle } from '../src/visual-file.js'
 
 const doc = (fields: Record<string, unknown> = {}): VuiDocument =>
   ({ vui: 1, density: 'compact', locale: 'en-US', body: [], ...fields }) as VuiDocument
@@ -141,6 +141,14 @@ describe('inlineHtml', () => {
 })
 
 describe('cdnHtml', () => {
+  it('points a document that uses the ext tier at vui-ext.min.js (VD-182)', () => {
+    const value = doc({ body: [{ type: 'flow', nodes: ['a'], edges: [] }] })
+    expect(cdnHtml(value)).toContain(
+      '<script src="https://cdn.jsdelivr.net/npm/@vadd/ui@1/dist/vui-ext.min.js"></script>',
+    )
+    expect(cdnHtml(doc())).toContain('/dist/vui.min.js"')
+  })
+
   it("writes the §10.2 template, with the inline file's lang and title (VD-168)", () => {
     const value = doc({ title: 'x' })
     expect(cdnHtml(value)).toBe(
@@ -170,5 +178,18 @@ describe('cdnHtml', () => {
 
   it('escapes the document', () => {
     expect(cdnHtml(doc({ title: '</script>' }))).toContain('"title":"<\\/script>"')
+  })
+})
+
+// The built files, which `pnpm gate` makes before it runs tests.
+describe('readBundle (VD-182)', () => {
+  it('reads the core bundle by default and the ext bundle on request', () => {
+    const core = readBundle()
+    const ext = readBundle(true)
+    expect(readBundle(false)).toBe(core)
+    expect(ext).not.toBe(core)
+    expect(ext).toContain('vui-compare')
+    expect(core).not.toContain('vui-compare')
+    expect(ext).not.toMatch(/<\/script|<!--/i)
   })
 })

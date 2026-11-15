@@ -1,6 +1,7 @@
 import type { VuiDocument } from '@vadd/ui-spec'
 import { describe, expect, it, vi } from 'vitest'
 import type { Registry } from '../src/context.js'
+import { render as coreRender, stylesheet as coreStylesheet } from '../src/core.js'
 import { el } from '../src/el.js'
 import { render, stylesheet } from '../src/index.js'
 import { createRenderer } from '../src/renderer.js'
@@ -31,8 +32,21 @@ describe('§9.1 API', () => {
 
   it('draws an unregistered type as a placeholder through the public render', () => {
     const box = target()
-    render(doc([{ type: 'flow', nodes: [], edges: [] }]), box)
-    expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('flow')
+    render(doc([{ type: 'gauge', value: 1 }]), box)
+    expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('gauge')
+  })
+
+  it('draws the ext tier through the package root, and a placeholder through core (VD-182)', () => {
+    const node = { type: 'compare', options: ['a'], criteria: [] }
+    const full = target()
+    render(doc([node]), full)
+    expect(full.querySelector('.vui-compare')).not.toBeNull()
+    const core = target()
+    coreRender(doc([node]), core)
+    expect(core.querySelector('.vui-card-placeholder')?.textContent).toContain('compare')
+    expect(stylesheet.startsWith(coreStylesheet)).toBe(true)
+    expect(stylesheet).toContain('.vui-compare')
+    expect(coreStylesheet).not.toContain('.vui-compare')
   })
 
   it('draws the document title and subtitle', () => {
