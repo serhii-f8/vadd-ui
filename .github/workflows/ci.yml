@@ -4,10 +4,15 @@ on:
   push:
   pull_request:
 
+# §16 and §16.1. The local gate is the reference: everything here runs `pnpm gate` or the §16.1
+# scenario (scripts/host-scenario.mjs). docs/vadd-ui/release/HOST_MATRIX.md maps jobs to cells.
+
 jobs:
+  # Linux, terminal outside Orca (§16.1). The pixel baselines were rendered on one WSL host
+  # (VD-064); if this runner's fonts differ, regenerate them once with snapshots.yml.
   gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       # No `version`: the action reads the `packageManager` pin.
@@ -19,3 +24,100 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm gate
+      - run: node scripts/host-scenario.mjs --surface browser --out scenario-linux.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scenario-linux
+          path: scenario-linux.json
+          if-no-files-found: ignore
+
+  # Native Windows and macOS (§16.1 rows 1 and 5, the parts a runner without Orca can check).
+  # The pixel comparisons are skipped, since the baselines come from another host's fonts (VD-175);
+  # the perf check holds only the §9.5 limits off the baseline's CPU (VD-171).
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      VUI_PIXELS: skip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm gate
+      - run: node scripts/host-scenario.mjs --surface browser --out scenario-${{ matrix.os }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scenario-${{ matrix.os }}
+          path: scenario-${{ matrix.os }}.json
+          if-no-files-found: ignore
+
+  # §17.4: Firefox and WebKit run the engine smoke (e2e/engines.spec.ts, VD-176).
+  engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VUI_ENGINES: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps firefox webkit
+      - run: pnpm build
+      - run: pnpm exec playwright test --project=firefox --project=webkit
+
+  # §16.1 row 2: WSL 2 with the default NAT networking, on Windows. `vui doctor` inside the distro
+  # asks Windows to fetch the Viewer over `localhost`, which is the NAT forwarding check. WSL 2
+  # needs nested virtualization: set the repository variable WSL2_RUNNER to a runner that has it
+  # (a larger or self-hosted Windows runner) if windows-latest offers only WSL 1.
+  wsl-nat:
+    runs-on: ${{ vars.WSL2_RUNNER || 'windows-latest' }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: wsl-bash {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Vampire/setup-wsl@v5
+        with:
+          distribution: Ubuntu-24.04
+          wsl-version: 2
+          additional-packages: git curl ca-certificates xz-utils
+      - name: Node 22 inside the distro; the repo on the Linux filesystem
+        run: |
+          curl -fsSL https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.xz | tar -xJ -C /opt
+          ln -sf /opt/node-v22.20.0-linux-x64/bin/* /usr/local/bin/
+          corepack enable
+          cp -r "$PWD" ~/vadd-ui
+      - name: Build
+        run: |
+          cd ~/vadd-ui
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm build
+      - name: §16.1 scenario and doctor under NAT
+        run: |
+          cd ~/vadd-ui
+          node scripts/host-scenario.mjs --surface browser --out scenario-wsl-nat.json
+          node packages/ui-cli/dist/bin.js doctor --json
+          cp scenario-wsl-nat.json "$OLDPWD/" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scenario-wsl-nat
+          path: scenario-wsl-nat.json
+          if-no-files-found: ignore

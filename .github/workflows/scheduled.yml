@@ -1,0 +1,57 @@
+name: Scheduled
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  # §17.3: Orca's main against packages/ui-spec/src/host/orca.ts, and the one Orca call the Viewer
+  # depends on. A difference fails the job; refresh host/orca.ts and e2e/harness/orca from the
+  # new commit, then run the e2e suite.
+  orca-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/checkout@v4
+        with:
+          repository: stablyai/orca
+          ref: main
+          path: orca
+      - name: Constants and skill tokens
+        run: node scripts/check-orca-contract.mjs --orca orca
+      # Orca pins its own Node and pnpm; corepack reads its packageManager field.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build Orca's CLI
+        working-directory: orca
+        run: |
+          corepack enable --install-directory "$RUNNER_TEMP/corepack"
+          export PATH="$RUNNER_TEMP/corepack:$PATH"
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm run build:cli
+      - name: orca tab create --help still lists --url and --split
+        run: node scripts/check-orca-contract.mjs --orca orca --orca-cli "node orca/out/cli/index.js"
+
+  # §16: 100k structure-aware cases against the renderer and the CLI.
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm fuzz

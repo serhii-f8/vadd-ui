@@ -1,0 +1,32 @@
+name: Snapshots
+
+# The pixel baselines (e2e/__screenshots__) come from one WSL host (VD-064). A runner whose fonts
+# differ renders other pixels: run this once on it, review the artifact, and commit it (VD-175).
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Runner to render on
+        default: ubuntu-latest
+        type: choice
+        options: [ubuntu-latest, windows-latest, macos-latest]
+
+jobs:
+  render:
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm exec playwright test e2e/visual.spec.ts --update-snapshots=all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ inputs.os }}
+          path: e2e/__screenshots__
