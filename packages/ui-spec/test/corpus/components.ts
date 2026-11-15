@@ -331,6 +331,13 @@ export const componentTables: ComponentTable[] = [
       { criteria: [] },
       { criteria: [{ label: 'C', values: [1, null], format: 'ms', better: 'low' }] },
       { criteria: [{ label: 'C', values: ['x', true], better: 'high' }] },
+      {
+        options: ['a', 'b', 'c'],
+        criteria: [
+          { label: 'p95', values: [80, 60, 60], format: 'ms', better: 'low' },
+          { label: 'RPS', values: [1000, 1200, 900], format: 'int', better: 'high' },
+        ],
+      },
     ],
     missing: ['/options', '/criteria', '/criteria/0/label', '/criteria/0/values'],
     errors: [
@@ -420,7 +427,16 @@ export const componentTables: ComponentTable[] = [
         [3, 4],
       ],
     },
-    ok: [...chartCommon, { points: [] }],
+    ok: [
+      ...chartCommon,
+      { points: [] },
+      {
+        points: [[5, 5]],
+        xFormat: 'ms',
+        yFormat: 'pct:0',
+        refLines: [{ y: 1, label: 'L', tone: 'ok' }],
+      },
+    ],
     missing: ['/points'],
     errors: [
       ['/points', 5],
@@ -586,6 +602,15 @@ export const componentTables: ComponentTable[] = [
       { edges: [] },
       { nodes: [], edges: [] },
       { nodes: ['a', { id: 'b', label: 'B', status: 'ok' }], edges: [['a', 'b']] },
+      {
+        nodes: ['a', 'b', 'c'],
+        edges: [
+          ['a', 'b'],
+          ['b', 'c', 'next'],
+          ['c', 'a', 'retry'],
+          ['c', 'c'],
+        ],
+      },
     ],
     missing: ['/edges', '/nodes/2/id', '/nodes/2/label'],
     errors: [

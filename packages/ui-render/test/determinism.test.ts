@@ -22,6 +22,22 @@ describe('determinism (§9.3)', () => {
     expect(serialize(first)).toBe(serialize(second))
   })
 
+  // The ext tier through the real catalog (VD-182): layout and drawing are pure too.
+  const extCases = validCases.filter((item) => /^(compare|flow|chart scatter)\b/.test(item.name))
+
+  it('has ext cases in the corpus', () => {
+    expect(extCases.length).toBeGreaterThanOrEqual(15)
+  })
+
+  it.each(extCases.map((item) => [item.name, item] as const))('ext: %s', (_, item) => {
+    const first = target()
+    const second = target()
+    render(inputOf(item), first, { now })
+    render(inputOf(item), second, { now })
+    expect(serialize(first)).toBe(serialize(second))
+    expect(first.querySelector('.vui-card-placeholder, .vui-card-error')).toBeNull()
+  })
+
   it('needs neither Math.random nor Date.now', () => {
     const random = vi.spyOn(Math, 'random')
     const clock = vi.spyOn(Date, 'now')
