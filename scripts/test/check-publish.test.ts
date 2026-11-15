@@ -61,6 +61,16 @@ describe('check-publish', () => {
     expect(code).toBe(1)
   })
 
+  it('fails @vadd/ui without the ext CDN path (VD-182)', () => {
+    const root = tree()
+    editJson(root, 'packages/ui/package.json', (pkg) => {
+      delete (pkg.exports as Record<string, unknown>)['./vui-ext.min.js']
+    })
+    const { code, out } = check(root)
+    expect(out).toContain('@vadd/ui: exports["./vui-ext.min.js"] must be "./dist/vui-ext.min.js"')
+    expect(code).toBe(1)
+  })
+
   it('ignores a private package', () => {
     const root = tree()
     editJson(root, 'skills/vadd-ui/package.json', (pkg) => {

@@ -8,12 +8,15 @@ import { repoRoot, run } from './helpers.js'
 const script = 'check-bundle-size.mjs'
 const KIB = 1024
 
-function tree(options: { bundle?: Buffer; exports?: unknown; manifest?: string } = {}): string {
+function tree(
+  options: { bundle?: Buffer; ext?: Buffer; exports?: unknown; manifest?: string } = {},
+): string {
   const root = mkdtempSync(join(tmpdir(), 'vui-bundle-'))
   mkdirSync(join(root, 'packages/ui/dist'), { recursive: true })
   const manifest = options.manifest ?? JSON.stringify({ exports: options.exports ?? {} })
   writeFileSync(join(root, 'packages/ui/package.json'), manifest)
   if (options.bundle) writeFileSync(join(root, 'packages/ui/dist/vui.min.js'), options.bundle)
+  if (options.ext) writeFileSync(join(root, 'packages/ui/dist/vui-ext.min.js'), options.ext)
   return root
 }
 
@@ -29,6 +32,7 @@ describe('check-bundle-size', () => {
   it('has the real manifest declare the bundle, so a dropped build step fails', () => {
     const manifest = JSON.parse(readFileSync(`${repoRoot}packages/ui/package.json`, 'utf8'))
     expect(manifest.exports['./vui.min.js']).toBe('./dist/vui.min.js')
+    expect(manifest.exports['./vui-ext.min.js']).toBe('./dist/vui-ext.min.js')
   })
 
   it.each([
@@ -71,5 +75,34 @@ describe('check-bundle-size', () => {
     expect(code).toBe(1)
     expect(out).toContain('unreadable')
     expect(out).not.toContain('    at ')
+  })
+
+  describe('vui-ext.min.js (VD-182)', () => {
+    it('passes 128 KiB and fails one byte more', () => {
+      expect(check(tree({ ext: Buffer.alloc(128 * KIB, 'a') })).code).toBe(0)
+      const { code, out } = check(tree({ ext: Buffer.alloc(128 * KIB + 1, 'a') }))
+      expect(code).toBe(1)
+      expect(out).toContain('vui-ext.min.js: 128.0 KiB minified, budget 128.0 KiB')
+    })
+
+    it('fails over 42 KiB gzip, which vui.min.js would fail at 38', () => {
+      const { code, out } = check(tree({ ext: randomBytes(44 * KIB) }))
+      expect(code).toBe(1)
+      expect(out).toContain('vui-ext.min.js')
+      expect(out).toContain('gzip, budget 42.0 KiB')
+    })
+
+    it('fails on a comment opener, as the core bundle does', () => {
+      const { code, out } = check(tree({ ext: Buffer.from('a="<!--"') }))
+      expect(code).toBe(1)
+      expect(out).toContain('vui-ext.min.js: cannot be inlined in HTML')
+    })
+
+    it('fails when the manifest declares it and the file is missing', () => {
+      const exports = { './vui.min.js': './dist/vui.min.js', './vui-ext.min.js': './x' }
+      const { code, out } = check(tree({ bundle: Buffer.from('a'), exports }))
+      expect(code).toBe(1)
+      expect(out).toContain('vui-ext.min.js: declared in exports but missing')
+    })
   })
 })

@@ -4,7 +4,8 @@
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": [
-    "./dist/vui.min.js"
+    "./dist/vui.min.js",
+    "./dist/vui-ext.min.js"
   ],
   "jsdelivr": "dist/vui.min.js",
   "unpkg": "dist/vui.min.js",
@@ -13,7 +14,8 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./vui.min.js": "./dist/vui.min.js"
+    "./vui.min.js": "./dist/vui.min.js",
+    "./vui-ext.min.js": "./dist/vui-ext.min.js"
   },
   "files": [
     "dist"

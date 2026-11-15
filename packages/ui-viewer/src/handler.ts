@@ -5,6 +5,7 @@ import {
   type JsonValue,
   LIMITS,
   MEDIA_TYPE,
+  usesExt,
   type VuiDocument,
   validateText,
 } from '@vadd/ui-spec'
@@ -141,7 +142,8 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
   let script = options.feed?.script
   const hub = new SseHub({ version: packageVersion, onChange: onActivity })
   const limiter = new WriteLimiter()
-  let bundle: string | undefined
+  /** The core and the ext bundle (VD-182), each read on first use. */
+  const bundles: (string | undefined)[] = []
 
   const isWriter = ({ headers }: IncomingMessage): boolean => {
     const token = BEARER.exec(headers.authorization ?? '')?.[1]
@@ -246,8 +248,9 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
         notFound(res)
         return
       }
-      bundle ??= readBundle()
       const stored = JSON.parse(text) as VuiDocument
+      const ext = usesExt(stored)
+      const bundle = (bundles[Number(ext)] ??= readBundle(ext))
       // A `meta` that is not an object is stored as sent, and has no path to strip: it goes as is.
       const shared = isJsonObject(stored.meta as JsonValue) ? withoutPaths(stored) : stored
       const file = inlineHtml(shared, {

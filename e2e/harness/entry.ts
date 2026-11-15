@@ -1,10 +1,10 @@
-import { COMPONENTS } from '../../packages/ui-render/src/components/index.js'
-import { stylesheet } from '../../packages/ui-render/src/css/index.js'
+import { EXT_COMPONENTS } from '../../packages/ui-render/src/components/ext.js'
+import { stylesheet } from '../../packages/ui-render/src/index.js'
 import { createRenderer, type RenderHandle } from '../../packages/ui-render/src/renderer.js'
 import { FIXTURES } from './fixtures.js'
 
 // Runs inside the visual. It stands in for `vui.min.js`, which cannot hold the fixture
-// components, and it boots the same way: the stylesheet goes in by script, as §9.2 step 3 says.
+// components, and it boots the same way, with every §6 tier (VD-182): the stylesheet goes in by script, as §9.2 step 3 says.
 // `bundle.spec.ts` runs the real bundle.
 
 interface HarnessWindow {
@@ -25,7 +25,7 @@ document.head.append(style)
 
 const source = document.getElementById('vui-input') as HTMLElement
 const { input, now, diagnostics = 'hidden' } = JSON.parse(source.textContent as string)
-harness.__vuiHandle = createRenderer(new Map([...FIXTURES, ...COMPONENTS]))(
+harness.__vuiHandle = createRenderer(new Map([...FIXTURES, ...EXT_COMPONENTS]))(
   input,
   document.getElementById('vui') as HTMLElement,
   now === undefined ? { diagnostics } : { diagnostics, now: new Date(now) },

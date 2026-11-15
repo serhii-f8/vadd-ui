@@ -2,6 +2,10 @@
 // §3: `@vadd/ui` ships two bundles, built from what `tsc -b` just wrote.
 //
 // `vui.min.js` is the boot script, and its path is stable for the whole 1.x line (§10.3).
+// `vui-ext.min.js` is the same boot script with the §6 `ext` tier too: a writer embeds it in
+// place of `vui.min.js` only for a document that uses that tier (VD-182). Both come from one
+// entry; the core build resolves `@vadd/ui-render` to its `core` entry, so its bytes are the
+// core tier's alone and no source carries a switch.
 // `index.js` is the ESM build: one self-contained module, with nothing on import.
 //
 // The Viewer's `app.js` comes last, because it bundles that `index.js` through the package's
@@ -14,6 +18,7 @@ import { BROWSER_TARGET } from './lib/targets.mjs'
 
 const dir = fileURLToPath(new URL('../packages/ui/', import.meta.url))
 const viewerDir = fileURLToPath(new URL('../packages/ui-viewer/', import.meta.url))
+const coreRender = fileURLToPath(new URL('../packages/ui-render/dist/core.js', import.meta.url))
 // The one source of the version; `check-versions` ties this manifest to the root.
 const { version } = JSON.parse(readFileSync(`${dir}package.json`, 'utf8'))
 
@@ -32,7 +37,14 @@ await Promise.all([
     ...shared,
     entryPoints: [`${dir}src/vui.ts`],
     format: 'iife',
+    alias: { '@vadd/ui-render': coreRender },
     outfile: `${dir}dist/vui.min.js`,
+  }),
+  build({
+    ...shared,
+    entryPoints: [`${dir}src/vui.ts`],
+    format: 'iife',
+    outfile: `${dir}dist/vui-ext.min.js`,
   }),
   build({
     ...shared,

@@ -13,7 +13,7 @@ export interface Delivery {
   diagnostics: Diagnostic[]
   noOpen: boolean
   system: System
-  readBundle: () => string
+  readBundle: (ext?: boolean) => string
   /** §11.5's name, for hosts that write a file. */
   name?: string
   /** `--dir`. */

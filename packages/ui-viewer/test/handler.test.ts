@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { version } from '@vadd/ui'
 import { LIMITS, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readBundle } from '../src/visual-file.js'
 import { BEARER, FEED, HASH, openStream, READ, request, type Served, serve } from './helpers.js'
 
 const DOC = { vui: 1, title: 'Report', body: ['hello'] }
@@ -374,6 +375,16 @@ describe('POST /api/docs', () => {
 })
 
 describe('the standalone page (VD-123)', () => {
+  it('inlines the ext bundle only for a document that uses the ext tier (VD-182)', async () => {
+    const { get, post } = await start()
+    const ext = { ...DOC, body: [{ type: 'compare', options: ['a'], criteria: [] }] }
+    const extPage = (await get(`/docs/${(await post(ext)).json().id}.html`)).text
+    const corePage = (await get(`/docs/${(await post(DOC)).json().id}.html`)).text
+    expect(extPage).toContain(readBundle(true))
+    expect(corePage).toContain(readBundle(false))
+    expect(corePage).not.toContain(readBundle(true))
+  })
+
   it('holds no local path, keeps the rest of meta, and the feed keeps cwd', async () => {
     const { get, post } = await start()
     const meta = { cwd: '/home/u/secret-repo', branch: 'feat/x', generator: 'vui' }

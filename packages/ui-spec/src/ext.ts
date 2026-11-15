@@ -1,6 +1,8 @@
 // §6's `ext` tier: what picks the bundle (VD-182) and how `compare` crowns a winner (VD-183).
 // Both read plain JSON that may not have passed validation, so neither trusts a shape.
 
+import { hasOwn } from './json.js'
+
 const EXT_TYPES = new Set(['compare', 'flow'])
 
 /** True when any object in `value` is an ext node: the writer must embed `vui-ext.min.js`. */
@@ -18,7 +20,7 @@ export function usesExt(value: unknown): boolean {
     if (typeof node.type === 'string' && EXT_TYPES.has(node.type)) return true
     if (node.type === 'chart' && node.kind === 'scatter') return true
     for (const key in node) {
-      if (Object.hasOwn(node, key) && typeof node[key] === 'object') pending.push(node[key])
+      if (hasOwn(node, key) && typeof node[key] === 'object') pending.push(node[key])
     }
   }
   return false
