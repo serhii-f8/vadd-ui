@@ -1575,14 +1575,14 @@ exports[`valid corpus snapshots (§16) > compare valid 4: {"criteria":[]} > plai
 `;
 
 exports[`valid corpus snapshots (§16) > compare valid 5: {"criteria":[{"label":"C","values":[1,nu > markdown 1`] = `
-"|  | a | b |
+"|  | a ✓ | b |
 | --- | --- | --- |
-| C ↓ | 1 ms | — |
+| C ↓ | **1 ms** | — |
 "
 `;
 
 exports[`valid corpus snapshots (§16) > compare valid 5: {"criteria":[{"label":"C","values":[1,nu > plain 1`] = `
-"     a     b
+"     a ✓   b
 ---  ----  -
 C ↓  1 ms  —
 "

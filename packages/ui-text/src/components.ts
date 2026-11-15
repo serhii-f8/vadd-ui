@@ -1,6 +1,8 @@
 import {
   type CheckItem,
   type ComponentType,
+  compareBest,
+  compareWinner,
   diffEntries,
   hasOwn,
   isIsoTime,
@@ -215,27 +217,36 @@ const RENDERERS: Renderers = {
     }))
     return [line, list(segments)]
   },
-  compare: (node, context) => [
-    {
-      kind: 'table',
-      header: [
-        [],
-        ...node.options.map((option, index) =>
-          trailed([text(option)], index === node.pick ? '✓' : ''),
-        ),
-      ],
-      aligns: ['left', ...node.options.map(() => 'left' as const)],
-      rows: node.criteria.map((criterion) => [
-        trailed(
-          [text(criterion.label)],
-          criterion.better === 'high' ? '↑' : criterion.better === 'low' ? '↓' : '',
-        ),
-        ...node.options.map((_, index) =>
-          tokensOf(format(criterion.values[index], criterion.format, context)),
-        ),
-      ]),
-    },
-  ],
+  compare: (node, context) => {
+    // The same winner and best values as the renderer draws (VD-183).
+    const winner = compareWinner(node)
+    const count = node.options.length
+    return [
+      {
+        kind: 'table',
+        header: [
+          [],
+          ...node.options.map((option, index) =>
+            trailed([text(option)], index === winner ? '✓' : ''),
+          ),
+        ],
+        aligns: ['left', ...node.options.map(() => 'left' as const)],
+        rows: node.criteria.map((criterion) => {
+          const best = compareBest(criterion.values, criterion.better, count)
+          return [
+            trailed(
+              [text(criterion.label)],
+              criterion.better === 'high' ? '↑' : criterion.better === 'low' ? '↓' : '',
+            ),
+            ...node.options.map((_, index) => {
+              const tokens = tokensOf(format(criterion.values[index], criterion.format, context))
+              return best.has(index) ? [bold(...tokens)] : tokens
+            }),
+          ]
+        }),
+      },
+    ]
+  },
   chart: chartBlocks,
   checks: (node, context) => [list(node.items.map((item) => checkEntry(item, context)))],
   plan: (node) => {

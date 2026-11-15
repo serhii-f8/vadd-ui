@@ -529,6 +529,31 @@ describe('data', () => {
     expect(md(input)).toContain('| c | 1 |')
   })
 
+  it('compare marks the computed winner when there is no pick (VD-183)', () => {
+    const input = {
+      type: 'compare',
+      options: ['A', 'B', 'C'],
+      criteria: [
+        { label: 'p95', values: [80, 60, 60], format: 'ms', better: 'low' },
+        { label: 'RPS', values: [1, 3, 2], better: 'high' },
+        { label: 'Cost', values: [3, 1, 2], better: 'low' },
+      ],
+    }
+    expect(md(input)).toBe(
+      '|  | A | B ✓ | C |\n| --- | --- | --- | --- |\n' +
+        '| p95 ↓ | 80 ms | **60 ms** | **60 ms** |\n| RPS ↑ | 1 | **3** | 2 |\n' +
+        '| Cost ↓ | 3 | **1** | 2 |\n',
+    )
+    const tie = {
+      ...input,
+      criteria: [
+        { label: 'p95', values: [80, 60, 70], better: 'low' },
+        { label: 'RPS', values: [1, 2, 3], better: 'high' },
+      ],
+    }
+    expect(md(tie).split('\n')[0]).toBe('|  | A | B | C |')
+  })
+
   it('compare is a matrix with the pick marked', () => {
     both(
       {
@@ -541,7 +566,7 @@ describe('data', () => {
           { label: 'Note', values: ['x', null] },
         ],
       },
-      '|  | A | B ✓ |\n| --- | --- | --- |\n| p95 ↓ | 80 ms | 120 ms |\n| RPS ↑ | 1,000 | 900 |\n| Note | x | — |',
+      '|  | A | B ✓ |\n| --- | --- | --- |\n| p95 ↓ | **80 ms** | 120 ms |\n| RPS ↑ | **1,000** | 900 |\n| Note | x | — |',
       '       A      B ✓\n-----  -----  ------\np95 ↓  80 ms  120 ms\nRPS ↑  1,000  900\nNote   x      —',
     )
   })
@@ -789,6 +814,20 @@ describe('dev workflow', () => {
       '```log\nERROR x\nINFO y\n```',
       '    ERROR x\n    INFO y',
     )
+  })
+
+  it('flow lists a cycle and a self-loop once per node, and terminates', () => {
+    expect(
+      md({
+        type: 'flow',
+        nodes: ['a', 'b'],
+        edges: [
+          ['a', 'b'],
+          ['b', 'a', 'retry'],
+          ['b', 'b'],
+        ],
+      }),
+    ).toBe('- a\n  - → b\n- b\n  - → a (retry)\n  - → b\n')
   })
 
   it('flow nests edges under their source', () => {
