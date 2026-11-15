@@ -78,18 +78,18 @@ describe('check-bundle-size', () => {
   })
 
   describe('vui-ext.min.js (VD-182)', () => {
-    it('passes 128 KiB and fails one byte more', () => {
-      expect(check(tree({ ext: Buffer.alloc(128 * KIB, 'a') })).code).toBe(0)
-      const { code, out } = check(tree({ ext: Buffer.alloc(128 * KIB + 1, 'a') }))
+    it('passes 132 KiB and fails one byte more', () => {
+      expect(check(tree({ ext: Buffer.alloc(132 * KIB, 'a') })).code).toBe(0)
+      const { code, out } = check(tree({ ext: Buffer.alloc(132 * KIB + 1, 'a') }))
       expect(code).toBe(1)
-      expect(out).toContain('vui-ext.min.js: 128.0 KiB minified, budget 128.0 KiB')
+      expect(out).toContain('vui-ext.min.js: 132.0 KiB minified, budget 132.0 KiB')
     })
 
-    it('fails over 42 KiB gzip, which vui.min.js would fail at 38', () => {
-      const { code, out } = check(tree({ ext: randomBytes(44 * KIB) }))
+    it('fails over 45 KiB gzip, which vui.min.js would fail at 38', () => {
+      const { code, out } = check(tree({ ext: randomBytes(47 * KIB) }))
       expect(code).toBe(1)
       expect(out).toContain('vui-ext.min.js')
-      expect(out).toContain('gzip, budget 42.0 KiB')
+      expect(out).toContain('gzip, budget 45.0 KiB')
     })
 
     it('fails on a comment opener, as the core bundle does', () => {

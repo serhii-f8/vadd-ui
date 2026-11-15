@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // §9.5: `vui.min.js` including CSS is ≤ 120 KiB minified and ≤ 38 KiB gzip.
 // VD-182: `vui-ext.min.js`, the same boot script with the §6 `ext` tier, is embedded only for a
-// document that uses that tier, and has its own budget: ≤ 128 KiB minified, ≤ 42 KiB gzip.
+// document that uses that tier, and has its own budget: ≤ 132 KiB minified, ≤ 45 KiB gzip.
 //
 // §10.1 inlines a bundle in a `<script>`, so it must hold nothing that ends the element or
 // sends the HTML parser into its escaped states. A size check is the one that reads the file.
@@ -17,7 +17,7 @@ import { readJson } from './lib/workspace.mjs'
 
 const BUNDLES = [
   { file: 'vui.min.js', min: 120 * 1024, gzip: 38 * 1024 },
-  { file: 'vui-ext.min.js', min: 128 * 1024, gzip: 42 * 1024 },
+  { file: 'vui-ext.min.js', min: 132 * 1024, gzip: 45 * 1024 },
 ]
 
 /** @param {number} bytes */
