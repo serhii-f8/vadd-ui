@@ -692,6 +692,10 @@ describe('chart robustness', () => {
     [{ kind: 'bar', x: ['a'], series: { s: [1] }, refLines: 'bad', height: 'xl', legend: 7 }],
     [{ kind: 'bar', x: [{ a: 1 }, null], series: { s: [1, 2] } }],
     [{ kind: 'line', x: ['a'], series: { s: [1] }, yFormat: 7, xFormat: 'bogus:1' }],
+    // `pnpm fuzz`, seed 3746479352: `spark` takes no `x`, so an unknown one reaches the model
+    // unchecked, and an entry whose `toString` is data cannot become a number.
+    [{ kind: 'spark', x: ['a', 'b', { toString: {} }], values: [1, 2, 3] }],
+    [{ kind: 'spark', x: [{ valueOf: [] }, 'b'], values: [1, 2] }],
   ])('renders %j', (fields) => {
     const { handle } = chart(fields)
     expect(handle.diagnostics.some(({ code }) => code === 'render-failed')).toBe(false)

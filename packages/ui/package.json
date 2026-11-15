@@ -6,6 +6,8 @@
   "sideEffects": [
     "./dist/vui.min.js"
   ],
+  "jsdelivr": "dist/vui.min.js",
+  "unpkg": "dist/vui.min.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,6 +18,10 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "dependencies": {
     "@vadd/ui-spec": "workspace:*",
     "@vadd/ui-render": "workspace:*"

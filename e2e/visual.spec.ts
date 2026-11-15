@@ -7,6 +7,11 @@ import type { Scheme } from './harness/theme.js'
 
 const SCHEMES: Scheme[] = ['light', 'dark']
 
+// The baselines are rendered on one Linux host (VD-064). A runner with other fonts (the Windows
+// and macOS CI jobs) sets `VUI_PIXELS=skip`: every other assertion here still runs (VD-175).
+const PIXELS = process.env.VUI_PIXELS !== 'skip'
+const NO_PIXELS = 'VUI_PIXELS=skip: the baselines come from another host'
+
 async function open(page: Page, name: string, scheme: Scheme, width: number) {
   const scene = SCENES.find((item) => item.name === name)
   if (!scene) throw new Error(name)
@@ -31,7 +36,7 @@ for (const { name } of SCENES) {
     for (const scheme of SCHEMES) {
       test(`${name} at ${width} px, ${scheme}`, async ({ page }) => {
         const { iframe, frame } = await open(page, name, scheme, width)
-        await expect(iframe).toHaveScreenshot(`${name}-${width}-${scheme}.png`)
+        if (PIXELS) await expect(iframe).toHaveScreenshot(`${name}-${width}-${scheme}.png`)
         const overflow = await frame.evaluate(
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         )
@@ -82,12 +87,14 @@ const updating = (mode: string) => mode === 'all' || mode === 'changed'
 
 test('a live theme switch lands on the other scheme, pixel for pixel', async ({ page }, info) => {
   test.skip(updating(info.config.updateSnapshots))
+  test.skip(!PIXELS, NO_PIXELS)
   const opened = await open(page, 'tones', 'light', 720)
   await opened.switchTheme('dark')
   await expect(opened.iframe).toHaveScreenshot('tones-720-dark.png')
 })
 
 test.describe('the pixel gate can fail', () => {
+  test.skip(!PIXELS, NO_PIXELS)
   /** Paints `share` of the frame over the content, in a color no baseline has. */
   async function paint(page: Page, share: number) {
     const opened = await open(page, 'tones', 'light', 720)

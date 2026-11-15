@@ -295,6 +295,25 @@ describe('value checks', () => {
     expect(node(compare)).toMatchObject([{ ...warn, path: '/body/0/criteria/0/values/1' }])
   })
 
+  it('names the positional limit for a stats item that is too long or too short', () => {
+    const message = (items: JsonValue[]) =>
+      node({ type: 'stats', items }).map(({ code, path, message: text }) => ({ code, path, text }))
+    expect(message([['a', 1, 'num', null, null, 'ok', 'extra']])).toEqual([
+      {
+        code: 'bad-type',
+        path: '/body/0/items/0',
+        text: 'expected an object or a positional item of 2 to 6 entries, got 7 entries',
+      },
+    ])
+    expect(message([['a']])[0]?.text).toBe(
+      'expected an object or a positional item of 2 to 6 entries, got 1 entry',
+    )
+    expect(message([[1, 2]])[0]?.text).toBe(
+      'expected an object or a positional item whose first entry is the label, a string',
+    )
+    expect(message(['a'])[0]?.text).toBe('expected an object, got string')
+  })
+
   it('checks a stats delta against its deltaFormat', () => {
     const stats = {
       type: 'stats',

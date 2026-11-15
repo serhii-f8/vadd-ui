@@ -115,11 +115,18 @@ function applyDefaults(node: JsonObject, type: string, cp: string, ip: string, c
   }
 }
 
-const STAT_FIELDS = ['label', 'value', 'format', 'delta', 'deltaFormat', 'tone']
+export const STAT_FIELDS = ['label', 'value', 'format', 'delta', 'deltaFormat', 'tone']
+/** A positional stat needs at least a label and a value. */
+export const STAT_MIN_ENTRIES = 2
 
 /** A positional stat, `[label, value, format?, delta?, deltaFormat?, tone?]` (VD-164). */
 function statItemOf(raw: JsonValue, cp: string, ip: string, ctx: WalkContext): JsonValue {
-  if (!Array.isArray(raw) || raw.length < 2 || raw.length > 6 || typeof raw[0] !== 'string') {
+  if (
+    !Array.isArray(raw) ||
+    raw.length < STAT_MIN_ENTRIES ||
+    raw.length > STAT_FIELDS.length ||
+    typeof raw[0] !== 'string'
+  ) {
     return raw
   }
   const item: JsonObject = {}

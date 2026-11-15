@@ -16,6 +16,10 @@
     "dist",
     "corpus"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "engines": {
     "node": ">=20"
   },
