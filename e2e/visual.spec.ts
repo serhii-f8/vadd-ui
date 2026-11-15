@@ -58,8 +58,8 @@ test('axe sees a serious violation in a visual frame', async ({ page }) => {
   )
 })
 
-const CORE_TYPES = COMPONENT_TYPES.filter((type) => type !== 'compare' && type !== 'flow')
-const CORE_KINDS = ['bar', 'hbar', 'stacked', 'line', 'area', 'donut', 'spark']
+// The harness draws every tier (VD-182), so every component and kind has baselines.
+const KINDS = ['bar', 'hbar', 'stacked', 'line', 'area', 'donut', 'spark', 'scatter']
 
 /** Every `type` and chart `kind` in a scene input, however deep the nodes nest. */
 function collect(value: unknown, types: Set<string>, kinds: Set<string>) {
@@ -72,12 +72,12 @@ function collect(value: unknown, types: Set<string>, kinds: Set<string>) {
   }
 }
 
-test('every core component and kind has a scene', () => {
+test('every component and kind has a scene', () => {
   const types = new Set<string>()
   const kinds = new Set<string>()
   for (const scene of SCENES) collect(scene.input, types, kinds)
-  expect(CORE_TYPES.filter((type) => !types.has(type))).toEqual([])
-  expect(CORE_KINDS.filter((kind) => !kinds.has(kind))).toEqual([])
+  expect(COMPONENT_TYPES.filter((type) => !types.has(type))).toEqual([])
+  expect(KINDS.filter((kind) => !kinds.has(kind))).toEqual([])
   const names = SCENES.map((scene) => scene.name)
   for (const name of ['example-19-1', 'example-19-2', 'example-19-3']) expect(names).toContain(name)
 })

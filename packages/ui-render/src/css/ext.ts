@@ -13,7 +13,7 @@ const compareCss = `
 `
 
 const flowCss = `
-.vui-flow{min-width:0;overflow-x:auto}
+.vui-flow{min-width:0;overflow-x:auto;border-radius:var(--vui-radius)}
 .vui-flow svg{display:block;max-width:none}
 .vui-flow text{fill:var(--vui-surface-fg);font-size:12px}
 .vui-flow-node{fill:var(--vui-surface);stroke:var(--vui-tone-line,var(--vui-border));stroke-width:1.5}

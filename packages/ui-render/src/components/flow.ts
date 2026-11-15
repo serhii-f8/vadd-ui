@@ -146,6 +146,8 @@ export const flow: Component = {
       ...boxes.map((box, index) => boxMark(box, places[index] as Point)),
       ...labels,
     ])
-    return el('div', { class: 'vui-flow' }, [image, outline(boxes, links)])
+    // A wide graph scrolls in its box, so a keyboard must be able to reach it (WCAG 2.1.1).
+    const box = { class: 'vui-flow', tabindex: 0, role: 'group', 'aria-label': title }
+    return el('div', box, [image, outline(boxes, links)])
   },
 }

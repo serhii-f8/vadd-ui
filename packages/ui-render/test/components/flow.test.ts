@@ -96,7 +96,10 @@ describe('flow (§6.5)', () => {
     const [, , width, height] = (image.getAttribute('viewBox') ?? '').split(' ').map(Number)
     expect(image.getAttribute('width')).toBe(String(width))
     expect(image.getAttribute('height')).toBe(String(height))
-    expect(box.querySelector('.vui-flow')?.classList.contains('vui-flow')).toBe(true)
+    const scroller = box.querySelector('.vui-flow') as HTMLElement
+    expect(scroller.getAttribute('tabindex')).toBe('0')
+    expect(scroller.getAttribute('role')).toBe('group')
+    expect(scroller.getAttribute('aria-label')).toBe('Flow')
   })
 
   it('says so when there is nothing to draw', () => {
