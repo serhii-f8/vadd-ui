@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-10T15:41:28Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T12:31:25Z · Mode: manual
 
 ## Summary
-Done 20 / 22 · In progress: none · Blocked: none · Next: 21 — Host matrix and release preparation
+Done 20 / 22 · In progress: 21 · Blocked: none · Next: 21 — Host matrix and release preparation
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -48,11 +48,12 @@ Recorded 2026-11-04 during bootstrap.
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | done | removed | ctx_22d6938816d6 | [design](docs/superpowers/specs/2026-11-07-ui-react-design.md) | [plan](docs/superpowers/plans/2026-11-07-ui-react.md) | b41f419 | 2026-11-07 |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | done | removed | ctx_6c182ecb9dfb | [design](docs/superpowers/specs/2026-11-10-vui-bench-design.md) | [plan](docs/superpowers/plans/2026-11-10-vui-bench.md) | bb2c492 | 2026-11-10 |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | done | removed | ctx_5c23eb4a2a60 | [design](docs/superpowers/specs/2026-11-10-hardening-design.md) | [plan](docs/superpowers/plans/2026-11-10-hardening.md) | bbd7e43 | 2026-11-10 |
-| 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | todo | | | | | | |
+| 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | in_progress | vui-21-release-prep | ctx_43252fda1845 | | | | |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
 
 ## Current task log
-none
+- 21 · 2026-11-15T12:31:25Z · selected (dep 20 done)
+- 21 · 2026-11-15T12:32:22Z · dispatched: worktree `vui-21-release-prep` (id `28b6546a-7693-41f8-a180-476d9aaa0d09::\\wsl.localhost\Ubuntu-22.04\home\serhii\orca\workspaces\vadd-ui\vui-21-release-prep`), terminal `term_43415117-69f1-411f-961e-1f609cd2db24`, dispatch `ctx_43252fda1845`, run `run_ef8570956d10`, branch `vadd-ui/21-release-prep`
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding
