@@ -1,5 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// §17.4 engines beyond Chromium: CI's `engines` job sets `VUI_ENGINES`; `pnpm gate` keeps the one
+// Chromium §16 names, which runs `engines.spec.ts` too (VD-176).
+const ENGINES = process.env.VUI_ENGINES
+  ? [
+      { name: 'firefox', use: { ...devices['Desktop Firefox'], headless: true } },
+      { name: 'webkit', use: { ...devices['Desktop Safari'], headless: true } },
+    ].map((project) => ({ ...project, testMatch: /engines\.spec\.ts$/ }))
+  : []
+
 export default defineConfig({
   testDir: 'e2e',
   forbidOnly: true,
@@ -23,5 +32,6 @@ export default defineConfig({
       dependencies: ['chromium'],
       use: { ...devices['Desktop Chrome'], headless: true },
     },
+    ...ENGINES,
   ],
 })
