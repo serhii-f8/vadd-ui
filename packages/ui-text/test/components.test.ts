@@ -539,13 +539,14 @@ describe('data', () => {
         { label: 'Cost', values: [3, 1, 2], better: 'low' },
       ],
     }
-    expect(md(input)).toBe(
+    expect(md(input as JsonValue)).toBe(
       '|  | A | B ✓ | C |\n| --- | --- | --- | --- |\n' +
         '| p95 ↓ | 80 ms | **60 ms** | **60 ms** |\n| RPS ↑ | 1 | **3** | 2 |\n' +
         '| Cost ↓ | 3 | **1** | 2 |\n',
     )
-    const tie = {
-      ...input,
+    const tie: JsonValue = {
+      type: 'compare',
+      options: input.options,
       criteria: [
         { label: 'p95', values: [80, 60, 70], better: 'low' },
         { label: 'RPS', values: [1, 2, 3], better: 'high' },

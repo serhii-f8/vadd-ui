@@ -398,10 +398,9 @@ ${embedded(canonical(EXT_DOC))}
       await expect(tab.locator('.vui-flow .vui-flow-box')).toHaveCount(2)
       await expect(tab.locator('.vui-chart[data-vui-kind="bar"]')).toHaveCount(1)
       await expect(tab.locator('.vui-card-placeholder, .vui-card-error')).toHaveCount(0)
-      expect(await tab.evaluate(() => Object.keys(window.VUI).sort())).toEqual([
-        'render',
-        'version',
-      ])
+      expect(
+        await tab.evaluate(() => Object.keys((window as unknown as { VUI: object }).VUI).sort()),
+      ).toEqual(['render', 'version'])
     }
     expect(seen.errors).toEqual([])
     expect(seen.requests.filter((url) => !url.startsWith(`file://${dir}/`))).toEqual([])

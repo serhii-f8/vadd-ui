@@ -101,7 +101,7 @@ describe('layoutFlow (§6.5, VD-185)', () => {
 
   it('is deterministic', () => {
     const nodes = Array.from({ length: 30 }, (_, index) => `n${index}`)
-    const edges = nodes.slice(1).map((id, index) => [nodes[(index * 7) % (index + 1)], id])
+    const edges = nodes.slice(1).map((id, index) => [nodes[(index * 7) % (index + 1)] ?? '', id])
     expect(layoutFlow(nodes, edges)).toEqual(layoutFlow(nodes, edges))
   })
 

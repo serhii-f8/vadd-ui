@@ -30,14 +30,13 @@ vui show --title "Release check" <<'EOF'
      rows: [['list', 18420, 0.93], ['sku', 2204, 0.41, {tone: 'warn'}]]},
   ]},
   {type: 'plan', items: [{text: 'Add table', status: 'ok'}]},
-  {type: 'diff', files: [['src/auth.ts', 64, 12, 'M']]},
   {type: 'decision', question: 'Cache?', pick: 0, options: [{label: 'LRU'}, {label: 'Redis'}]},
   {type: 'callout', tone: 'warn', text: ':fail: Replay works.'},
 ]}
 EOF
 ```
 
-**Other types:** stack, grid, card, tabs, divider, md, code, kv, list, progress, compare, tree, timeline, log, flow.
+**Other types:** stack, grid, card, tabs, divider, md, code, kv, list, progress, compare, diff, tree, timeline, log, flow.
 
 **Statuses:** ok, fail, warn, info, run, wait, skip, none.
 
@@ -64,7 +63,7 @@ EOF
 <script type="application/vui+json">{title: 'Report', body: [{type: 'md', text: 'Done'}]}</script>
 ```
 
-Inside the template, write `</` as `<\/`. Reference the file with `::orca-visual{file="report-7c1e.html" title="Report"}`. File names use only `A-Za-z0-9._-`; titles have no quotes or backslashes.
+`compare`, `flow` and `scatter` need `vui-ext.min.js` there. Inside the template, write `</` as `<\/`. Reference the file with `::orca-visual{file="report-7c1e.html" title="Report"}`. File names use only `A-Za-z0-9._-`; titles have no quotes or backslashes.
 
 ## Precedence
 

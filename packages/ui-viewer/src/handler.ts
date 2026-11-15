@@ -250,7 +250,8 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       }
       const stored = JSON.parse(text) as VuiDocument
       const ext = usesExt(stored)
-      const bundle = (bundles[Number(ext)] ??= readBundle(ext))
+      const bundle = bundles[Number(ext)] ?? readBundle(ext)
+      bundles[Number(ext)] = bundle
       // A `meta` that is not an object is stored as sent, and has no path to strip: it goes as is.
       const shared = isJsonObject(stored.meta as JsonValue) ? withoutPaths(stored) : stored
       const file = inlineHtml(shared, {

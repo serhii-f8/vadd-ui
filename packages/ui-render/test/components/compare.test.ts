@@ -59,7 +59,9 @@ describe('compare (§6.3)', () => {
     expect(win).toHaveLength(4)
     expect(win[0]?.textContent).toContain('LRU')
     expect(win[0]?.querySelector('.vui-pick')?.textContent).toBe('✓Pick')
-    expect(all(box, 'tbody td.vui-compare-win').map((td) => td.cellIndex)).toEqual([2, 2, 2])
+    expect(
+      all(box, 'tbody td.vui-compare-win').map((td) => (td as HTMLTableCellElement).cellIndex),
+    ).toEqual([2, 2, 2])
   })
 
   it('lets pick name the winner over the computed one', () => {

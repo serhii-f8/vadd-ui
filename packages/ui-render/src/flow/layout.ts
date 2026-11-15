@@ -116,11 +116,9 @@ function assignLayers(boxes: FlowBox[], links: FlowLink[]): void {
 function orderRows(boxes: FlowBox[], links: FlowLink[], layers: number): number {
   const columns: number[][] = Array.from({ length: layers }, () => [])
   for (const [index, box] of boxes.entries()) columns[box.layer]?.push(index)
-  const place = () => {
-    for (const column of columns)
-      column.forEach((node, row) => ((boxes[node] as FlowBox).row = row))
+  for (const column of columns) {
+    for (const [row, node] of column.entries()) (boxes[node] as FlowBox).row = row
   }
-  place()
   for (let sweep = 0; sweep < SWEEPS; sweep += 1) {
     const down = sweep % 2 === 0
     const order = down ? columns.slice(1) : columns.slice(0, -1).reverse()
