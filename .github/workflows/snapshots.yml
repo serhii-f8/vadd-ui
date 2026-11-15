@@ -1,19 +1,18 @@
 name: Snapshots
 
 # The pixel baselines (e2e/__screenshots__) come from one WSL host (VD-064). A runner whose fonts
-# differ renders other pixels: run this once on it, review the artifact, and commit it (VD-175).
+# differ renders other pixels: run this once, review the artifact, and commit it (VD-175).
+# Linux only: the snapshot paths carry no platform, so baselines from another OS would break the
+# Linux gate; Windows and macOS skip the pixel comparisons instead (VUI_PIXELS=skip).
 on:
   workflow_dispatch:
-    inputs:
-      os:
-        description: Runner to render on
-        default: ubuntu-latest
-        type: choice
-        options: [ubuntu-latest, windows-latest, macos-latest]
+
+permissions:
+  contents: read
 
 jobs:
   render:
-    runs-on: ${{ inputs.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -28,5 +27,5 @@ jobs:
       - run: pnpm exec playwright test e2e/visual.spec.ts --update-snapshots=all
       - uses: actions/upload-artifact@v4
         with:
-          name: screenshots-${{ inputs.os }}
+          name: screenshots-ubuntu-latest
           path: e2e/__screenshots__

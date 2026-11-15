@@ -9,7 +9,7 @@ Audit of §1 against the code on `main` plus task 21, written 2026-11-15. Verdic
 "Native Windows, macOS and Linux, WSL 2, SSH hosts, containers; Orca terminal mode, Orca chat mode, and terminals outside Orca. The same command and document format everywhere."
 
 - Same command and format everywhere: one CLI (`packages/ui-cli`), host chosen by `vui show` (§4.0, task 15), never by the skill (`skills/vadd-ui/SKILL.md`, §12.2 rule 1). Environment detection changes hints and the opener only (`packages/ui-cli/src/environment.ts`).
-- Run for real (`HOST_MATRIX.md`): WSL 2 mirrored in Orca, pass, 3 runs (warm 67–78 ms; cold 1.6–1.9 s, Orca creating the pane, VD-129); Linux-style terminal outside Orca, pass, 3 runs (cold 181–199 ms, warm 72–74 ms).
+- Run for real (`HOST_MATRIX.md`): WSL 2 mirrored in Orca, pass, 3 runs (warm 69–71 ms; cold 1.6–3.4 s, Orca creating the pane, VD-129); Linux-style terminal outside Orca, pass, 3 runs (cold 190–196 ms, warm 68–69 ms).
 - Orca chat mode: proved in the vendored Orca shell only (VD-063, VD-135, `e2e/orca-chat.spec.ts`); the real chat is `ORCA_E2E_CHECKLIST.md`.
 - Native Windows, macOS, WSL NAT: CI jobs `portable` and `wsl-nat` are written and validated, never run (no remote, VD-010); manual steps A, B, D in `HOST_MATRIX.md`. SSH and containers: manual steps E and F.
 - Open: everything in the last two bullets; Windows `EACCES` port search (VD-118).
@@ -20,7 +20,7 @@ Audit of §1 against the code on `main` plus task 21, written 2026-11-15. Verdic
 
 - Met: fixed overhead via `vui show` 23 ≤ 30 tokens, CDN 65 ≤ 70, `SKILL.md` 1,705 ≤ 1,800, `vui catalog <type>` at most 286 ≤ 300 (VD-165; `scripts/token-baseline.json`, gated by `scripts/check-token-budgets.mjs` in `pnpm check`).
 - Not met: spec vs markdown worst case 1.582 against ≤ 1.2; spec vs hand-written HTML worst case 0.425 against ≤ 0.2 (VD-155, VD-157, VD-165). Corpus totals: 1.404 and 0.252. Counted with the offline estimator; a real Claude count needs an `ANTHROPIC_API_KEY`, which this machine lacks (VD-149, `RELEASE_CHECKLIST.md`).
-- So the "5× fewer than HTML" target holds for the corpus as a whole (0.252 ≈ 4×) and for row-heavy content (`chart` 0.147), not per case. Open release-gate deviation for the spec owner.
+- So the "5× fewer than HTML" target is **not met** for the corpus as a whole (0.252, about 4× against 5×, which needs ≤ 0.2); it is met only for row-heavy cases such as `chart` (0.147) and `flow` (0.19). Open release-gate deviation for the spec owner.
 
 ### Native look — met
 

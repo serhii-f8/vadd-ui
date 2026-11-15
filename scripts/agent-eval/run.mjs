@@ -25,7 +25,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseStream, score, summarize } from './lib.mjs'
+import { finished, parseStream, score, summarize } from './lib.mjs'
 
 const here = (/** @type {string} */ path) => fileURLToPath(new URL(path, import.meta.url))
 const BIN = here('../../packages/ui-cli/dist/bin.js')
@@ -143,6 +143,7 @@ async function runOne({ id, prompt }) {
   const row = {
     id,
     ...score({ calls, htmlFiles, shimFiles, toolWrites, finalText }),
+    finished: finished(String(stream)),
     seconds: Math.round((Date.now() - started) / 1000),
     exits: calls
       .filter((/** @type {{argv: string[]}} */ c) => c.argv[0] === 'show')
@@ -172,4 +173,9 @@ console.log(
   `agent-eval (${withSkill ? 'skill' : 'no skill'}, ${model}): ${summary.n} prompts, ${summary.shown} showed a visual (${pct(summary.visualRate)}); of those, first show valid ${pct(summary.firstValidRate)} (gate 98%), valid after one retry ${pct(summary.retryValidRate)} (gate 100%); hand-written HTML ${summary.handHtmlTotal} (gate 0); directive pasted ${pct(summary.directivePastedRate)}`,
 )
 console.log(`agent-eval: report in ${join(out, 'report.json')}`)
-process.exitCode = summary.gate.first && summary.gate.retry && summary.gate.html ? 0 : 1
+if (summary.unfinished > 0) {
+  console.log(
+    `agent-eval: ${summary.unfinished} run(s) did not finish (timeout or error); see stream.jsonl`,
+  )
+}
+process.exitCode = Object.values(summary.gate).every(Boolean) ? 0 : 1

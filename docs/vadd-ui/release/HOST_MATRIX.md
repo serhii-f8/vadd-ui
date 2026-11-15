@@ -28,10 +28,10 @@ Windows 11, WSL 2 `Ubuntu-22.04` (Ubuntu 24.04.4, kernel 6.6.87.2), `networkingM
 
 | Cell | Runs | Cold (first show, new pane) | Warm (open pane) | Restart | Panes | Doctor | VD-142 | Verdict |
 |---|---|---|---|---|---|---|---|---|
-| Windows 11, WSL 2, mirrored, terminal in Orca | 3 | 1,612 / 1,577 / 1,892 ms | 70 / 78 / 67 ms | 2,492 / 2,467 / 2,441 ms | 1 / 1 / 1 | no fail | listed | **pass**; cold over 1 s is VD-129 |
-| Linux-style terminal outside Orca (WSL, Orca hidden from the CLI; headless Chromium as the browser) | 3 | 181 / 199 / 184 ms | 72 / 74 / 72 ms | 786 ms | 1 / 1 / 1 | no fail | n/a | **pass** |
+| Windows 11, WSL 2, mirrored, terminal in Orca | 3 | 3,359 / 1,648 / 1,631 ms | 71 / 71 / 69 ms | 2,515 / 2,573 / 2,470 ms | 1 / 1 / 1 | no fail | listed | **pass**; cold over 1 s is VD-129 |
+| Linux-style terminal outside Orca (WSL, Orca hidden from the CLI; headless Chromium as the browser) | 3 | 196 / 192 / 190 ms | 68 / 69 / 69 ms | 795 / 786 / 790 ms | 1 / 1 / 1 | no fail | n/a | **pass**; old page said "stopped" each time |
 
-Clock offset in the Orca runs: −1 ± 1 ms, −1 ± 1 ms, 0 ± 1 ms (the WSL and Windows clocks agree; the warm numbers are exact to about a millisecond). Cold in Orca is the CLI and Viewer (about 170 ms, VD-129) plus `orca tab create`, which took 1.4 to 3.2 s in these runs (`cliMs` of the first show 1,5xx–3,362 ms); VD-129 measured about 1.05 s on the same machine on 2026-11-06, so Orca's pane creation is slower today, and only Orca can change it. Restart includes the old page noticing (outside Orca: its backoff until the new Viewer answers its old token with 404) or the CLI's `tab list` + `goto` (in Orca). Doctor's `windows` check took 21 s on mirrored networking (VD-128). The Orca pane after a run: screenshot at `orca-pane.png` in the task report (taken by `orca screenshot`).
+These are the final runs, at the branch head. Earlier runs during development read the same (Orca warm 67–78 ms over 5 more runs; browser warm 72–74 ms). Clock offset in the Orca runs: 0 ± 1, 1 ± 1, 0 ± 1 ms (the WSL and Windows clocks agree; the warm numbers are exact to about a millisecond). Cold in Orca is the CLI and Viewer (about 170 ms, VD-129) plus `orca tab create`: the first show's CLI took 3,437 / 1,739 / 1,709 ms. VD-129 measured about 1.05 s cold on the same machine on 2026-11-06, so Orca's pane creation is slower today, and only Orca can change it. Restart includes the old page noticing (outside Orca: its backoff until the new Viewer answers its old token with 404) or the CLI's `tab list` + `goto` (in Orca). Doctor's `windows` check took 21 s on mirrored networking (VD-128). The Orca pane after a run (taken by `orca screenshot`) shows the four documents in order with the feed live; the browser surface writes `report.png` next to `--out`.
 
 Outside-Orca reading (VD-125): the browser surface uses Playwright's Chromium in place of `xdg-open`/`wslview`, because `vui viewer open` would pop a window on the user's desktop unattended. Running the real opener is a manual step below.
 
@@ -49,7 +49,7 @@ Outside-Orca reading (VD-125): the browser surface uses Playwright's Chromium in
 | Devcontainer with forwarded port | Local browser | **manual** | steps F |
 | Orca structured chat, native local | Inline transcript visual | **manual** | `ORCA_E2E_CHECKLIST.md` |
 
-CI jobs are written and validated (`actionlint` 1.7.7, `scripts/test/ci-workflow.test.ts`) but have never run: the repository has no remote (VD-003, VD-010). Their first run may surface host-specific failures that this machine could not show (POSIX-only assumptions in tests on Windows, font-dependent pixels on `ubuntu-latest`); see `RELEASE_CHECKLIST.md`.
+`wsl-nat` runs only when the repository variable `WSL2_RUNNER` names a Windows runner with WSL 2 (GitHub's standard runners lack nested virtualization); it then fails unless doctor's `windows` check reads `ok`, which is the NAT forwarding proof. CI jobs are written and validated (`actionlint` 1.7.7, `scripts/test/ci-workflow.test.ts`) but have never run: the repository has no remote (VD-003, VD-010). Their first run may surface host-specific failures that this machine could not show (POSIX-only assumptions in tests on Windows, font-dependent pixels on `ubuntu-latest`); see `RELEASE_CHECKLIST.md`.
 
 ## Manual steps
 
@@ -57,13 +57,13 @@ All steps assume a clone with `pnpm install && pnpm build` done, and Node 22+. "
 
 ### A. Windows 11, native PowerShell in Orca
 
-1. In Orca on Windows, open a **PowerShell** terminal (not WSL) in the repo. `$env:ORCA_CLI_COMMAND` or `orca` must resolve (`Get-Command orca`).
+1. In Orca on Windows, open a **PowerShell** terminal (not WSL) in the repo. `$env:ORCA_CLI_COMMAND` or `orca` must resolve (`Get-Command orca`). The scenario script runs the Orca CLI without a shell, and Node refuses to start a `.cmd` that way: if `Get-Command orca` names a `.cmd`, set `$env:ORCA_CLI_COMMAND` to the full path of Orca's `.exe` CLI for the scenario (the `vui` CLI itself handles `.cmd`, step 3).
 2. Run the scenario with `--surface orca`. Expect pass; cold over 1 s is VD-129.
 3. Native-Windows checks the scenario does not cover:
    - **`.cmd` through `cmd.exe`:** if `orca` resolves to `orca.cmd`, the pane still opens (the scenario's first show reports a `browserPageId`). Confirm with `Get-Command orca | Select-Object Source`.
    - **`start`:** `node packages/ui-cli/dist/bin.js viewer open` opens the Viewer URL in the default browser. Pass if the browser shows the feed.
-   - **PowerShell UTF-16 pipe:** in Windows PowerShell 5.1, `'{"title":"x","body":["hi"]}' | node packages/ui-cli/dist/bin.js show` (PowerShell 5.1 pipes UTF-16 to native commands by default). Expect exit 2 with a clear message about the encoding, not a crash or garbage. Then `$OutputEncoding = [Text.UTF8Encoding]::new($false)` and repeat: exit 0.
-   - **Closed stdin:** `node packages/ui-cli/dist/bin.js show < NUL`: expect exit 2 with "empty input" (or the CLI's equivalent), not a hang.
+   - **PowerShell UTF-16 pipe:** in Windows PowerShell 5.1, force UTF-16 with `$OutputEncoding = [Text.Encoding]::Unicode`, then `'{"title":"x","body":["hi"]}' | node packages/ui-cli/dist/bin.js show`. Expect exit 2 with a clear one-line diagnostic, not a crash or garbage: `vui: input is not valid UTF-8` (with a byte-order mark), or a parse error naming `U+0000` (without one); both were seen here on WSL with the same bytes. Then `$OutputEncoding = [Text.UTF8Encoding]::new($false)` and repeat: exit 0.
+   - **Closed stdin:** `cmd /c "node packages\ui-cli\dist\bin.js show < NUL"`: expect exit 2 with `error: line 1, column 1: unexpected end of input; expected a value` (what WSL prints for `< /dev/null`), not a hang.
    - **`EACCES` reserved port (VD-118):** list Windows' excluded ranges with `netsh interface ipv4 show excludedportrange protocol=tcp`. If one covers 47100, run `vui show`: today the port search ends at an `EACCES` port instead of moving on (VD-118), so expect exit 4. If no range covers 47100, create one as administrator (`netsh int ipv4 add excludedportrange protocol=tcp startport=47100 numberofports=1`), test, then remove it (`netsh int ipv4 delete excludedportrange protocol=tcp startport=47100 numberofports=1`). Record the result; a fix is a follow-up.
 4. `vui doctor` reports no `fail`; the state directory is under `%LOCALAPPDATA%\vadd-ui\`.
 
@@ -103,7 +103,7 @@ All steps assume a clone with `pnpm install && pnpm build` done, and Node 22+. "
 
 ## Known limits recorded here
 
-- **VD-129:** cold delivery in Orca is over 1 s because `orca tab create` takes 1.4–3.2 s today; warm delivery is 67–78 ms.
+- **VD-129:** cold delivery in Orca is over 1 s because `orca tab create` takes 1.4–3.3 s today; warm delivery is 67–78 ms.
 - **VD-125:** after `vui viewer stop` or an idle exit the pane id is gone, so the next show opens a new pane beside the dead one (a dead page stops its traffic). The scenario's restart uses `kill -9`, which keeps `viewer.json`.
 - **VD-118:** a Windows `EACCES` port ends the port search (step A.3).
 - **NAT:** not reachable on this machine (mirrored networking); step B and CI `wsl-nat`.

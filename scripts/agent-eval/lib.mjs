@@ -49,10 +49,14 @@ export function score({ calls, htmlFiles, shimFiles, toolWrites, finalText }) {
  * runs that called `vui show`; a run that answered in markdown is a decision the skill makes
  * (§12.2 step 2), reported as `visualRate` and judged by reading it (VD-178).
  *
- * @param {(Score & {id: string})[]} rows
+ * A run that did not finish (a timeout, a crash, a lost login) is no answer at all, so it is
+ * counted apart and fails the gate rather than passing as a markdown answer.
+ *
+ * @param {(Score & {id: string, finished?: boolean})[]} rows
  */
 export function summarize(rows) {
   const n = rows.length
+  const unfinished = rows.filter((row) => row.finished === false).length
   const shownRows = rows.filter((row) => row.showCalls > 0)
   const shown = shownRows.length
   const share = (/** @type {Score[]} */ of, /** @type {(row: Score) => boolean} */ test) =>
@@ -63,6 +67,7 @@ export function summarize(rows) {
   const pasted = rows.filter((row) => row.directivePasted !== null)
   return {
     n,
+    unfinished,
     shown,
     visualRate: n === 0 ? 0 : shown / n,
     firstValidRate,
@@ -75,8 +80,23 @@ export function summarize(rows) {
       first: shown > 0 && firstValidRate >= GATE.first,
       retry: shown > 0 && retryValidRate >= GATE.retry,
       html: handHtmlTotal === 0,
+      complete: unfinished === 0,
     },
   }
+}
+
+/**
+ * Whether `claude` exited 0: the runner appends `{"type":"exit","code":…}` to the stream, with
+ * `null` for a run it killed at the timeout.
+ *
+ * @param {string} jsonl
+ */
+export function finished(jsonl) {
+  const exit = jsonl
+    .split('\n')
+    .reverse()
+    .find((line) => line.startsWith('{"type":"exit"'))
+  return exit !== undefined && JSON.parse(exit).code === 0
 }
 
 /**

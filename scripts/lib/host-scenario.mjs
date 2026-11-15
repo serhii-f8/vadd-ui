@@ -60,6 +60,8 @@ export function viewerTabs(tabs, origin) {
  * @property {{newPid: boolean, pageShowsDoc: boolean, clientsAfter: number}} restart
  * @property {string[]} doctorFailures
  * @property {boolean | null} listedAfterCreate VD-142, Orca only
+ * @property {boolean | null} clockSynced Orca only: the pane's clock offset was measured
+ * @property {boolean | null} oldPageStopped browser only: the old page said the Viewer stopped
  */
 
 /**
@@ -89,6 +91,10 @@ export function verdict(report) {
   if (restart.clientsAfter < 1) failures.push('restart: no client connected afterwards')
   for (const failure of report.doctorFailures) failures.push(`doctor: ${failure}`)
   if (report.listedAfterCreate === false) failures.push('tab list: new pane not listed (VD-142)')
+  if (report.clockSynced === false) failures.push('clock: the pane clock was not synchronized')
+  if (report.oldPageStopped === false) {
+    failures.push('restart: the old page never said the Viewer stopped (VD-125)')
+  }
   return { ok: failures.length === 0, failures, known }
 }
 

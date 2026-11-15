@@ -10,7 +10,7 @@ Ordered steps for the user. Everything a machine could do here is done and recor
 - Open release-gate deviations, for the spec owner (not re-scoped here):
   - **§14.2 ratio budgets unmet**: spec vs markdown worst 1.582 (≤ 1.2), spec vs hand-written HTML worst 0.425 (≤ 0.2); offline estimator (VD-155, VD-157, VD-165).
   - **§16 agent eval first-show validity 97.0%** against 98% (32 of 33; one run of 40 prompts; `AGENT_EVAL.md`).
-  - **VD-129**: the first show in Orca exceeds §16.1's 1 s while Orca creates the pane (1.6–1.9 s here); warm delivery 67–78 ms.
+  - **VD-129**: the first show in Orca exceeds §16.1's 1 s while Orca creates the pane (1.6–3.4 s here); warm delivery 67–78 ms.
   - **§17.4 Chromium 110** lacks `color-mix()`, which §8.1 requires; full fidelity needs Chromium 111 (VD-177, `RUNTIME_SUPPORT.md`).
 - Bundle: `vui.min.js` 37.9 KiB gzip of the 38 KiB budget (§9.5) after task 21's two fixes; about 100 bytes of headroom. Task 22 will need its `ext` build split if it adds to the core bundle.
 
@@ -19,10 +19,10 @@ Ordered steps for the user. Everything a machine could do here is done and recor
 1. Create the remote repository and push `main`.
 2. Add `repository` to the root and every `packages/*/package.json` (npm provenance needs it to match the GitHub repository), for example `"repository": {"type": "git", "url": "git+https://github.com/<org>/vadd-ui.git", "directory": "packages/ui"}`. The release workflow refuses to publish without it.
 3. Let `CI` run once on `main`. Expected first-run work, which this machine could not show:
-   - `gate` (ubuntu-latest): pixel baselines come from WSL fonts (VD-064). If `e2e/visual.spec.ts` fails on pixels only, run the **Snapshots** workflow with `os: ubuntu-latest`, review the uploaded `screenshots-ubuntu-latest` artifact against the old images, and commit it.
+   - `gate` (ubuntu-latest): pixel baselines come from WSL fonts (VD-064). If `e2e/visual.spec.ts` fails on pixels only, run the **Snapshots** workflow (Linux only), review the uploaded `screenshots-ubuntu-latest` artifact against the old images, and commit it.
    - `portable` (Windows, macOS): runs the gate with `VUI_PIXELS=skip`. Fix any POSIX-only assumption a test makes on Windows (file modes, process groups, signals) as a normal task.
    - Perf (VD-171): off the baseline's CPU the check holds only the §9.5 limits and says so. To gate regressions on CI hardware too, run `node scripts/check-perf-budgets.mjs --update` once on that runner (a dispatch job or a self-hosted runner), commit the new `scripts/perf-baseline.json` and `scripts/perf-reference.vui.min.js`, and keep the runner type fixed.
-   - `wsl-nat`: needs WSL 2, which needs nested virtualization. If `windows-latest` offers only WSL 1, set the repository variable `WSL2_RUNNER` to a runner that has it, or record the NAT cell as manual (`HOST_MATRIX.md` step B).
+   - `wsl-nat`: skipped until the repository variable `WSL2_RUNNER` names a Windows runner with WSL 2 (nested virtualization; a larger or self-hosted runner). Set it, or record the NAT cell as manual (`HOST_MATRIX.md` step B).
    - `engines`: Firefox and WebKit smoke; ran here (16/16), expected green.
 4. Let **Scheduled** run once by hand (`workflow_dispatch`): `orca-contract` must pass (it passed here against Orca `main` 1b79875 and `orca-ide` 1.4.259); `fuzz` must pass (§16, 100,000 cases; VD-166 explains why the per-commit gate runs 2,000).
 

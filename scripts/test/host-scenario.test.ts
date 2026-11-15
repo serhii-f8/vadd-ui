@@ -18,6 +18,8 @@ function passing(surface: 'orca' | 'browser') {
     restart: { newPid: true, pageShowsDoc: true, clientsAfter: 1 },
     doctorFailures: [] as string[],
     listedAfterCreate: surface === 'orca' ? true : null,
+    clockSynced: surface === 'orca' ? true : null,
+    oldPageStopped: surface === 'browser' ? true : null,
   }
 }
 
@@ -93,6 +95,16 @@ describe('verdict', () => {
       listedAfterCreate: false,
     }
     expect(verdict(report).failures).toHaveLength(5)
+  })
+
+  it('fails an Orca run whose clocks were not synchronized', () => {
+    expect(verdict({ ...passing('orca'), clockSynced: false }).failures.join()).toMatch(/clock/)
+  })
+
+  it('fails a browser run whose old page never said the Viewer stopped (VD-125)', () => {
+    expect(verdict({ ...passing('browser'), oldPageStopped: false }).failures.join()).toMatch(
+      /stopped/,
+    )
   })
 
   it('fails a missing measurement', () => {

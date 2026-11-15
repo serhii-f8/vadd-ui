@@ -8,13 +8,14 @@
 //   node scripts/host-scenario.mjs --surface orca      # inside an Orca terminal: the Orca pane
 //   node scripts/host-scenario.mjs --surface browser   # outside Orca: a headless Chromium stands
 //                                                      # in for the system browser (VD-173)
-//   [--out report.json]
+//   [--out report.json]   also writes report.png outside Orca
+//   [--keep]              keeps the temporary workspace and state
 //
 // It runs in a temporary git workspace with its own XDG_STATE_HOME, so it never meets the
 // user's Viewers, and closes the pane it opened.
 
 import { execFile, execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -154,6 +155,7 @@ async function openSurface() {
     return {
       offset: 0,
       uncertainty: 0,
+      synced: false,
       /** @param {string} id */
       attach(id) {
         pageId = id
@@ -190,7 +192,7 @@ async function openSurface() {
             if (title.startsWith('[')) {
               // The pane took \`before\`/\`after\`, so the estimate is ours minus the pane's.
               const { offset, uncertainty } = estimateOffset(JSON.parse(title))
-              Object.assign(this, { offset: -offset, uncertainty })
+              Object.assign(this, { offset: -offset, uncertainty, synced: true })
               break
             }
             await new Promise((resolve) => setTimeout(resolve, 200))
@@ -233,6 +235,7 @@ async function openSurface() {
   return {
     offset: 0,
     uncertainty: 0,
+    synced: true,
     attach() {},
     async syncClock() {},
     /** @param {string} expression */
@@ -244,7 +247,8 @@ async function openSurface() {
       await page.goto(url)
     },
     async screenshot() {
-      const path = join(dir, 'browser-surface.png')
+      const out = flag('--out')
+      const path = out ? out.replace(/(\.json)?$/, '.png') : join(dir, 'browser-surface.png')
       await page.screenshot({ path, fullPage: true })
       return path
     },
@@ -311,10 +315,10 @@ try {
   if (surface === 'orca') {
     const pageId = first.json.browserPageId
     if (typeof pageId !== 'string') throw new Error(`no pane: ${first.stdout} ${first.stderr}`)
+    pane.attach(pageId)
     listedAfterCreate = orca(['tab', 'list']).tabs.some(
       (/** @type {{browserPageId: string}} */ t) => t.browserPageId === pageId,
     )
-    pane.attach(pageId)
   } else {
     const url = parseUrlLine(first.stdout)
     if (url === undefined) throw new Error(`no URL line: ${first.stdout}`)
@@ -336,6 +340,8 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 300))
   const third = show(titles[2] ?? '')
   const { pid: newPid } = viewerInfo()
+  /** @type {boolean | null} */
+  let oldPageStopped = null
   if (surface === 'browser') {
     // The old page retries, and the restarted Viewer answers its old token with 404, so the page
     // says it stopped (VD-114, VD-120). A system browser has no `goto`: the new URL line is the
@@ -346,9 +352,7 @@ try {
       stopped = (await pane.evaluate(probe('-', '-'))).stopped
       if (!stopped) await new Promise((resolve) => setTimeout(resolve, 100))
     }
-    notes.push(
-      `old page after restart: ${stopped ? 'reports the Viewer stopped' : 'no stop notice'}`,
-    )
+    oldPageStopped = stopped
     const url = parseUrlLine(third.stdout)
     notes.push(`URL line after restart: ${url ? 'printed' : 'missing'}`)
     if (url) await pane.goto(url)
@@ -361,7 +365,20 @@ try {
   // 4. Doctor.
   const doctor = vui(['doctor', '--json'])
   const doctorJson = JSON.parse(doctor.stdout)
-  await pane.syncClock()
+  // Read the feed before the clock step navigates the pane away and back.
+  const ordered = await titlesInOrder(pane, titles)
+  const screenshot = await pane.screenshot()
+  /** @type {boolean | null} */
+  let clockSynced = null
+  if (surface === 'orca') {
+    try {
+      await pane.syncClock()
+      clockSynced = pane.synced
+    } catch (error) {
+      clockSynced = false
+      notes.push(`clock sync failed: ${error instanceof Error ? error.message : error}`)
+    }
+  }
   const doctorFailures = doctorJson.checks
     .filter((/** @type {{status: string}} */ c) => c.status === 'fail')
     .map((/** @type {{name: string, detail: string}} */ c) => `${c.name}: ${c.detail}`)
@@ -385,7 +402,7 @@ try {
       cliMs: [first, second, third, fourth].map((s) => s.ended - s.started),
     },
     panes: { afterFirst, afterSecond, afterRestart },
-    titlesInOrder: await titlesInOrder(pane, titles),
+    titlesInOrder: ordered,
     restart: {
       newPid: newPid !== oldPid,
       pageShowsDoc: restarted.at !== null,
@@ -394,8 +411,10 @@ try {
     doctorFailures,
     doctor: doctorJson.checks,
     listedAfterCreate,
+    clockSynced,
+    oldPageStopped,
     notes,
-    screenshot: await pane.screenshot(),
+    screenshot,
   }
   const result = verdict(report)
   const out = flag('--out')
@@ -412,4 +431,5 @@ try {
 } finally {
   await pane.close().catch((/** @type {Error} */ error) => console.error(`close: ${error.message}`))
   vui(['viewer', 'stop'])
+  if (!process.argv.includes('--keep')) rmSync(dir, { recursive: true, force: true })
 }

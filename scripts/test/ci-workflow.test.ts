@@ -28,6 +28,12 @@ describe('ci workflow', () => {
     expect(workflow).not.toContain('branches:')
   })
 
+  it('reads the repository only', () => {
+    for (const name of ['ci.yml', 'scheduled.yml', 'snapshots.yml']) {
+      expect(read(name)).toMatch(/^permissions:\n {2}contents: read\n/m)
+    }
+  })
+
   it('takes pnpm from the packageManager pin', () => {
     expect(workflow).toContain('pnpm/action-setup')
     expect(workflow).not.toMatch(/^\s+version:/m)
@@ -62,7 +68,9 @@ describe('ci workflow', () => {
 
   it('wsl-nat: the scenario and doctor inside a default-NAT WSL distro on Windows', () => {
     const wsl = job(workflow, 'wsl-nat')
-    expect(wsl).toContain(`runs-on: ${expr("vars.WSL2_RUNNER || 'windows-latest'")}`)
+    expect(wsl).toContain(`if: ${expr("vars.WSL2_RUNNER != ''")}`)
+    expect(wsl).toContain(`runs-on: ${expr('vars.WSL2_RUNNER')}`)
+    expect(wsl).toContain("x.name === 'windows'")
     expect(wsl).toContain('wsl-version: 2')
     expect(wsl).toContain('Vampire/setup-wsl')
     expect(wsl).toContain('host-scenario.mjs --surface browser')
@@ -104,6 +112,8 @@ describe('snapshots workflow', () => {
     expect(snapshots).not.toMatch(/^\s+(push|pull_request|schedule):/m)
     expect(snapshots).toContain('--update-snapshots=all')
     expect(snapshots).toContain('actions/upload-artifact')
+    expect(snapshots).toContain('runs-on: ubuntu-latest')
+    expect(snapshots).not.toContain('windows-latest')
   })
 })
 
@@ -114,6 +124,8 @@ describe('release workflow', () => {
     expect(release).toMatch(/^on:\n {2}workflow_dispatch:\n/m)
     expect(release).toContain('id-token: write')
     expect(release).toContain("NPM_CONFIG_PROVENANCE: 'true'")
+    // §15.1: the job that holds the tokens runs no action by a movable tag.
+    expect(release).not.toMatch(/uses: [^@\s]+@v\d/)
     inOrder(release, [
       '- run: pnpm gate\n',
       'run: pnpm -r publish --access public --no-git-checks\n',

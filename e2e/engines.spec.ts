@@ -1,7 +1,4 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { expect, type Page, test } from '@playwright/test'
 import { formatValue } from '../packages/ui-spec/src/index.js'
@@ -11,7 +8,6 @@ import { SCENES } from './harness/scenes.js'
 // `pnpm gate` runs it in Chromium; CI's `engines` job adds Firefox and WebKit (VD-176).
 
 const BIN = fileURLToPath(new URL('../packages/ui-cli/dist/bin.js', import.meta.url))
-const dir = mkdtempSync(join(tmpdir(), 'vui-engines-'))
 
 const MONEY = 1234.5
 const money = {
@@ -25,7 +21,8 @@ const money = {
 
 /** Writes the CLI's inline file for `document` and opens it. */
 async function open(page: Page, name: string, document: unknown): Promise<string[]> {
-  const out = join(dir, `${name}.html`)
+  // Under the test's own output folder, which Playwright empties at the start of every run.
+  const out = test.info().outputPath(`${name}.html`)
   const { status, stderr } = spawnSync(
     process.execPath,
     [BIN, 'render', '--format', 'html', '--out', out],

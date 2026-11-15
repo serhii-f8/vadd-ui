@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 # §16 and §16.1. The local gate is the reference: everything here runs `pnpm gate` or the §16.1
 # scenario (scripts/host-scenario.mjs). docs/vadd-ui/release/HOST_MATRIX.md maps jobs to cells.
 
@@ -83,9 +86,11 @@ jobs:
   # §16.1 row 2: WSL 2 with the default NAT networking, on Windows. `vui doctor` inside the distro
   # asks Windows to fetch the Viewer over `localhost`, which is the NAT forwarding check. WSL 2
   # needs nested virtualization: set the repository variable WSL2_RUNNER to a runner that has it
-  # (a larger or self-hosted Windows runner) if windows-latest offers only WSL 1.
+  # (a larger or self-hosted Windows runner); until it is set, the job is skipped, so CI is not red
+  # for a runner GitHub does not offer (HOST_MATRIX.md step B covers the cell by hand).
   wsl-nat:
-    runs-on: ${{ vars.WSL2_RUNNER || 'windows-latest' }}
+    if: ${{ vars.WSL2_RUNNER != '' }}
+    runs-on: ${{ vars.WSL2_RUNNER }}
     timeout-minutes: 30
     defaults:
       run:
@@ -112,9 +117,18 @@ jobs:
       - name: §16.1 scenario and doctor under NAT
         run: |
           cd ~/vadd-ui
-          node scripts/host-scenario.mjs --surface browser --out scenario-wsl-nat.json
-          node packages/ui-cli/dist/bin.js doctor --json
+          rc=0
+          node scripts/host-scenario.mjs --surface browser --out scenario-wsl-nat.json || rc=$?
           cp scenario-wsl-nat.json "$OLDPWD/" 2>/dev/null || true
+          exit $rc
+      # The NAT forwarding proof: Windows itself fetches the Viewer over localhost. Doctor only
+      # warns when powershell.exe is missing, so the check must read `ok` here.
+      - name: Windows reaches the Viewer through NAT forwarding
+        run: |
+          cd ~/vadd-ui
+          node packages/ui-cli/dist/bin.js doctor --json > doctor.json || true
+          cat doctor.json
+          node -e "const c = require('./doctor.json').checks.find((x) => x.name === 'windows'); if (c?.status !== 'ok') { console.error('windows check:', JSON.stringify(c)); process.exit(1) }"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

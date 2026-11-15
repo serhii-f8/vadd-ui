@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { COMPONENT_TYPES } from '../../packages/ui-spec/src/index.js'
-import { parseStream, score, summarize } from '../agent-eval/lib.mjs'
+import { finished, parseStream, score, summarize } from '../agent-eval/lib.mjs'
 import { repoRoot } from './helpers.js'
 
 const prompts: { id: string; component: string; prompt: string }[] = JSON.parse(
@@ -117,11 +117,12 @@ describe('summarize', () => {
     const rows = [...Array.from({ length: 39 }, () => row(true)), row(false)]
     const summary = summarize(rows)
     expect(summary.firstValidRate).toBe(0.975)
-    expect(summary.gate).toEqual({ first: false, retry: true, html: true })
+    expect(summary.gate).toEqual({ first: false, retry: true, html: true, complete: true })
     expect(summarize(Array.from({ length: 40 }, () => row(true))).gate).toEqual({
       first: true,
       retry: true,
       html: true,
+      complete: true,
     })
     expect(summarize([row(true, true, 1)]).gate.html).toBe(false)
     expect(summarize([row(false, false)]).gate.retry).toBe(false)
@@ -138,7 +139,27 @@ describe('summarize', () => {
     expect(summary.firstValidRate).toBe(1)
     expect(summary.retryValidRate).toBe(1)
     expect(summary.firstValidRateAll).toBe(33 / 40)
-    expect(summary.gate).toEqual({ first: true, retry: true, html: true })
+    expect(summary.gate).toEqual({ first: true, retry: true, html: true, complete: true })
+  })
+
+  it('fails the gate when a run did not finish, instead of counting it as markdown', () => {
+    const rows = [
+      { ...row(true), finished: true },
+      { ...row(false, false, 0, 0), finished: false },
+    ]
+    const summary = summarize(rows)
+    expect(summary.unfinished).toBe(1)
+    expect(summary.shown).toBe(1)
+    expect(summary.gate.complete).toBe(false)
+  })
+})
+
+describe('finished', () => {
+  it('reads the exit event the runner appends', () => {
+    expect(finished('{"type":"result"}\n{"type":"exit","code":0}')).toBe(true)
+    expect(finished('{"type":"exit","code":1}')).toBe(false)
+    expect(finished('{"type":"exit","code":null}')).toBe(false)
+    expect(finished('')).toBe(false)
   })
 })
 
