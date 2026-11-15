@@ -10,6 +10,7 @@ import {
 } from './format-spec.js'
 import { hasOwn, isJsonObject, type JsonObject, type JsonValue } from './json.js'
 import { LIMITS } from './limits.js'
+import { STAT_FIELDS, STAT_MIN_ENTRIES } from './normalize.js'
 import { MAX_NESTING } from './parser.js'
 import { joinPointer } from './pointer.js'
 import { CHART_SHAPES, NODE_SHAPES, type Rule, SHAPES, type Shape } from './rules.js'
@@ -65,6 +66,18 @@ function describe(rule: Rule): string {
   }
 }
 
+/** A positional stat the normalizer could not expand (VD-164) says why, not just "array". */
+function statMessage(rule: Rule, value: JsonValue): string | undefined {
+  if (rule.kind !== 'object' || rule.shape !== 'StatItem' || !Array.isArray(value)) return undefined
+  const expected = 'expected an object or a positional item'
+  const { length } = value
+  if (length >= STAT_MIN_ENTRIES && length <= STAT_FIELDS.length) {
+    return `${expected} whose first entry is the label, a string`
+  }
+  const entries = `${length} ${length === 1 ? 'entry' : 'entries'}`
+  return `${expected} of ${STAT_MIN_ENTRIES} to ${STAT_FIELDS.length} entries, got ${entries}`
+}
+
 function range({ min, max }: { min?: number; max?: number }): string {
   return max === undefined ? `an integer of at least ${min}` : `an integer from ${min} to ${max}`
 }
@@ -118,7 +131,7 @@ class Walker {
   }
 
   private badType(rule: Rule, value: JsonValue, pointer: string, required: boolean): void {
-    const message = `expected ${describe(rule)}, got ${typeName(value)}`
+    const message = statMessage(rule, value) ?? `expected ${describe(rule)}, got ${typeName(value)}`
     this.report(required ? 'error' : 'warn', pointer, 'bad-type', message)
   }
 
