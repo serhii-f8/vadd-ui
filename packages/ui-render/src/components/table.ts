@@ -230,7 +230,7 @@ function ariaSort(sort: Sort | undefined, index: number): string {
   return sort[1] === 'desc' ? 'descending' : 'ascending'
 }
 
-function captionOf(node: Parameters<Component['render']>[0], context: NodeContext) {
+export function captionOf(node: Parameters<Component['render']>[0], context: NodeContext) {
   const title = text(node, 'title')
   if (title === '') return null
   // Under a fold it is hidden, and a link in it would still take focus.
