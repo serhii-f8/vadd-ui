@@ -26,4 +26,8 @@ const flowCss = `
 .vui-flow .vui-flow-edge-label text{font-size:11px}
 `
 
-export const extCss = compareCss + flowCss
+const scatterCss = `
+.vui-chart .vui-chart-dot{stroke:var(--vui-tone-line,var(--vui-chart-1));stroke-width:7;stroke-linecap:round;stroke-opacity:.75}
+`
+
+export const extCss = compareCss + flowCss + scatterCss

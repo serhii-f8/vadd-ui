@@ -77,7 +77,7 @@ function legendOf(model: Model): HTMLElement | null {
   return el('ul', { class: 'vui-legend' }, entries)
 }
 
-function tipRow(name: string, value: string, series?: number): HTMLElement {
+export function tipRow(name: string, value: string, series?: number): HTMLElement {
   return el('div', { class: 'vui-chart-tip-row', 'data-vui-series': series }, [
     series === undefined ? null : swatch(),
     el('span', {}, name),

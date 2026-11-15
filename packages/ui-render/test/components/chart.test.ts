@@ -192,7 +192,7 @@ describe('chart fields', () => {
     expect(texts(box, 'thead th')).not.toContain('Total')
   })
 
-  it('leaves scatter to its task', () => {
+  it('leaves scatter to the ext build (VD-182)', () => {
     const { box } = chart({ kind: 'scatter', points: [[1, 2]] })
     expect(q(box, '.vui-card-placeholder')).not.toBeNull()
     expect(q(box, 'svg')).toBeNull()
