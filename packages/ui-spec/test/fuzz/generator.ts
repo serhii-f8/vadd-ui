@@ -6,6 +6,7 @@ import {
   type ComponentType,
   FORMAT_NAMES,
   type JsonValue,
+  MAX_ISSUES,
   parse,
   STATUSES,
   setOwn,
@@ -693,6 +694,30 @@ export function fuzzMode(seed: number, index: number): 'structured' | 'mutated' 
 export function fuzzDocument(seed: number, index: number): unknown {
   const r = caseRand(seed, index)
   return r.chance(0.5) ? structured(r) : mutate(r, r.pick(SEEDS))
+}
+
+/** A node that fills `inspect`'s issue record (VD-066): one unknown field per issue. */
+export function issuePad(): Record<string, unknown> {
+  const pad: Record<string, unknown> = { type: 'divider' }
+  for (let index = 0; index < MAX_ISSUES; index += 1) pad[`f${index}`] = 1
+  return pad
+}
+
+/**
+ * A structured document at the highest hostility behind `issuePad`, so nothing checks or drops
+ * its fields and each component meets them as written (VD-187).
+ */
+export function fuzzUnchecked(seed: number, index: number): unknown {
+  const r = caseRand(seed ^ 0x2545f491, index)
+  r.hostile = 0.3
+  const built = structured(r) as { body?: unknown }
+  // `structured` may give a whole document, a bare body or one node (§5.3).
+  const whole =
+    built !== null && typeof built === 'object' && !Array.isArray(built) && 'body' in built
+  const document = whole ? built : { vui: 1, body: built }
+  const body = Array.isArray(document.body) ? document.body : [document.body]
+  document.body = [issuePad(), ...body]
+  return document
 }
 
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/

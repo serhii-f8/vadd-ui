@@ -180,7 +180,8 @@ function fileRow({ path, added, removed, change }: DiffEntry): HTMLElement {
           el('span', { class: 'vui-sr-only' }, mark[1]),
         ]),
     el('code', { class: 'vui-code' }, path),
-    added === undefined
+    // Past VD-066's cap a count can be anything, and a template throws on some (VD-187).
+    typeof added !== 'number' || typeof removed !== 'number'
       ? null
       : el('span', { class: 'vui-row-end' }, [
           el('span', { class: toneClass('ok') }, `+${added}`),
@@ -192,7 +193,10 @@ function fileRow({ path, added, removed, change }: DiffEntry): HTMLElement {
 
 export const diff: Component = {
   render(node, context) {
-    const files = nodeList(node, 'files').filter(Array.isArray) as unknown as DiffFile[]
+    // A path is a key and a label: one that is not a string cannot be either (VD-187).
+    const files = nodeList(node, 'files').filter(
+      (file) => Array.isArray(file) && typeof file[0] === 'string',
+    ) as unknown as DiffFile[]
     const hunks = field(node, 'hunks')
     const entries = diffEntries(files, isJsonObject(hunks) ? (hunks as never) : undefined)
     const items = entries.map((entry) => {

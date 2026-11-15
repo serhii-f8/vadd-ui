@@ -293,7 +293,8 @@ export const table: Component = {
         paint()
       }
       const attributes = { class: 'vui-sort', type: 'button', on: { click } }
-      const button = el('button', attributes, [el('span', {}, column.label), icon])
+      const label = text(column as never, 'label')
+      const button = el('button', attributes, [el('span', {}, label), icon])
       return { icon, cell: el('th', { class: classes[index], scope: 'col' }, button) }
     })
     const marks = () => {

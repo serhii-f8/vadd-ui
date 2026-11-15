@@ -4,6 +4,7 @@ import {
   type JsonObject,
   type JsonValue,
   joinPointer,
+  rawText,
   STATUS_TONES,
   type Status,
 } from '@vadd/ui-spec'
@@ -37,7 +38,7 @@ function pairsOf(node: JsonObject, pointer: string): Pair[] {
     if (!Array.isArray(pair)) return []
     const [key, value, format] = pair
     return {
-      key: String(key ?? ''),
+      key: rawText(key ?? ''),
       value,
       format: typeof format === 'string' ? format : undefined,
       at: `${pointer}/${index}/1`,

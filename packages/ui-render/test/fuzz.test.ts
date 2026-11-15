@@ -7,10 +7,11 @@ import {
   fuzzDocument,
   fuzzSeed,
   fuzzText,
+  fuzzUnchecked,
 } from '../../ui-spec/test/fuzz/generator.js'
 import { renderMarkdown, renderPlain } from '../../ui-text/src/index.js'
 import { render } from '../src/index.js'
-import { target } from './helpers.js'
+import { badAttributes, target } from './helpers.js'
 
 // §16 "Fuzzing": the renderer never throws to the host. `pnpm fuzz` runs the long version.
 const CASES = fuzzCount(2_000)
@@ -18,27 +19,13 @@ const SEED = fuzzSeed(process.env.VUI_FUZZ_FRESH === '1' ? Date.now() >>> 0 : 20
 const CASE_MS = 2_000
 /** One case in this many is `fuzzText`'s JSON, relaxed JSON or damaged text, as a string. */
 const TEXT_SHARE = 10
-const SVG = 'http://www.w3.org/2000/svg'
-const BAD = /NaN|Infinity|undefined/
 /** What `ui-text` answers when its own catch-all fired, which is a throw in disguise. */
 const TEXT_FAILED = 'Could not render this document\n'
-
-/**
- * Every attribute of an SVG element, and every `style` anywhere, that holds `NaN`, `Infinity`
- * or `undefined`: a number that went wrong on its way into geometry (VD-088's class).
- */
-export function badAttributes(root: Element): string[] {
-  const found: string[] = []
-  for (const element of [root, ...root.querySelectorAll('*')]) {
-    const svg = element.namespaceURI === SVG
-    for (const { name, value } of element.attributes) {
-      if ((svg || name === 'style') && BAD.test(value)) {
-        found.push(`<${element.localName} ${name}="${value.slice(0, 120)}">`)
-      }
-    }
-  }
-  return found
-}
+/** One case in this many sits behind `issuePad`, so no field is checked or dropped (VD-187).
+ * Each costs about 100 ms, the pad's 20,000 fields, so they stay a small share. */
+const UNCHECKED_SHARE = 100
+/** About 3.5 ms per case, plus the unchecked ones, with room for a slower machine. */
+const RUN_MS = Math.max(600_000, CASES * 10)
 
 /** What is wrong with case `index`, an object or text, or nothing. */
 function check(document: unknown, next: unknown): string[] {
@@ -72,29 +59,39 @@ function check(document: unknown, next: unknown): string[] {
 }
 
 describe('the renderer under fuzzing', () => {
-  it(`${CASES} cases from seed ${SEED} neither throw nor draw NaN`, async () => {
-    let next = fuzzDocument(SEED, 0)
-    let texts = 0
-    for (let index = 0; index < CASES; index++) {
-      // One case in TEXT_SHARE goes in as text, as `boot` hands a script's text to `render`.
-      const asText = index % TEXT_SHARE === TEXT_SHARE - 1
-      const document = asText ? fuzzText(SEED, index) : next
-      if (asText) texts += 1
-      next = fuzzDocument(SEED, index + 1)
-      const started = performance.now()
-      const problems = check(document, next)
-      const once = performance.now() - started
-      const ms = await fastestMs(once, CASE_MS, () => check(document, next))
-      if (ms > CASE_MS) problems.push(`took ${Math.round(ms)} ms at best, over ${CASE_MS}`)
-      if (problems.length > 0) {
-        const updated = problems.some((problem) => problem.startsWith('update'))
-        expect.fail(
-          `seed ${SEED}, index ${index} (VUI_FUZZ_SEED=${SEED}):\n${problems.slice(0, 10).join('\n')}\n` +
-            `case: ${excerpt(document)}` +
-            (updated ? `\nupdated to index ${index + 1}: ${excerpt(next)}` : ''),
-        )
+  it(
+    `${CASES} cases from seed ${SEED} neither throw nor draw NaN`,
+    async () => {
+      let next = fuzzDocument(SEED, 0)
+      let texts = 0
+      let unchecked = 0
+      for (let index = 0; index < CASES; index++) {
+        // One case in TEXT_SHARE goes in as text, as `boot` hands a script's text to `render`.
+        const asText = index % TEXT_SHARE === TEXT_SHARE - 1
+        const raw = index % UNCHECKED_SHARE === UNCHECKED_SHARE - 2
+        const document = asText ? fuzzText(SEED, index) : raw ? fuzzUnchecked(SEED, index) : next
+        if (asText) texts += 1
+        if (raw) unchecked += 1
+        next = fuzzDocument(SEED, index + 1)
+        const started = performance.now()
+        const problems = check(document, next)
+        const once = performance.now() - started
+        const ms = await fastestMs(once, CASE_MS, () => check(document, next))
+        if (ms > CASE_MS) problems.push(`took ${Math.round(ms)} ms at best, over ${CASE_MS}`)
+        if (problems.length > 0) {
+          const updated = problems.some((problem) => problem.startsWith('update'))
+          expect.fail(
+            `seed ${SEED}, index ${index} (VUI_FUZZ_SEED=${SEED}):\n${problems.slice(0, 10).join('\n')}\n` +
+              (raw
+                ? `case, after issuePad(): ${excerpt((document as { body: unknown[] }).body.slice(1))}`
+                : `case: ${excerpt(document)}`) +
+              (updated ? `\nupdated to index ${index + 1}: ${excerpt(next)}` : ''),
+          )
+        }
       }
-    }
-    expect(texts, 'cases rendered from text').toBe(Math.floor(CASES / TEXT_SHARE))
-  }, 600_000)
+      expect(texts, 'cases rendered from text').toBe(Math.floor(CASES / TEXT_SHARE))
+      expect(unchecked, 'cases past the issue cap').toBe(Math.floor((CASES + 1) / UNCHECKED_SHARE))
+    },
+    RUN_MS,
+  )
 })

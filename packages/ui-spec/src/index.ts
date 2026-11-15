@@ -28,6 +28,7 @@ export {
   type FormatIssue,
   type FormatSpec,
   parseFormat,
+  rawText,
 } from './format-spec.js'
 export {
   type InlineToken,
