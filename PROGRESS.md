@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T12:31:25Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T13:38:32Z · Mode: manual
 
 ## Summary
-Done 20 / 22 · In progress: 21 · Blocked: none · Next: 21 — Host matrix and release preparation
+Done 21 / 22 · In progress: none · Blocked: none · Next: 22 — ext components
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -48,12 +48,11 @@ Recorded 2026-11-04 during bootstrap.
 | 18 | ui-react and the Viewer HTTP contract | §4.4 | 11, 13 | done | removed | ctx_22d6938816d6 | [design](docs/superpowers/specs/2026-11-07-ui-react-design.md) | [plan](docs/superpowers/plans/2026-11-07-ui-react.md) | b41f419 | 2026-11-07 |
 | 19 | vui bench, corpus, token budgets | §11.1, §14.1 | 17 | done | removed | ctx_6c182ecb9dfb | [design](docs/superpowers/specs/2026-11-10-vui-bench-design.md) | [plan](docs/superpowers/plans/2026-11-10-vui-bench.md) | bb2c492 | 2026-11-10 |
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | done | removed | ctx_5c23eb4a2a60 | [design](docs/superpowers/specs/2026-11-10-hardening-design.md) | [plan](docs/superpowers/plans/2026-11-10-hardening.md) | bbd7e43 | 2026-11-10 |
-| 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | in_progress | vui-21-release-prep | ctx_43252fda1845 | | | | |
+| 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | done | removed | ctx_43252fda1845 | [design](docs/superpowers/specs/2026-11-15-release-prep-design.md) | [plan](docs/superpowers/plans/2026-11-15-release-prep.md) | b9c4b7e | 2026-11-15 |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | todo | | | | | | |
 
 ## Current task log
-- 21 · 2026-11-15T12:31:25Z · selected (dep 20 done)
-- 21 · 2026-11-15T12:32:22Z · dispatched: worktree `vui-21-release-prep` (id `28b6546a-7693-41f8-a180-476d9aaa0d09::\\wsl.localhost\Ubuntu-22.04\home\serhii\orca\workspaces\vadd-ui\vui-21-release-prep`), terminal `term_43415117-69f1-411f-961e-1f609cd2db24`, dispatch `ctx_43252fda1845`, run `run_ef8570956d10`, branch `vadd-ui/21-release-prep`
+none
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding
@@ -267,3 +266,16 @@ Recorded 2026-11-04 during bootstrap.
 - Worker evidence, not rerun: `pnpm fuzz` at 100,000 renderer cases (seed 3307608597) and 100,000 CLI cases plus 1,000 real-binary cases (seed 3307608531), exit 0; the full e2e twice and the perf check under synthetic load 17–41; ×1.06 code and CSS mutants fail the perf gate and ×1.04 passes; §9.5 raw values table 2.0 ms ≤ 30, doc20 1.7 ms ≤ 15, chart 5.6 ms ≤ 25, memory 1.94 MB ≤ 8 MB on an AMD Ryzen 9 9950X3D, 8 cores in WSL 2, 35.2 GiB RAM, Chromium 156.0.8078.4.
 - Review: a fresh final review; 8 findings fixed, minors 2–7, 9 and 11 left with reasons in the worker report.
 - Follow-ups for task 21 and the final summary: the §14.2 ratios stay an open release-gate DEVIATION (VD-155, VD-157, VD-165); no CI job runs `pnpm fuzz`, so run it before release; the spec's hand-written §10.2 CDN template lacks `lang`/`title` (VD-168); the perf baseline needs `--update` on CI hardware (VD-171). Minor: a too-long positional `stats` item says `expected an object, got array`, where naming the position count would help.
+
+### 21 — Host matrix and release preparation
+- Built: the §16.1 scenario script (`scripts/host-scenario.mjs`); CI in `.github/workflows/`: `ci.yml` (gate; Windows and macOS `portable` with `VUI_PIXELS=skip`; Firefox/WebKit `engines`; `wsl-nat` gated on the `WSL2_RUNNER` variable), `scheduled.yml` (Orca host contract including `orca tab create --help`, and `pnpm fuzz` at 100k), `snapshots.yml`, and a manual `release.yml` pinned by SHA; `scripts/check-orca-contract.mjs`; npm publish config with provenance plus `scripts/check-publish.mjs` in `pnpm check`; a 40-prompt agent eval (`scripts/agent-eval/`, run through `claude -p`); `docs/vadd-ui/release/`: HOST_MATRIX, ORCA_E2E_CHECKLIST, GOALS_AUDIT, RUNTIME_SUPPORT, AGENT_EVAL, RELEASE_CHECKLIST.
+- Decisions: VD-173 to VD-181. Open release-gate deviations, listed in RELEASE_CHECKLIST.md: §14.2 ratios (VD-155, VD-157, VD-165); agent eval 97.0% valid first shows against 98% (32/33; one doc had JS `.filter()` in it); VD-129 cold pane; Chromium 110 lacks `color-mix()` (VD-177).
+- Fixes: `pnpm fuzz` found a renderer throw, a chart position given as an unknown object (VD-180, `chart/model.ts`); a too-long positional `stats` item now names the allowed count (VD-181).
+- Evidence (coordinator rerun on `main` at b9c4b7e, load 2.3): `pnpm install` exit 0, `pnpm gate` exit 0. Vitest 123 files, 7,320 tests. Playwright 483, including Firefox/WebKit smoke. Lines 99.67% (5480/5498), statements 99.11%. Bundle 110.8 KiB / 37.9 KiB gzip: about 100 bytes left under 38 KiB. check-publish: 7 packages with provenance. Forbidden APIs clean (95 source, 74 dist files). Token check: 29 metrics within 5%, the ratio misses accepted. Perf check: 4 metrics within 5%.
+- Coordinator probes: `pnpm pack` of `@vadd/ui` contains only `dist/vui.min.js` and `package.json`; `publishConfig` has `provenance: true`, and `unpkg`/`jsdelivr` point to `dist/vui.min.js`; version still 0.0.0; an 8-entry `stats` item exits 1 with `expected an object or a positional item of 2 to 6 entries, got 8 entries`; no `sk-ant` string in docs or scripts; `/var/www/html/vadd` still at a8b5cc2 with only the user's `.gitignore` edit.
+- Worker evidence, not rerun: the scenario 3× on both reachable cells, all pass (Orca pane, WSL mirrored: warm 69–71 ms, cold 1.6–3.4 s; outside Orca, headless Chromium: cold 190–196 ms, warm 68–69 ms; VD-142 tab listed right after create); actionlint clean; Orca contract passes against stablyai/orca main 1b79875 and orca-ide 1.4.259; Firefox 157 and WebKit 27.2 installed without sudo, 16/16; the eval: 33/33 after retry, 0 hand-written HTML, 7/40 markdown answers (2 of them §12.2 misses), no-skill baseline 0/10 visuals (VD-139); a fresh 100k fuzz run and the failing seed pass.
+- Review: fresh subagent, 0 Critical and 6 Important, all fixed.
+- Coordinator note: the worker once stopped at a Claude Code "dangerous rm" safety prompt on a heredoc script edit, a false positive with no `rm` in it; the coordinator approved it in the worker terminal.
+- Left for the user (RELEASE_CHECKLIST.md): remote, `repository` fields and the first CI run (pixel regeneration, Windows test fixes, perf `--update` on CI hardware, `WSL2_RUNNER`); manual §16.1 cells A–F; the Orca end-to-end checklist; `vui bench` with a real `ANTHROPIC_API_KEY`; agent eval rerun after any SKILL.md change; version 1.0.0 and npm publish.
+- Follow-ups for task 22: about 100 bytes of gzip headroom remain, so `ext` almost certainly needs the separate lazily embedded build that TASKS.md allows.
+
