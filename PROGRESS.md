@@ -1,9 +1,9 @@
 # vadd-ui progress
 
-Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T19:45:14Z · Mode: manual
+Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T20:35:21Z · Mode: manual
 
 ## Summary
-Done 22 / 23 · In progress: 23 — core chart robustness · Blocked: none · Next: none
+Done 23 / 23 · In progress: none · Blocked: none · Next: none (all tasks done; release checks pending the user)
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -50,11 +50,10 @@ Recorded 2026-11-04 during bootstrap.
 | 20 | Hardening | §9.5, §15.1, §16 | 15, 18, 19 | done | removed | ctx_5c23eb4a2a60 | [design](docs/superpowers/specs/2026-11-10-hardening-design.md) | [plan](docs/superpowers/plans/2026-11-10-hardening.md) | bbd7e43 | 2026-11-10 |
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | done | removed | ctx_43252fda1845 | [design](docs/superpowers/specs/2026-11-15-release-prep-design.md) | [plan](docs/superpowers/plans/2026-11-15-release-prep.md) | b9c4b7e | 2026-11-15 |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | done | removed | ctx_66c52ba79c76 | [design](docs/superpowers/specs/2026-11-15-components-ext-design.md) | [plan](docs/superpowers/plans/2026-11-15-components-ext.md) | 63395b0 | 2026-11-15 |
-| 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | in_progress | vui-23-chart-robustness | ctx_0c2b45843a7e | | | | |
+| 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | done | removed | ctx_0c2b45843a7e | [design](docs/superpowers/specs/2026-11-15-chart-robustness-design.md) | [plan](docs/superpowers/plans/2026-11-15-chart-robustness.md) | 1c41615 | 2026-11-15 |
 
 ## Current task log
-- 2026-11-15T19:45:14Z 23 added by the coordinator (VD-180/VD-184 follow-up from task 22) and selected
-- 23 dispatched: worktree `vui-23-chart-robustness`, dispatch ctx_0c2b45843a7e, terminal term_70ce09fe
+none
 
 ## Completed task reports
 ### 01 — Monorepo scaffolding
@@ -288,10 +287,17 @@ Recorded 2026-11-04 during bootstrap.
 - Coordinator probes: `vui render` of a 3-node cyclic `flow` gives a 127,389-byte file holding the flow code, with no external `src`; a core `kv` document gives 113,859 bytes with no flow code; `--cdn` writes `…/@vadd/ui@1/dist/vui-ext.min.js` for the flow document and `vui.min.js` for the `kv` one; `--format text` lists the flow edges, including the back edge `c → a`.
 - Worker evidence, not rerun: 18 new visual baselines at 360/720/1100 px, light and dark, with axe; XSS corpus over the new text fields; fuzz over the full catalog; e2e of the real ext bundle inline and by URL with no network; Orca pane capture.
 - Review: fresh subagent, 1 Important (`String(height)` throw in scatter, VD-180 class) and 5 minor, all fixed.
-- Follow-ups for the user: rerun the paid agent eval (`SKILL.md` changed, VD-186); core `chart/model.ts` still reads `height` through `String()` (VD-180 class; fixing it costs core bytes, and the core has about 260 bytes of gzip headroom: 38,649 of 38,912 by `gzip -9`); regenerate Windows and macOS pixel baselines with the others.
+- Follow-ups for the user: rerun the paid agent eval (`SKILL.md` changed, VD-186); core `chart/model.ts` still read `height` through `String()` (VD-180 class); fixed in task 23; regenerate Windows and macOS pixel baselines with the others.
+
+### 23 — Core chart robustness
+- Built: typed reads at seven core sites that crashed on hostile values past the validator's 20,000-issue cap (VD-066): chart `height` (shared `heightOf`, also used by `scatter`), chart `kind` and its label lookup (`__proto__`/`constructor`), `kv` positional keys, `diff` paths and counts, table column labels, table sort keys. A deterministic sweep of 25,000+ substitutions over every core field (`packages/ui-render/test/components/unchecked.test.ts`) and a 1-in-100 fuzz share of past-cap documents.
+- Decisions: VD-187 (every audited site, fixed or safe with its reason; behaviour changes only past the cap).
+- Evidence (coordinator rerun on `main` at 1c41615): `pnpm install` exit 0, `pnpm gate` exit 0. Vitest 130 files, 7,456 tests. Playwright 503, visual baselines unchanged. Lines 99.67% (5894/5913), statements 99.1%. check-bundle-size: `vui.min.js` 110.9 KiB / 37.9 KiB gzip, within §9.5; `vui-ext.min.js` 124.0 / 42.8 KiB. Forbidden APIs, runtime deps, publish, token and perf checks pass.
+- Worker evidence, not rerun: `pnpm fuzz` 100k renderer cases green in 364 s; with the fixes reverted, the sweep fails at exactly these sites and fuzz fails at case 5,698; `vui.min.js` +53 B gzip, 101 B left under 38,912.
+- Follow-ups: none new. The main bundle has about 100 bytes of gzip room left, so any further core change needs bytes found elsewhere.
 
 ## Final summary
-- Coverage: all 22 tasks done; every spec section in TASKS.md's coverage table maps to a merged task. Final `pnpm gate` on `main` at 63395b0 is the complete §16 suite: build, typecheck, lint, 7,433 Vitest tests at 99.66% lines, 503 Playwright tests (visual, axe, XSS, Firefox/WebKit smoke), bundle, forbidden-API, runtime-dependency, version, target, publish, token and perf checks.
-- Budgets achieved: `vui.min.js` 110.8 KiB / 37.8 KiB gzip (≤ 120 / 38); `vui-ext.min.js` 124.0 / 42.7 KiB (≤ 132 / 45, VD-182); §9.5 timings within limits (VD-171). Open deviations: §14.2 token ratios (VD-155, VD-157, VD-165), agent eval 97% valid first shows against 98% (VD-178), VD-129 cold pane, Chromium 110 lacks `color-mix()` (VD-177), ext bundle (VD-182).
+- Coverage: all 23 tasks done (23 added after task 22 as a VD-180 follow-up); every spec section in TASKS.md's coverage table maps to a merged task. The final `pnpm gate` on `main` at 1c41615 is the complete §16 suite: build, typecheck, lint, 7,456 Vitest tests at 99.67% lines, 503 Playwright tests (visual, axe, XSS, Firefox/WebKit smoke), bundle, forbidden-API, runtime-dependency, version, target, publish, token and perf checks.
+- Budgets achieved: `vui.min.js` 110.9 KiB / 37.9 KiB gzip (≤ 120 / 38); `vui-ext.min.js` 124.0 / 42.8 KiB (≤ 132 / 45, VD-182); §9.5 timings within limits (VD-171). Open deviations: §14.2 token ratios (VD-155, VD-157, VD-165), agent eval 97% valid first shows against 98% (VD-178), VD-129 cold pane, Chromium 110 lacks `color-mix()` (VD-177), ext bundle (VD-182).
 - Release checks pending the user (docs/vadd-ui/release/RELEASE_CHECKLIST.md): add a remote and `repository` fields, then the first CI run (pixel regeneration, Windows fixes, perf `--update` on CI hardware, `WSL2_RUNNER`); manual §16.1 cells A–F (the NAT cell cannot run on this mirrored-network machine); the Orca end-to-end checklist; `vui bench` with a real `ANTHROPIC_API_KEY`; rerun the agent eval after the VD-186 `SKILL.md` change; version 1.0.0 and npm publish.
 
