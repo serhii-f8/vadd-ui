@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      VUI_ENGINES: '1'
+      VUI_ENGINES: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

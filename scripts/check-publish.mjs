@@ -46,7 +46,7 @@ else {
   if (!/^\s+id-token: write$/m.test(release)) {
     findings.push('release.yml: needs permissions id-token: write')
   }
-  if (!/NPM_CONFIG_PROVENANCE: 'true'/.test(release)) {
+  if (!/NPM_CONFIG_PROVENANCE: "true"/.test(release)) {
     findings.push('release.yml: must publish with NPM_CONFIG_PROVENANCE')
   }
   if (/^\s+(push|pull_request|schedule):/m.test(release)) {

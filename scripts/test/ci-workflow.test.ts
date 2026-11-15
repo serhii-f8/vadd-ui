@@ -62,7 +62,7 @@ describe('ci workflow', () => {
   it('engines: Firefox and WebKit run the smoke projects', () => {
     const engines = job(workflow, 'engines')
     expect(engines).toContain('pnpm exec playwright install --with-deps firefox webkit')
-    expect(engines).toContain("VUI_ENGINES: '1'")
+    expect(engines).toContain('VUI_ENGINES: "1"')
     expect(engines).toContain('--project=firefox --project=webkit')
   })
 
@@ -123,7 +123,7 @@ describe('release workflow', () => {
   it('runs by hand only, gates, then publishes with provenance', () => {
     expect(release).toMatch(/^on:\n {2}workflow_dispatch:\n/m)
     expect(release).toContain('id-token: write')
-    expect(release).toContain("NPM_CONFIG_PROVENANCE: 'true'")
+    expect(release).toContain('NPM_CONFIG_PROVENANCE: "true"')
     // §15.1: the job that holds the tokens runs no action by a movable tag.
     expect(release).not.toMatch(/uses: [^@\s]+@v\d/)
     inOrder(release, [
