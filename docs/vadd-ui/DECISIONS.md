@@ -1562,3 +1562,60 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Date: 2026-11-16 · Task: 24
 - Context: the user asked for the design plugin to be used to improve the UI. A `design:design-critique` pass over the 18 visuals from the Orca WSL run (VD-189), in dark, light and 390 px, found no correctness problems. Charts, tables, checks, diff, timeline and the theme switch read well, and phone width has no page overflow. It did find six polish gaps: (1) every Viewer entry repeats a date, branch, full absolute path and three buttons, so chrome outweighs small visuals; (2) bars fill whole bands and carry no value labels, and lines have no point markers; (3) `FATAL` log lines are styled plainer than `ERROR`; (4) the `run` status has no pill while the others do; (5) a stats tile inside a card draws a frame inside a frame and shows a tone twice; (6) decision options with no body reserve empty height.
 - Decision: one task (24) for all six, each a renderer or Viewer style change within §8 and §9.4. The core bundle has about 200 B of gzip headroom, so the worker must keep changes net neutral or trade bytes. Not taken up: status tokens in `stats` labels and `money` without a code, which are skill wording (VD-189), and `dur`/`ms` values an agent passed in the wrong unit, which is agent error.
+
+## VD-191 — `log` styles FATAL, CRITICAL and PANIC as errors
+- Date: 2026-11-16 · Task: 24
+- Context: §6 lists four log levels (ERROR, WARN, INFO, DEBUG). The end-to-end run showed `FATAL` lines styled plainer than `ERROR` (VD-190).
+- Decision: the level pattern also matches `FATAL`, `CRITICAL` and `PANIC`, under the same anchoring and case rules as the four. Any matched level that the tone table does not name takes `err`, ERROR's tone, so the three are exactly as strong as ERROR. A lowercase `panic:` (Go's runtime prefix) stays plain, because level matching is case-sensitive like `error in lower case`.
+- Alternatives: a stronger style than ERROR (bold), which costs bytes and adds a fifth look; a case-insensitive match, which would colour ordinary prose.
+- Spec sections: §6 (`log`), §15.2.
+
+## VD-192 — Bar width cap and single-series value labels; line point markers skipped — DEVIATION
+- Date: 2026-11-16 · Task: 24
+- Context: bars filled 80% of their band (about 280 px each for three bars at 1100 px), carried no values, and lines had no point markers (VD-190). The §9.5 budget is enforced by `check-bundle-size`, which uses Node's zlib at level 9. That reads about 100 B more than `gzip -9`, so `main` started with 101 B of headroom, not the 200 B the brief cited.
+- Decision: a bar is at most 48 px thick in `bar`, `hbar` and `stacked`, and a group is re-centred on its label. The stack-total drawing loop also prints the values of a `bar` chart with one series and at most 12 bars, formatted by `yFormat`, over each placed category label. A label is drawn only if its text (at the 6.2 px per character estimate) fits the space between drawn labels, so labels never overlap, and stack totals that would collide are now left out too. A negative bar's value sits just above the zero line, and every value stays in the tooltip and the hidden table, so §9.4 holds. `hbar` gets no labels, because a label past the longest bar would need reserved end space.
+- DEVIATION: line point markers (`line`, at most 30 points) were built and tested, but they cost 50 B and did not fit §9.5 alongside the other items. They are skipped. The tooltip and hidden table still give each point. A later task can add them as round-capped zero-length segments with their own class (`.vui-chart-dot` belongs to scatter in the ext tier) once bytes are freed.
+- Alternatives: per-point `<circle>` elements (more DOM and bytes); dropping the nested-frame or log items instead (both fix wrong-looking output, while markers are an enhancement).
+- Spec sections: §6 (`chart`), §9.4, §9.5.
+
+## VD-193 — A status pill tints its line colour, so `run` has a pill
+- Date: 2026-11-16 · Task: 24
+- Context: `run` maps to the `accent` tone, and `--vui-accent` is a background token (`#f5f5f5` on white). A 12% tint of it is invisible, so `run` had no pill while the other statuses did.
+- Decision: `.vui-status` mixes `--vui-tone-line` at 12% into the surface instead of `--vui-tone`. `--vui-tone-line` equals the tone for every tone except `accent`, where it is `--vui-primary`. Only `run` changes. Its text (`--vui-accent-fg`) on the primary tint passes 4.5:1 in both schemes, which a token test checks.
+- Spec sections: §6 (status tokens), §8.1, §15.2.
+
+## VD-194 — Compact Viewer entry chrome
+- Date: 2026-11-16 · Task: 24
+- Context: every entry repeated a date, branch, full absolute path and three buttons on three lines, so chrome outweighed small visuals (VD-190).
+- Decision: the entry header is one wrapping flex row. The title takes the room (`flex:1 1 12em`, 1.1em), and Fold / Open standalone / Copy spec form one small right-aligned group, which wraps below a long title at phone width. The meta line takes the next row by CSS `order`, so the DOM and reading order stays title, meta, actions. It is one line (`nowrap`), separated by `·`. Branch and path shrink with an ellipsis and keep their whole value in `title`, and the time never shrinks. A `cwd` with more than two segments shows its last two, joined by its own separator (`\` if the path has one); a shorter path shows whole.
+- Spec sections: §4.1.
+
+## VD-195 — Byte trades for the core bundle, and flat CSS at build time
+- Date: 2026-11-16 · Task: 24
+- Context: §9.5 caps `vui.min.js` at 38,912 B by `gzip -9`. The task started at 38,712 B, and the six fixes cost about 260 B.
+- Decision: `scripts/build-bundle.mjs` gets an esbuild `onLoad` plugin for `ui-render/dist/css/{base,components,data}.js`. It drops the newlines in each CSS template and the `.trim().replace(/\n/g, '')` call, which yields the same string. The build fails if a module stops matching, and `scripts/test/flat-css.test.ts` checks that the bundled stylesheet equals the runtime one. Rules with identical bodies are merged: `.vui-node`/`.vui-fold-body`/`.vui-md`/`.vui-tabs`/`.vui-tab-panel`, and `.vui-chart`/`.vui-progress`/`.vui-rows li`. The unused `.vui-num` rule and a redundant `padding-inline-start` on toned stat tiles are removed. Merging the seven repeated frame declarations into one rule was tried and rejected, because it compressed worse (+14 B). New chart code is kept to a minimum: value labels reuse the stack-total loop. Result by the gate's metric (Node zlib, level 9): 38,910 of 38,912 B (`gzip -9`: about 38,810 B).
+- Spec sections: §9.5.
+
+## VD-196 — No frame inside a card's frame; a nested tone shows as one stripe
+- Date: 2026-11-16 · Task: 24
+- Context: a stats tile inside a card drew a frame inside a frame, and a toned one showed its tone as a coloured frame plus a stripe (VD-190). TASKS.md says "directly inside a card or grid tile".
+- Decision: a `card` anywhere inside a `card`, and any `stats` tile inside a `card`, lose their border, radius and background: `[data-vui-type=card] [data-vui-type=card], [data-vui-type=card] .vui-stat`. They keep their own padding. A toned one keeps its 3 px inline-start stripe (straight, since the radius is gone) and its mark, like any toned node, so the tone shows once. The selector is a descendant one, not "directly": a card two levels inside a card is still a frame inside a frame, and the shorter selector fits the byte budget. A grid tile counts only when it is a card, since `grid` draws no frame of its own. Standalone stats and cards keep their frames.
+- Spec sections: §6 (`card`, `stats`), §8.
+
+## VD-197 — Decision options size to their content
+- Date: 2026-11-16 · Task: 24
+- Context: options stretched to the tallest card in their grid row, so a label-only option reserved empty height (VD-190).
+- Decision: `.vui-options` aligns items to the start, and an option with no pros, cons or meta draws no empty `<dl>`.
+- Spec sections: §6 (`decision`).
+
+## VD-198 — Task 24 review: minor findings deferred
+- Date: 2026-11-16 · Task: 24
+- Context: the fresh-subagent review of task 24 found no critical issues and one important one (the line-marker class clash; markers were later skipped for bytes, VD-192). It also listed minor findings.
+- Decision: fixed: the bar-cap test now asserts the drawn 43.2 px, and the Viewer meta separator has empty alt text (`content:"·"/""`). Deferred, each cosmetic or test-only: (1) `flat-css.test.ts` skips without `dist` (the gate always builds first); (2) it compares the ESM bundle's stylesheet only (the core bundle shares the plugin, and its strip call is checked absent); (3) no test pins the exact label fit threshold; (4) the most negative bar's label can touch its category label; (5) the full branch and path are reachable only by `title` (hover); (6) `shortPath` rejoins mixed separators with `\`. Pre-existing and out of scope: axe reports a moderate `region` finding for the Viewer bar's `h1`, which sits outside a landmark.
+- Spec sections: §4.1, §9.4, §15.2.
+
+## VD-199 — The all-fields renderer test gets a 180 s timeout
+- Date: 2026-11-16 · Task: 24
+- Context: `unchecked.test.ts` › "neither fails a node nor draws NaN" has its own 60 s timeout. It takes about 25 s alone and about 50 s alone under coverage, on both `main`'s renderer source (48 s) and this branch (43 s). In the full parallel `pnpm test:coverage`, on this shared WSL host with other agents running (load 10 to 23), it took 64 to 84 s and failed every time. That includes the untouched baseline at the start of task 24.
+- Decision: raise that one test's timeout to 180 s. The timeout guards against a hang, not speed, and §9.5 speed is measured by `check-perf-budgets`, which is unchanged and green.
+- Alternatives: fewer vitest workers (tried with 4; it still failed); splitting the test (a larger change to a test this task does not own).

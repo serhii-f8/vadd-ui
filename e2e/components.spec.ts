@@ -223,3 +223,99 @@ test('nothing overflows sideways at 360 px', async ({ page }) => {
   )
   expect(overflow).toBeLessThanOrEqual(0)
 })
+
+test.describe('design polish (VD-190)', () => {
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`every status renders one pill shape, run and wait included (${scheme})`, async ({
+      page,
+    }) => {
+      const input = [':ok: a :fail: b :warn: c :info: d :run: e :wait: f :skip: g :none: h']
+      const { frame } = await openVisual(page, { input, diagnostics: 'hidden' }, scheme, 720)
+      const pills = await frame.evaluate(() => {
+        const surface = getComputedStyle(document.querySelector('.vui-root') as Element)
+          .getPropertyValue('--vui-surface')
+          .trim()
+        const probe = document.createElement('i')
+        probe.style.color = surface
+        document.body.append(probe)
+        const plain = getComputedStyle(probe).color
+        return [...document.querySelectorAll('.vui-status')].map((pill) => {
+          const style = getComputedStyle(pill)
+          return {
+            name: pill.textContent,
+            radius: style.borderTopLeftRadius,
+            tinted: style.backgroundColor !== plain && style.backgroundColor !== 'rgba(0, 0, 0, 0)',
+          }
+        })
+      })
+      expect(pills).toHaveLength(8)
+      for (const pill of pills) expect(pill, pill.name ?? '').toMatchObject({ tinted: true })
+      expect(new Set(pills.map((pill) => pill.radius)).size).toBe(1)
+    })
+  }
+
+  test('a card or stats tile inside a card drops its own frame, and a tone shows once', async ({
+    page,
+  }) => {
+    const input = [
+      {
+        type: 'card',
+        title: 'Outer',
+        tone: 'ok',
+        children: [
+          { type: 'card', title: 'Inner', children: ['x'] },
+          { type: 'card', title: 'Toned', tone: 'warn', children: ['y'] },
+          {
+            type: 'stats',
+            items: [
+              ['Plain', 1],
+              ['Toned', 2, 'num', null, null, 'err'],
+            ],
+          },
+        ],
+      },
+      { type: 'stats', items: [['Alone', 3]] },
+    ]
+    const { frame } = await openVisual(page, { input, diagnostics: 'hidden' }, 'light', 720)
+    const frames = await frame.evaluate(() =>
+      [
+        '[data-vui-type=card] [data-vui-type=card]:not(.vui-toned)',
+        '[data-vui-type=card] [data-vui-type=card].vui-toned',
+        '[data-vui-type=card] .vui-stat:not(.vui-toned)',
+        '[data-vui-type=card] .vui-stat.vui-toned',
+        '.vui-stat',
+      ].map((selector) => {
+        // The last match: for `.vui-stat`, the tile that sits in no card.
+        const style = getComputedStyle([...document.querySelectorAll(selector)].pop() as Element)
+        return [style.borderTopWidth, style.borderLeftWidth, style.backgroundColor]
+      }),
+    )
+    const clear = 'rgba(0, 0, 0, 0)'
+    expect(frames[0]).toEqual(['0px', '0px', clear])
+    expect(frames[1]).toEqual(['0px', '3px', clear])
+    expect(frames[2]).toEqual(['0px', '0px', clear])
+    expect(frames[3]).toEqual(['0px', '3px', clear])
+    expect(frames[4]?.[0]).toBe('1px')
+    expect(frames[4]?.[2]).not.toBe(clear)
+  })
+
+  test('a decision option with nothing in it is no taller than it needs', async ({ page }) => {
+    const input = [
+      {
+        type: 'decision',
+        question: 'Which?',
+        options: [
+          { label: 'Full', pros: ['a', 'b', 'c'], cons: ['d'], effort: 'S' },
+          { label: 'Bare' },
+        ],
+      },
+    ]
+    const { frame } = await openVisual(page, { input, diagnostics: 'hidden' }, 'light', 1100)
+    const [full, bare] = await frame.evaluate(() =>
+      [...document.querySelectorAll('.vui-options > li')].map(
+        (item) => item.getBoundingClientRect().height,
+      ),
+    )
+    expect(bare).toBeLessThan((full as number) / 2)
+  })
+})

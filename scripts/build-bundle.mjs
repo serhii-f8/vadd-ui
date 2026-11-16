@@ -22,8 +22,30 @@ const coreRender = fileURLToPath(new URL('../packages/ui-render/dist/core.js', i
 // The one source of the version; `check-versions` ties this manifest to the root.
 const { version } = JSON.parse(readFileSync(`${dir}package.json`, 'utf8'))
 
+// VD-195: each CSS module writes one rule per line, then drops the newlines at runtime with
+// `.trim().replace(/\n/g, '')`. Here the newlines go at build time, with the call, for the same
+// string in fewer bytes. A module that no longer matches the pattern fails the build.
+const CSS_MODULE = /[\\/]ui-render[\\/]dist[\\/]css[\\/](?:base|components|data)\.js$/
+const CSS_TEMPLATE = /`\n([^`]*)`\s*\.trim\(\)\s*\.replace\(\/\\n\/g, ''\)/g
+
+/** @type {import('esbuild').Plugin} */
+const flatCss = {
+  name: 'flat-css',
+  setup(on) {
+    on.onLoad({ filter: CSS_MODULE }, ({ path }) => {
+      const source = readFileSync(path, 'utf8')
+      const contents = source.replace(CSS_TEMPLATE, (_, css) => `\`${css.replace(/\n/g, '')}\``)
+      if (contents === source || contents.includes('.trim()')) {
+        throw new Error(`flat-css: no CSS template in ${path}`)
+      }
+      return { contents, loader: 'js' }
+    })
+  },
+}
+
 /** @type {import('esbuild').BuildOptions} */
 const shared = {
+  plugins: [flatCss],
   bundle: true,
   minify: true,
   target: BROWSER_TARGET,

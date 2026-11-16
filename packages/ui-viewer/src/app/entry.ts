@@ -28,6 +28,13 @@ function timeOf(createdAt: string): HTMLTimeElement {
   return el('time', { datetime: createdAt }, text)
 }
 
+/** VD-194: the last two segments say which workspace; the whole path stays in `title`. */
+export function shortPath(path: string): string {
+  const parts = path.split(/[\\/]/).filter(Boolean)
+  if (parts.length <= 2) return path
+  return parts.slice(-2).join(path.includes('\\') ? '\\' : '/')
+}
+
 function decoded(fragment: string): string {
   try {
     return decodeURIComponent(fragment)
@@ -70,8 +77,8 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
     'Open standalone',
   )
   const meta = el('div', { class: 'feed-meta' }, timeOf(createdAt))
-  if (branch !== null) meta.append(el('span', { class: 'feed-branch' }, branch))
-  if (cwd !== null) meta.append(el('span', { class: 'feed-cwd', title: cwd }, cwd))
+  if (branch !== null) meta.append(el('span', { class: 'feed-branch', title: branch }, branch))
+  if (cwd !== null) meta.append(el('span', { class: 'feed-cwd', title: cwd }, shortPath(cwd)))
   const entry = el(
     'article',
     { class: 'feed-entry', 'aria-labelledby': headingId },

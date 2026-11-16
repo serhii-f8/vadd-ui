@@ -220,5 +220,7 @@ describe('every field of every core component, past the issue cap', () => {
     }
     expect(rendered).toBe(cases.length)
     expect(problems).toEqual([])
-  }, 60_000)
+    // VD-199: alone it takes 25 s, about 50 s under coverage; a full parallel run on a busy host
+    // needs more, and the timeout guards a hang, not speed.
+  }, 180_000)
 })

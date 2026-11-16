@@ -92,7 +92,8 @@ describe('§8.1 tokens', () => {
   })
 
   it('derives tone backgrounds with color-mix', () => {
-    expect(stylesheet).toContain('color-mix(in srgb,var(--vui-tone) 12%,var(--vui-surface))')
+    // A status pill tints its line color, so `run` (accent) shows a pill too (VD-193).
+    expect(stylesheet).toContain('color-mix(in srgb,var(--vui-tone-line) 12%,var(--vui-surface))')
   })
 })
 
@@ -119,6 +120,11 @@ describe('§15.2 contrast', () => {
       expect(contrast(value('--vui-muted-fg', scheme), surface)).toBeGreaterThanOrEqual(4.5)
       expect(contrast(value('--vui-accent-fg', scheme), surface)).toBeGreaterThanOrEqual(4.5)
       expect(contrast(text, surface)).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it('the run pill keeps accent text at 4.5:1 on its primary tint (VD-193)', () => {
+      const pill = mix(value('--vui-primary', scheme), surface, 0.12)
+      expect(contrast(value('--vui-accent-fg', scheme), pill)).toBeGreaterThanOrEqual(4.5)
     })
   })
 

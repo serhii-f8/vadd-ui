@@ -18,6 +18,8 @@ const MAX_LABEL = 16
 const MAX_TICK = 14
 const MAX_DRAWN = 1000
 const FULL = 100
+// VD-192: a bar is at most 48 px thick; one series of up to 12 bars prints its values; a line
+// of up to 30 points marks them. Literals below, because a constant costs bundle bytes.
 
 export const SPARK_WIDTH = 100
 export const SPARK_HEIGHT = 24
@@ -158,8 +160,9 @@ function cartesian(model: Model, width: number): Drawing {
   }
   axis(tickTexts, (order) => across(ticks[order] as number), !swapped, 'vui-chart-tick')
 
-  const band = (0.8 / Math.min(size, MAX_DRAWN)) * (a1 - a0)
-  const barWidth = stacked ? band : band / series.length
+  const slot = (a1 - a0) / Math.min(size, MAX_DRAWN)
+  const barWidth = Math.min((0.8 * slot) / (stacked ? 1 : series.length), 48)
+  const band = stacked ? barWidth : barWidth * series.length
   const inner = barWidth * 0.9
   const up = new Array<number>(size).fill(0)
   const down = new Array<number>(size).fill(0)
@@ -173,7 +176,7 @@ function cartesian(model: Model, width: number): Drawing {
         const pile = value < 0 ? down : up
         const base = stacked ? (pile[index] as number) : 0
         pile[index] = base + value
-        const a = along(index) - band / 2 + (stacked ? 0 : order * barWidth)
+        const a = along(index) - band / 2 + (stacked ? 0 : order * barWidth) + barWidth * 0.05
         const from = across(base)
         const to = across(base + value)
         d += `M${pt(a, from)}L${pt(a, to)}L${pt(a + inner, to)}L${pt(a + inner, from)}Z`
@@ -206,11 +209,24 @@ function cartesian(model: Model, width: number): Drawing {
   }
 
   const placed = axis(labels, (order) => along(shown[order] as number), swapped, 'vui-chart-label')
-  if (totals !== undefined) {
+  // Stack totals, or the values of one series of up to 12 bars (VD-192), over each placed label
+  // whose text fits the space between drawn labels. A negative bar's value sits on the zero line.
+  const printed =
+    totals ?? (kind === 'bar' && series.length < 2 && size < 13 ? series[0]?.values : undefined)
+  if (printed) {
     shown.forEach((index, order) => {
-      if (!placed[order]) return
-      const y = across(model.tops[index] as number) - 4
-      nodes.push(textMark(along(index), y, 'middle', 'vui-chart-total', model.value(totals[index])))
+      const text = model.value(printed[index])
+      if (placed[order] && text.length * CHAR <= slot * stride) {
+        nodes.push(
+          textMark(
+            along(index),
+            across(model.tops[index] as number) - 4,
+            'middle',
+            'vui-chart-total',
+            text,
+          ),
+        )
+      }
     })
   }
   return {
