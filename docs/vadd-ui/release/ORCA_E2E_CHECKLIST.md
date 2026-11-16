@@ -47,7 +47,7 @@ Takes about 30 minutes. Record each step as pass, fail (with a screenshot), or n
 
 6. **Links open via the host.** In 5.1, ask the agent to add a link column (`https://example.com/…`). Click a link: it opens through Orca (system browser or Orca's browser), not inside the frame. A `#section` link scrolls within the visual.
 7. **Theme switch.** Switch Orca between light and dark (Settings → Appearance) while visuals are on screen. Every visual restyles at once, with no reload and no flash of the other theme; tone colours and text stay readable in both.
-8. **Height.** No visual has an inner scrollbar or is cut off; a long table (ask for 60 rows) is paged or folded, not clipped at 2000 px.
+8. **Height.** No visual is cut off; a long table (ask for 60 rows) is paged ("Show N more") or folded, not clipped at 2000 px. A table over 15 rows scrolls inside its own 600 px box with a sticky header; that is by design (§9 `sticky`), not a failure.
 9. **Copy and folds** (VD-122, Safari/WebKit first copy): in Orca mobile or Safari, if available, open a folded code block or the Viewer feed's "Copy spec" on a folded entry and copy once. Record whether the first click copies or says "Copy failed".
 10. **Fallback without the CLI** (§12.2 step 6): temporarily make `vui` unavailable (rename `vui.cmd`, or `npm uninstall -g @vadd/ui-cli`), ask for 5.2 again. The agent writes the CDN template into the scratch folder and pastes the directive. **This needs `@vadd/ui@1` on npm** (jsDelivr serves it from there); before the first publish the script cannot load, so the visual cannot render. Reinstall afterwards.
 

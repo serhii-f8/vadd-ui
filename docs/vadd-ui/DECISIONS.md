@@ -1552,3 +1552,8 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Context: the user named the remote `https://github.com/serhii-f8/vadd-ui.git` and asked for the release preparation to go ahead.
 - Decision: all nine manifests (root, seven `packages/*`, `skills/vadd-ui`) are at `1.0.0`, because §17.2 says the package major equals the format major. Each one gets `repository` `{type: "git", url: "git+https://github.com/serhii-f8/vadd-ui.git"}`, with `directory` set for every manifest except the root, so npm provenance matches. `scripts/test/check-versions.test.ts` used `0.0.0`/`1.0.0` as its expected/drift values; it now uses `1.0.0` and `9.9.9`. No other test pinned the version. Sources read it from the manifest.
 - Not done: push, tag and npm publish wait for the user's explicit go-ahead (git policy).
+
+## VD-189 — Orca WSL end-to-end run: two skill wording gaps deferred to the agent-eval rerun
+- Date: 2026-11-16 · Task: release checks
+- Context: a WSL-terminal run of `ORCA_E2E_CHECKLIST.md` (`docs/vadd-ui/release/ORCA_WSL_E2E_2026-11-16.md`) passed every step it could reach. A fresh agent put `:ok:` in a `stats` label (a plain string, so it showed raw) and first used `money` without its ISO code.
+- Decision: leave `SKILL.md` unchanged for now. It is at 1,705 of 1,710 estimated tokens (VD-136), so a clarification must replace other words, and any `SKILL.md` change invalidates the agent eval anyway (release step 7). Make both changes in one edit before that rerun: say that status tokens render in inline-text fields (`text`, `title`, `note`, `md`) and that `stats`/table cells use `tone` or a `status` column instead; write `money:USD` in the formats line. Checklist step 8 now says that the sticky 600 px table box is by design.
