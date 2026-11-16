@@ -39,7 +39,7 @@ export const baseCss = `
 .vui-path-base{font-weight:600}
 ${toneCss}
 .vui-root span[class*="vui-tone-"]{color:var(--vui-tone-text)}
-.vui-status{display:inline-flex;align-items:baseline;gap:.3em;padding:0 .45em;border-radius:999px;background:color-mix(in srgb,var(--vui-tone) 12%,var(--vui-surface));font-size:.86em;font-weight:500;white-space:nowrap}
+.vui-status{display:inline-flex;align-items:baseline;gap:.3em;padding:0 .45em;border-radius:999px;background:color-mix(in srgb,var(--vui-tone-line) 12%,var(--vui-surface));font-size:.86em;font-weight:500;white-space:nowrap}
 .vui-root .vui-status.vui-tone-muted{color:var(--vui-surface-fg)}
 .vui-status-icon{font-size:.95em}
 .vui-card{display:flex;flex-direction:column;gap:var(--vui-space-2);min-width:0;padding:var(--vui-space-3);border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}

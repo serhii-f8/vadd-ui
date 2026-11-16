@@ -127,7 +127,7 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-code-pre [class*="vui-tone-"]{display:block;background:color-mix(in srgb,var(--vui-tone) 12%,transparent)}
 .vui-code-pre .vui-tone-muted{background:none}
 .vui-decision-context{margin:0}
-.vui-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:var(--vui-space-2);margin:0;padding:0;list-style:none}
+.vui-options{display:grid;align-items:start;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:var(--vui-space-2);margin:0;padding:0;list-style:none}
 @container (max-width:599.98px){.vui-options{grid-template-columns:minmax(0,1fr)}}
 .vui-option-pick{border-color:var(--vui-primary);box-shadow:inset 0 0 0 1px var(--vui-primary)}
 .vui-pick{align-self:flex-start}

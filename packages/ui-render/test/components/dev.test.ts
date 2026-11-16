@@ -351,6 +351,9 @@ describe('log', () => {
     ['[ERROR] boom', 'err'],
     ['12:00:01 INFO hello', 'info'],
     ['2026-11-05T10:00:00.123Z ERROR boom', 'err'],
+    ['FATAL out of memory', 'err'],
+    ['2026-11-16T10:00:05Z CRITICAL giving up', 'err'],
+    ['PANIC goroutine 1', 'err'],
   ])('finds the level of %s', (line, tone) => {
     const { box } = show([{ type: 'log', text: line }])
     expect(box.querySelector('pre span')?.className).toBe(`vui-tone-${tone}`)
@@ -433,6 +436,14 @@ describe('decision', () => {
     const { box } = show([{ ...decision, context: 'See **this**' }])
     expect(box.textContent).toContain('Cache **layer**?')
     expect(box.querySelector('strong')?.textContent).toBe('this')
+  })
+
+  it('draws no field list for an option with nothing in it (VD-190)', () => {
+    const { box } = show([
+      { type: 'decision', question: 'Q', options: [{ label: 'A', effort: 'S' }, { label: 'B' }] },
+    ])
+    expect(all(box, '.vui-options li')).toHaveLength(2)
+    expect(all(box, '.vui-options dl')).toHaveLength(1)
   })
 
   it('draws one card per option, as a list', () => {

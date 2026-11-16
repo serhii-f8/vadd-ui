@@ -222,9 +222,13 @@ export const diff: Component = {
 const DEFAULT_LOG_LINES = 40
 // A level after anything but letters, or the `T` and `Z` of a timestamp. Each character can
 // match one way only, so a long line cannot backtrack.
-const LOG_LEVEL = /^(?:[^a-zA-Z]|[TZ](?=[\d\s]))*(ERROR|WARN(?:ING)?|INFO|DEBUG)\b/
+const LOG_LEVEL = /^(?:[^a-zA-Z]|[TZ](?=[\d\s]))*(ERROR|FATAL|CRITICAL|PANIC|WARN(?:ING)?|INFO|DEBUG)\b/
+// §6 names four levels; the three that end a process are at least as strong as ERROR (VD-191).
 const LEVEL_TONES: { [level: string]: Tone } = {
   ERROR: 'err',
+  FATAL: 'err',
+  CRITICAL: 'err',
+  PANIC: 'err',
   WARN: 'warn',
   WARNING: 'warn',
   INFO: 'info',
@@ -268,7 +272,8 @@ export const timeline: Component = {
   },
 }
 
-function optionFields(option: JsonObject, context: NodeContext): HTMLElement {
+/** An option with nothing to list draws no `<dl>`, so it reserves no height (VD-190). */
+function optionFields(option: JsonObject, context: NodeContext): HTMLElement | null {
   const strings = (name: string) => {
     const items = nodeList(option, name).filter((item) => typeof item === 'string')
     if (items.length === 0) return null
@@ -288,6 +293,7 @@ function optionFields(option: JsonObject, context: NodeContext): HTMLElement {
     ['Verify', context.inline(text(option, 'verify'))],
   ]
   const shown = fields.filter(([, value]) => (Array.isArray(value) ? value.length : value))
+  if (shown.length === 0) return null
   return el(
     'dl',
     { class: 'vui-kv', 'data-vui-cols': 1 },
