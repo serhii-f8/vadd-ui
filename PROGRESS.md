@@ -3,7 +3,7 @@
 Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T20:35:21Z · Mode: manual
 
 ## Summary
-Done 23 / 23 · In progress: none · Blocked: none · Next: none (all tasks done; release checks pending the user)
+Done 23 / 23 · In progress: none · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.

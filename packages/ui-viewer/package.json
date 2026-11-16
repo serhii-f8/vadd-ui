@@ -1,8 +1,13 @@
 {
   "name": "@vadd/ui-viewer",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serhii-f8/vadd-ui.git",
+    "directory": "packages/ui-viewer"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

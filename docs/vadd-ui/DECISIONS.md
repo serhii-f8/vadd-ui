@@ -1546,3 +1546,9 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Behaviour changes, past the cap only: a diff file whose path is not a string is left out (a number used to print); a non-string column label is blank; a chart kind that is not a known one draws as a category chart labelled `Chart`.
 - Bytes: `vui.min.js` 113,457 → 113,597 B minified, 38,758 → 38,811 B gzip (`gzip -9`), +53 B, leaving 101 B under §9.5's 38,912. `vui-ext.min.js` 126,941 → 127,013 B minified, 43,772 → 43,816 B gzip.
 - Spec sections: §9.3, §9.4, §9.5, §16.
+
+## VD-188 — Release version 1.0.0 and the repository URL
+- Date: 2026-11-16 · Task: release preparation (RELEASE_CHECKLIST steps 1.2 and 3.10)
+- Context: the user named the remote `https://github.com/serhii-f8/vadd-ui.git` and asked for the release preparation to go ahead.
+- Decision: all nine manifests (root, seven `packages/*`, `skills/vadd-ui`) are at `1.0.0`, because §17.2 says the package major equals the format major. Each one gets `repository` `{type: "git", url: "git+https://github.com/serhii-f8/vadd-ui.git"}`, with `directory` set for every manifest except the root, so npm provenance matches. `scripts/test/check-versions.test.ts` used `0.0.0`/`1.0.0` as its expected/drift values; it now uses `1.0.0` and `9.9.9`. No other test pinned the version. Sources read it from the manifest.
+- Not done: push, tag and npm publish wait for the user's explicit go-ahead (git policy).

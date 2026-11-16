@@ -16,19 +16,19 @@ describe('check-versions', () => {
   it('fails on a drifted package and names both versions', () => {
     const root = makeWorkspace()
     editJson(root, 'packages/ui-text/package.json', (pkg) => {
-      pkg.version = '0.0.1'
+      pkg.version = '9.9.9'
     })
     const { code, out } = check(root)
     expect(code).toBe(1)
     expect(out).toContain('@vadd/ui-text')
-    expect(out).toContain('0.0.1')
-    expect(out).toContain('0.0.0')
+    expect(out).toContain('9.9.9')
+    expect(out).toContain('1.0.0')
   })
 
   it('fails on drift in the skill package', () => {
     const root = makeWorkspace()
     editJson(root, 'skills/vadd-ui/package.json', (pkg) => {
-      pkg.version = '0.0.1'
+      pkg.version = '9.9.9'
     })
     expect(check(root).code).toBe(1)
   })
@@ -36,7 +36,7 @@ describe('check-versions', () => {
   it('fails when the root drifts', () => {
     const root = makeWorkspace()
     editJson(root, 'package.json', (pkg) => {
-      pkg.version = '1.0.0'
+      pkg.version = '9.9.9'
     })
     expect(check(root).code).toBe(1)
   })

@@ -1,9 +1,14 @@
 {
   "name": "@vadd/ui-skill",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serhii-f8/vadd-ui.git",
+    "directory": "skills/vadd-ui"
+  },
   "devDependencies": {
     "@vadd/ui-cli": "workspace:*",
     "@vadd/ui-spec": "workspace:*"
