@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createEntry, type EntryOptions } from '../../src/app/entry.js'
+import { createEntry, type EntryOptions, shortPath } from '../../src/app/entry.js'
 import type { DocHeader } from '../../src/doc-header.js'
 
 const ATTACK = '<img src=x onerror=window.pwned=1>'
@@ -48,6 +48,23 @@ describe('header', () => {
     expect(entry.querySelector('time')?.textContent).not.toBe('')
     expect(entry.querySelector('.feed-branch')?.textContent).toBe('feature/x')
     expect(entry.querySelector('.feed-cwd')?.textContent).toBe('/work/app')
+  })
+
+  it('shortens a deep cwd to its last two segments, with the whole path in its title (VD-194)', () => {
+    const { entry } = setup({ cwd: '/home/u/work/apps/web' })
+    const cwd = entry.querySelector('.feed-cwd')
+    expect(cwd?.textContent).toBe('apps/web')
+    expect(cwd?.getAttribute('title')).toBe('/home/u/work/apps/web')
+  })
+
+  it('keeps title, meta and actions in reading order', () => {
+    const { entry } = setup()
+    const head = entry.querySelector('.feed-head') as HTMLElement
+    expect([...head.children].map((child) => child.className)).toEqual([
+      'feed-title',
+      'feed-meta',
+      'feed-actions',
+    ])
   })
 
   it('names itself by its heading, so its identical buttons have context', () => {
@@ -353,5 +370,21 @@ describe('links in a document', () => {
   it('survives a #id with no target', async () => {
     const { click } = await links()
     expect(click('lost').defaultPrevented).toBe(true)
+  })
+})
+
+describe('shortPath (VD-194)', () => {
+  it.each([
+    ['/home/u/work/apps/web', 'apps/web'],
+    ['/home/u/work/apps/web/', 'apps/web'],
+    ['C:\\Users\\u\\src\\vadd', 'src\\vadd'],
+    ['\\\\wsl.localhost\\Ubuntu\\home\\u', 'home\\u'],
+    ['/work/app', '/work/app'],
+    ['/proj', '/proj'],
+    ['/', '/'],
+    ['', ''],
+    ['relative/a/b', 'a/b'],
+  ])('shows %j as %j', (path, short) => {
+    expect(shortPath(path)).toBe(short)
   })
 })

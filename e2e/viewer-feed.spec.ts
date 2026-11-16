@@ -60,6 +60,43 @@ test.afterEach(async () => {
   await viewer.stop()
 })
 
+test('entry chrome is one title row and one meta line, wrapping at 390 px (VD-194)', async ({
+  page,
+}) => {
+  await post({
+    title: 'A long entry title that cannot share one phone row with three buttons',
+    meta: { branch: 'feature/feed', cwd: '/home/u/work/apps/web' },
+    body: ['hello'],
+  })
+  const box = async (selector: string) =>
+    (await page.locator(`.feed-entry ${selector}`).first().boundingBox()) as {
+      x: number
+      y: number
+      width: number
+      height: number
+    }
+  for (const width of [1100, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto(viewer.base)
+    const head = await box('.feed-head')
+    const title = await box('.feed-title')
+    const actions = await box('.feed-actions')
+    const meta = await box('.feed-meta')
+    // Right-aligned in the header, in either layout.
+    expect(Math.abs(actions.x + actions.width - (head.x + head.width))).toBeLessThan(2)
+    if (width === 1100) {
+      expect(actions.y).toBeLessThan(title.y + title.height)
+    } else {
+      expect(actions.y).toBeGreaterThanOrEqual(title.y + title.height - 1)
+    }
+    // One meta line, under both.
+    expect(meta.y).toBeGreaterThanOrEqual(Math.max(title.y + title.height, actions.y) - 1)
+    expect(meta.height).toBeLessThan(24)
+  }
+  await expect(page.locator('.feed-cwd')).toHaveText('apps/web')
+  await expect(page.locator('.feed-cwd')).toHaveAttribute('title', '/home/u/work/apps/web')
+})
+
 test('an entry shows its fields, and a live document appears after the stored ones', async ({
   page,
 }) => {
@@ -367,7 +404,9 @@ test('a hostile document and header run nothing and stay text', async ({ page })
   const hostile = page.getByRole('article')
   await expect(hostile.locator('h2').first()).toHaveText(ATTACK)
   await expect(hostile.locator('.feed-branch')).toHaveText(ATTACK)
-  await expect(hostile.locator('.feed-cwd')).toHaveText(ATTACK)
+  // A cwd shows its last two segments (VD-194), as text, and keeps the whole value in `title`.
+  await expect(hostile.locator('.feed-cwd')).toHaveText(ATTACK.split('/').slice(-2).join('/'))
+  await expect(hostile.locator('.feed-cwd')).toHaveAttribute('title', ATTACK)
   await expect(hostile.locator('.feed-body').getByText('window.pwned').last()).toBeVisible()
   expect(await page.locator('img').count()).toBe(0)
   expect(await page.evaluate(() => (window as unknown as { pwned?: number }).pwned)).toBeUndefined()
