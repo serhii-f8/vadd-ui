@@ -17,7 +17,9 @@ body.feed{margin:0;background:var(--vui-bg);font-size:14px}
 .feed-entry{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px;border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}
 .feed-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}
 .feed-title{flex:1 1 12em;min-width:0;margin:0;font-size:1.1em;font-weight:600;line-height:1.3}
-.feed-meta{order:1;display:flex;flex-wrap:wrap;flex-basis:100%;gap:0 6px;min-width:0;color:var(--vui-muted-fg);font-size:.8em}
+.feed-meta{order:1;display:flex;flex-basis:100%;gap:6px;min-width:0;color:var(--vui-muted-fg);font-size:.8em;white-space:nowrap}
+.feed-meta>*{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.feed-meta time{flex:none}
 .feed-meta>*+*::before{content:"·";margin-inline-end:6px}
 .feed-branch,.feed-cwd{font-family:var(--vui-mono),monospace}
 .feed-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-inline-start:auto}

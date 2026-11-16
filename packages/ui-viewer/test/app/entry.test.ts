@@ -57,6 +57,11 @@ describe('header', () => {
     expect(cwd?.getAttribute('title')).toBe('/home/u/work/apps/web')
   })
 
+  it('keeps the whole branch in its title, since one meta line may cut it', () => {
+    const { entry } = setup()
+    expect(entry.querySelector('.feed-branch')?.getAttribute('title')).toBe('feature/x')
+  })
+
   it('keeps title, meta and actions in reading order', () => {
     const { entry } = setup()
     const head = entry.querySelector('.feed-head') as HTMLElement

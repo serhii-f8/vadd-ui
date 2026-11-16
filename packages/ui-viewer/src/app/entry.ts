@@ -77,7 +77,7 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
     'Open standalone',
   )
   const meta = el('div', { class: 'feed-meta' }, timeOf(createdAt))
-  if (branch !== null) meta.append(el('span', { class: 'feed-branch' }, branch))
+  if (branch !== null) meta.append(el('span', { class: 'feed-branch', title: branch }, branch))
   if (cwd !== null) meta.append(el('span', { class: 'feed-cwd', title: cwd }, shortPath(cwd)))
   const entry = el(
     'article',

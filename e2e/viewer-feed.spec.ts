@@ -65,7 +65,7 @@ test('entry chrome is one title row and one meta line, wrapping at 390 px (VD-19
 }) => {
   await post({
     title: 'A long entry title that cannot share one phone row with three buttons',
-    meta: { branch: 'feature/feed', cwd: '/home/u/work/apps/web' },
+    meta: { branch: 'feature/a-rather-long-branch-name-for-phones', cwd: '/home/u/work/apps/web' },
     body: ['hello'],
   })
   const box = async (selector: string) =>
