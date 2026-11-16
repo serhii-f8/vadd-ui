@@ -1570,12 +1570,13 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: a stronger style than ERROR (bold), which costs bytes and adds a fifth look; a case-insensitive match, which would colour ordinary prose.
 - Spec sections: §6 (`log`), §15.2.
 
-## VD-192 — Bar width cap, single-series value labels, line point markers
+## VD-192 — Bar width cap and single-series value labels; line point markers skipped — DEVIATION
 - Date: 2026-11-16 · Task: 24
-- Context: bars filled 80% of their band (about 280 px each for three bars at 1100 px), carried no values, and lines had no point markers (VD-190).
-- Decision: a bar is at most 48 px thick in `bar`, `hbar` and `stacked`, and a group is re-centred on its label (the 10% gap is split on both sides). A `bar` chart with one series and at most 12 bars prints each defined value above the bar (below for a negative one), formatted by `yFormat` through the existing value formatter, with the `vui-chart-total` class. Labels are drawn all or none: if the widest label (at the 6.2 px per character estimate) is wider than one band slot, none are drawn, so labels never overlap at narrow widths. Every value stays in the tooltip and the hidden table, so §9.4 holds. A `line` chart with at most 30 points draws one `path.vui-chart-pt` per series: zero-length round-capped segments, 6 px, in the series colour. It has its own class because the ext tier's scatter rule styles `.vui-chart-dot` (7 px, 75% opacity) and would otherwise restyle line markers in the full bundle. `area` gets no markers, and `hbar` gets no labels, because a label past the longest bar would need reserved end space.
-- Alternatives: per-point `<circle>` elements (more DOM and bytes); clipping labels (misleading numbers).
-- Spec sections: §6 (`chart`), §9.4.
+- Context: bars filled 80% of their band (about 280 px each for three bars at 1100 px), carried no values, and lines had no point markers (VD-190). The §9.5 budget is enforced by `check-bundle-size`, which uses Node's zlib at level 9. That reads about 100 B more than `gzip -9`, so `main` started with 101 B of headroom, not the 200 B the brief cited.
+- Decision: a bar is at most 48 px thick in `bar`, `hbar` and `stacked`, and a group is re-centred on its label. The stack-total drawing loop also prints the values of a `bar` chart with one series and at most 12 bars, formatted by `yFormat`, over each placed category label. A label is drawn only if its text (at the 6.2 px per character estimate) fits the space between drawn labels, so labels never overlap, and stack totals that would collide are now left out too. A negative bar's value sits just above the zero line, and every value stays in the tooltip and the hidden table, so §9.4 holds. `hbar` gets no labels, because a label past the longest bar would need reserved end space.
+- DEVIATION: line point markers (`line`, at most 30 points) were built and tested, but they cost 50 B and did not fit §9.5 alongside the other items. They are skipped. The tooltip and hidden table still give each point. A later task can add them as round-capped zero-length segments with their own class (`.vui-chart-dot` belongs to scatter in the ext tier) once bytes are freed.
+- Alternatives: per-point `<circle>` elements (more DOM and bytes); dropping the nested-frame or log items instead (both fix wrong-looking output, while markers are an enhancement).
+- Spec sections: §6 (`chart`), §9.4, §9.5.
 
 ## VD-193 — A status pill tints its line colour, so `run` has a pill
 - Date: 2026-11-16 · Task: 24
@@ -1592,7 +1593,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-195 — Byte trades for the core bundle, and flat CSS at build time
 - Date: 2026-11-16 · Task: 24
 - Context: §9.5 caps `vui.min.js` at 38,912 B by `gzip -9`. The task started at 38,712 B, and the six fixes cost about 260 B.
-- Decision: `scripts/build-bundle.mjs` gets an esbuild `onLoad` plugin for `ui-render/dist/css/{base,components,data}.js`. It drops the newlines in each CSS template and the `.trim().replace(/\n/g, '')` call, which yields the same string. The build fails if a module stops matching, and `scripts/test/flat-css.test.ts` checks that the bundled stylesheet equals the runtime one. Rules with identical bodies are merged: `.vui-node`/`.vui-fold-body`/`.vui-md`/`.vui-tabs`/`.vui-tab-panel`, and `.vui-chart`/`.vui-progress`/`.vui-rows li`. The unused `.vui-num` rule and a redundant `padding-inline-start` on toned stat tiles are removed. Merging the seven repeated frame declarations into one rule was tried and rejected, because it compressed worse (+14 B). Result: 38,910 B.
+- Decision: `scripts/build-bundle.mjs` gets an esbuild `onLoad` plugin for `ui-render/dist/css/{base,components,data}.js`. It drops the newlines in each CSS template and the `.trim().replace(/\n/g, '')` call, which yields the same string. The build fails if a module stops matching, and `scripts/test/flat-css.test.ts` checks that the bundled stylesheet equals the runtime one. Rules with identical bodies are merged: `.vui-node`/`.vui-fold-body`/`.vui-md`/`.vui-tabs`/`.vui-tab-panel`, and `.vui-chart`/`.vui-progress`/`.vui-rows li`. The unused `.vui-num` rule and a redundant `padding-inline-start` on toned stat tiles are removed. Merging the seven repeated frame declarations into one rule was tried and rejected, because it compressed worse (+14 B). New chart code is kept to a minimum: value labels reuse the stack-total loop. Result by the gate's metric (Node zlib, level 9): 38,910 of 38,912 B (`gzip -9`: about 38,810 B).
 - Spec sections: §9.5.
 
 ## VD-196 — No frame inside a card's frame; a nested tone shows as one stripe
@@ -1609,6 +1610,6 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 
 ## VD-198 — Task 24 review: minor findings deferred
 - Date: 2026-11-16 · Task: 24
-- Context: the fresh-subagent review of task 24 found no critical issues and one important one (the line-marker class clash, fixed under VD-192). It also listed minor findings.
+- Context: the fresh-subagent review of task 24 found no critical issues and one important one (the line-marker class clash; markers were later skipped for bytes, VD-192). It also listed minor findings.
 - Decision: fixed: the bar-cap test now asserts the drawn 43.2 px, and the Viewer meta separator has empty alt text (`content:"·"/""`). Deferred, each cosmetic or test-only: (1) `flat-css.test.ts` skips without `dist` (the gate always builds first); (2) it compares the ESM bundle's stylesheet only (the core bundle shares the plugin, and its strip call is checked absent); (3) no test pins the exact label fit threshold; (4) the most negative bar's label can touch its category label; (5) the full branch and path are reachable only by `title` (hover); (6) `shortPath` rejoins mixed separators with `\`. Pre-existing and out of scope: axe reports a moderate `region` finding for the Viewer bar's `h1`, which sits outside a landmark.
 - Spec sections: §4.1, §9.4, §15.2.

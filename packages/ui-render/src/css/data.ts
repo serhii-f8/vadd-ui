@@ -93,7 +93,7 @@ ${kvColumns}
 .vui-chart path,.vui-chart circle,.vui-spark path{fill:none}
 .vui-chart .vui-chart-bar,.vui-chart .vui-chart-area{fill:var(--vui-tone-line)}
 .vui-chart .vui-chart-area{fill-opacity:.2}
-.vui-chart-line,.vui-chart-pt{stroke:var(--vui-tone-line,var(--vui-chart-1));stroke-width:2;stroke-linecap:round;vector-effect:non-scaling-stroke}.vui-chart-pt{stroke-width:6}
+.vui-chart-line{stroke:var(--vui-tone-line,var(--vui-chart-1));stroke-width:2;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .vui-chart-slice,.vui-chart-ref{stroke:var(--vui-tone-line)}
 .vui-chart-grid{stroke:var(--vui-border)}
 .vui-chart-ref{stroke-dasharray:4 3}

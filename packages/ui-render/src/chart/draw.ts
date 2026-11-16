@@ -164,9 +164,6 @@ function cartesian(model: Model, width: number): Drawing {
   const barWidth = Math.min((0.8 * slot) / (stacked ? 1 : series.length), 48)
   const band = stacked ? barWidth : barWidth * series.length
   const inner = barWidth * 0.9
-  const labelled = kind === 'bar' && series.length < 2 && size < 13
-  const printed: SVGElement[] = []
-  let wide = 0
   const up = new Array<number>(size).fill(0)
   const down = new Array<number>(size).fill(0)
   const zero = across(0)
@@ -183,13 +180,6 @@ function cartesian(model: Model, width: number): Drawing {
         const from = across(base)
         const to = across(base + value)
         d += `M${pt(a, from)}L${pt(a, to)}L${pt(a + inner, to)}L${pt(a + inner, from)}Z`
-        if (labelled) {
-          const label = model.value(value)
-          wide = Math.max(wide, label.length)
-          printed.push(
-            textMark(a + inner / 2, to + (value < 0 ? 12 : -4), 'middle', 'vui-chart-total', label),
-          )
-        }
       }
       nodes.push(seriesMark('vui-chart-bar', d, order))
       return
@@ -201,10 +191,7 @@ function cartesian(model: Model, width: number): Drawing {
       nodes.push(seriesMark('vui-chart-area', `M${[head, ...run, tail].join('L')}Z`, order))
     }
     nodes.push(seriesMark('vui-chart-line', linePath(run), order))
-    if (kind === 'line' && size < 31 && run[0])
-      nodes.push(seriesMark('vui-chart-pt', `M${run.join('h0M')}h0`, order))
   })
-  if (wide * CHAR <= slot) nodes.push(...printed)
 
   for (const { y, label, tone } of refLines) {
     const b = across(y)
@@ -222,11 +209,24 @@ function cartesian(model: Model, width: number): Drawing {
   }
 
   const placed = axis(labels, (order) => along(shown[order] as number), swapped, 'vui-chart-label')
-  if (totals !== undefined) {
+  // Stack totals, or the values of one series of up to 12 bars (VD-192), over each placed label
+  // whose text fits the space between drawn labels. A negative bar's value sits on the zero line.
+  const printed =
+    totals ?? (kind === 'bar' && series.length < 2 && size < 13 ? series[0]?.values : undefined)
+  if (printed) {
     shown.forEach((index, order) => {
-      if (!placed[order]) return
-      const y = across(model.tops[index] as number) - 4
-      nodes.push(textMark(along(index), y, 'middle', 'vui-chart-total', model.value(totals[index])))
+      const text = model.value(printed[index])
+      if (placed[order] && text.length * CHAR <= slot * stride) {
+        nodes.push(
+          textMark(
+            along(index),
+            across(model.tops[index] as number) - 4,
+            'middle',
+            'vui-chart-total',
+            text,
+          ),
+        )
+      }
     })
   }
   return {

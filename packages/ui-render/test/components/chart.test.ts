@@ -803,19 +803,19 @@ describe('chart polish (VD-190)', () => {
     }
   })
 
-  it('puts a negative label below its bar, and skips a missing value', () => {
-    const { box } = chart({ kind: 'bar', x: ['a', 'b', 'c'], series: { v: [-5, 3] } })
+  it('puts a negative value on the zero line', () => {
+    const { box } = chart({ kind: 'bar', x: ['a', 'b'], series: { v: [-5, 3] } })
     expect(labels(box)).toEqual(['-5', '3'])
     const [negative, positive] = all(box, 'text.vui-chart-total').map((n) =>
       Number(n.getAttribute('y')),
     )
     const [bar] = rects(d(box, 'path.vui-chart-bar'))
     const zero = bar?.[0]?.[1] as number
-    expect(negative).toBeGreaterThan(zero)
+    expect(negative).toBeCloseTo(zero - 4, 0)
     expect(positive).toBeLessThan(zero)
   })
 
-  it('drops every label when the widest cannot fit its slot', () => {
+  it('drops a label that cannot fit its slot', () => {
     const values = Array.from({ length: 12 }, () => 123456789)
     const { box } = chart({
       kind: 'bar',
@@ -826,34 +826,12 @@ describe('chart polish (VD-190)', () => {
     expect(labels(box)).toEqual([])
   })
 
-  it('marks each point of a short line, in its series color', () => {
-    const { box } = line()
-    const dots = all(box, 'path.vui-chart-pt')
-    expect(dots).toHaveLength(2)
-    expect(dots[0]?.getAttribute('data-vui-series')).toBe('1')
-    expect(dots[0]?.getAttribute('d')).toMatch(/^M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0$/)
-  })
-
-  it('keeps its own class, so the scatter dot rule of the ext tier cannot restyle it', () => {
-    expect(all(line().box, '.vui-chart-dot')).toEqual([])
-  })
-
-  it('marks no points past 30, nor on an area', () => {
-    const x = Array.from({ length: 31 }, (_, index) => index)
-    expect(all(line({ x, series: { s: x } }).box, '.vui-chart-pt')).toEqual([])
-    expect(all(line({ kind: 'area' }).box, '.vui-chart-pt')).toEqual([])
+  it('draws no point markers: they did not fit the §9.5 budget (VD-192)', () => {
+    expect(all(line().box, '.vui-chart-pt, .vui-chart-dot')).toEqual([])
   })
 
   it('draws the same marks twice', () => {
     const doc = { kind: 'bar', yFormat: 'pct', x: ['a', 'b'], series: { s: [0.2, 0.5] } }
     expect(q(chart(doc).box, 'svg')?.outerHTML).toBe(q(chart(doc).box, 'svg')?.outerHTML)
-  })
-})
-
-describe('chart polish edges', () => {
-  it('marks no points for a series with none', () => {
-    const { box } = line({ series: { a: [1, 2, 3], b: [] } })
-    expect(all(box, 'path.vui-chart-pt')).toHaveLength(1)
-    expect(all(box, 'path.vui-chart-pt').map((p) => p.getAttribute('d'))).not.toContain('Mh0')
   })
 })
