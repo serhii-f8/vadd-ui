@@ -399,6 +399,55 @@ function chartScenes(): Scene[] {
 }
 
 export const SCENES: Scene[] = [
+  // VD-190: the task 24 polish in one frame, so axe and the pixel gate see each new mark.
+  {
+    name: 'polish',
+    input: [
+      {
+        type: 'chart',
+        kind: 'bar',
+        title: 'Revenue by region',
+        yFormat: 'money:USD',
+        x: ['EU', 'US', 'APAC', 'LATAM'],
+        series: { revenue: [48200, 73150, 21900, -4300] },
+      },
+      {
+        type: 'chart',
+        kind: 'line',
+        title: 'p95',
+        yFormat: 'ms',
+        x: ['W1', 'W2', 'W3', 'W4', 'W5'],
+        series: { api: [220, 210, 240, 198, 185] },
+      },
+      {
+        type: 'card',
+        title: 'Release',
+        tone: 'ok',
+        children: [
+          { type: 'card', title: 'Inner', tone: 'warn', children: ['Error budget at 40%'] },
+          {
+            type: 'stats',
+            items: [
+              ['Passed', 412],
+              ['Accent', 3, 'num', null, null, 'accent'],
+              ['Errors', 2, 'num', 1, 'delta', 'err'],
+            ],
+          },
+        ],
+      },
+      {
+        type: 'log',
+        text: 'ERROR job failed\nFATAL out of memory\nCRITICAL giving up\nPANIC goroutine 1',
+      },
+      'Status: :run: running, :wait: waiting, :ok: done',
+      {
+        type: 'decision',
+        question: 'Which cache?',
+        options: [{ label: 'LRU', pros: ['Fast', 'No ops'], effort: 'S' }, { label: 'Redis' }],
+        pick: 0,
+      },
+    ],
+  },
   {
     name: 'document',
     input: {
