@@ -834,7 +834,7 @@ describe('chart polish (VD-190)', () => {
     expect(dots[0]?.getAttribute('d')).toMatch(/^M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0$/)
   })
 
-  it('keeps its own class, so the ext tier's scatter dot rule cannot restyle it', () => {
+  it('keeps its own class, so the scatter dot rule of the ext tier cannot restyle it', () => {
     expect(all(line().box, '.vui-chart-dot')).toEqual([])
   })
 
