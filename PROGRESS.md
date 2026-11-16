@@ -57,13 +57,6 @@ Recorded 2026-11-04 during bootstrap.
 none
 
 ## Completed task reports
-### 24 — Design polish (renderer and Viewer)
-- Built: compact Viewer entry chrome (one meta line, cwd cut to its last two segments with the full path in `title`, right-aligned 24 px actions that wrap at 390 px); bars capped at 48 px, with `yFormat` value labels on single-series bar charts of 12 bars or fewer, and labels that collide are dropped; `FATAL`/`CRITICAL`/`PANIC` styled as `err`; a pill for `run`; no frame inside a card's frame; decision options no longer stretch; a new `polish` visual scene. CSS is flattened at build time by an esbuild plugin (build only, no runtime dependency).
-- Decisions: VD-191 to VD-199. DEVIATION VD-192: line point markers were built but skipped, because they cost 50 B over §9.5. `check-bundle-size` measures with Node zlib, about 100 B more than `gzip -9`. VD-199 raises `unchecked.test.ts`'s timeout to 180 s on this loaded host.
-- Evidence (coordinator rerun on `main` at 3dca1b9): `pnpm install && pnpm gate` exit 0. Vitest 131 files, 7,484 tests, 99.1% statements. Playwright 514 passed. `check-bundle-size`: vui.min.js 110.5 KiB min / 38.0 KiB gzip (worker measured 38,910 of 38,912 B by the gate's zlib); vui-ext.min.js 123.6 KiB / 42.9 KiB. Runtime-dep, forbidden-API, token and perf checks pass. Axe clean in both themes (worker). 88 visual baselines updated on purpose, plus 6 `polish-*`.
-- Review: fresh reviewer found 1 Important (marker class clash with scatter), fixed; minors fixed or logged in VD-198.
-- Left: line markers once bytes are freed; minors in VD-198. The core bundle now has about 2 B of headroom, so any future core change must trade bytes.
-
 ### 01 — Monorepo scaffolding
 - Built: pnpm workspace with 7 packages plus `skills/vadd-ui`, per the §3 dependency graph; shared TypeScript configs; Vitest, Playwright, Biome, esbuild; `pnpm gate`; banned-API, runtime-dependency, version, target and bundle-size checks; `.github/workflows/ci.yml`.
 - Decisions: VD-016 to VD-021.
@@ -303,6 +296,14 @@ none
 - Evidence (coordinator rerun on `main` at 1c41615): `pnpm install` exit 0, `pnpm gate` exit 0. Vitest 130 files, 7,456 tests. Playwright 503, visual baselines unchanged. Lines 99.67% (5894/5913), statements 99.1%. check-bundle-size: `vui.min.js` 110.9 KiB / 37.9 KiB gzip, within §9.5; `vui-ext.min.js` 124.0 / 42.8 KiB. Forbidden APIs, runtime deps, publish, token and perf checks pass.
 - Worker evidence, not rerun: `pnpm fuzz` 100k renderer cases green in 364 s; with the fixes reverted, the sweep fails at exactly these sites and fuzz fails at case 5,698; `vui.min.js` +53 B gzip, 101 B left under 38,912.
 - Follow-ups: none new. The main bundle has about 100 bytes of gzip room left, so any further core change needs bytes found elsewhere.
+
+
+### 24 — Design polish (renderer and Viewer)
+- Built: compact Viewer entry chrome (one meta line, cwd cut to its last two segments with the full path in `title`, right-aligned 24 px actions that wrap at 390 px); bars capped at 48 px, with `yFormat` value labels on single-series bar charts of 12 bars or fewer, and labels that collide are dropped; `FATAL`/`CRITICAL`/`PANIC` styled as `err`; a pill for `run`; no frame inside a card's frame; decision options no longer stretch; a new `polish` visual scene. CSS is flattened at build time by an esbuild plugin (build only, no runtime dependency).
+- Decisions: VD-191 to VD-199. DEVIATION VD-192: line point markers were built but skipped, because they cost 50 B over §9.5. `check-bundle-size` measures with Node zlib, about 100 B more than `gzip -9`. VD-199 raises `unchecked.test.ts`'s timeout to 180 s on this loaded host.
+- Evidence (coordinator rerun on `main` at 3dca1b9): `pnpm install && pnpm gate` exit 0. Vitest 131 files, 7,484 tests, 99.1% statements. Playwright 514 passed. `check-bundle-size`: vui.min.js 110.5 KiB min / 38.0 KiB gzip (worker measured 38,910 of 38,912 B by the gate's zlib); vui-ext.min.js 123.6 KiB / 42.9 KiB. Runtime-dep, forbidden-API, token and perf checks pass. Axe clean in both themes (worker). 88 visual baselines updated on purpose, plus 6 `polish-*`.
+- Review: fresh reviewer found 1 Important (marker class clash with scatter), fixed; minors fixed or logged in VD-198.
+- Left: line markers once bytes are freed; minors in VD-198. The core bundle now has about 2 B of headroom, so any future core change must trade bytes.
 
 ## Final summary
 - Coverage: all 23 tasks done (23 added after task 22 as a VD-180 follow-up); every spec section in TASKS.md's coverage table maps to a merged task. The final `pnpm gate` on `main` at 1c41615 is the complete §16 suite: build, typecheck, lint, 7,456 Vitest tests at 99.67% lines, 503 Playwright tests (visual, axe, XSS, Firefox/WebKit smoke), bundle, forbidden-API, runtime-dependency, version, target, publish, token and perf checks.
