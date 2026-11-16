@@ -202,7 +202,7 @@ function cartesian(model: Model, width: number): Drawing {
     }
     nodes.push(seriesMark('vui-chart-line', linePath(run), order))
     if (kind === 'line' && size < 31 && run[0])
-      nodes.push(seriesMark('vui-chart-dot', `M${run.join('h0M')}h0`, order))
+      nodes.push(seriesMark('vui-chart-pt', `M${run.join('h0M')}h0`, order))
   })
   if (wide * CHAR <= slot) nodes.push(...printed)
 

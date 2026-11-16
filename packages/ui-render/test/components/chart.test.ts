@@ -764,7 +764,8 @@ describe('chart polish (VD-190)', () => {
       for (const rect of rects(d(box, 'path.vui-chart-bar'))) {
         const side = Math.abs((rect[2]?.[swapped] as number) - (rect[0]?.[swapped] as number))
         expect(side).toBeGreaterThan(0)
-        expect(side).toBeLessThanOrEqual(48)
+        // The drawn bar is 90% of its 48 px slot.
+        expect(side).toBeLessThanOrEqual(43.3)
       }
     }
   })
@@ -827,16 +828,20 @@ describe('chart polish (VD-190)', () => {
 
   it('marks each point of a short line, in its series color', () => {
     const { box } = line()
-    const dots = all(box, 'path.vui-chart-dot')
+    const dots = all(box, 'path.vui-chart-pt')
     expect(dots).toHaveLength(2)
     expect(dots[0]?.getAttribute('data-vui-series')).toBe('1')
     expect(dots[0]?.getAttribute('d')).toMatch(/^M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0$/)
   })
 
+  it('keeps its own class, so the ext tier's scatter dot rule cannot restyle it', () => {
+    expect(all(line().box, '.vui-chart-dot')).toEqual([])
+  })
+
   it('marks no points past 30, nor on an area', () => {
     const x = Array.from({ length: 31 }, (_, index) => index)
-    expect(all(line({ x, series: { s: x } }).box, '.vui-chart-dot')).toEqual([])
-    expect(all(line({ kind: 'area' }).box, '.vui-chart-dot')).toEqual([])
+    expect(all(line({ x, series: { s: x } }).box, '.vui-chart-pt')).toEqual([])
+    expect(all(line({ kind: 'area' }).box, '.vui-chart-pt')).toEqual([])
   })
 
   it('draws the same marks twice', () => {
@@ -848,7 +853,7 @@ describe('chart polish (VD-190)', () => {
 describe('chart polish edges', () => {
   it('marks no points for a series with none', () => {
     const { box } = line({ series: { a: [1, 2, 3], b: [] } })
-    expect(all(box, 'path.vui-chart-dot')).toHaveLength(1)
-    expect(all(box, 'path.vui-chart-dot').map((p) => p.getAttribute('d'))).not.toContain('Mh0')
+    expect(all(box, 'path.vui-chart-pt')).toHaveLength(1)
+    expect(all(box, 'path.vui-chart-pt').map((p) => p.getAttribute('d'))).not.toContain('Mh0')
   })
 })

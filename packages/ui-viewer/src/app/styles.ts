@@ -20,7 +20,7 @@ body.feed{margin:0;background:var(--vui-bg);font-size:14px}
 .feed-meta{order:1;display:flex;flex-basis:100%;gap:6px;min-width:0;color:var(--vui-muted-fg);font-size:.8em;white-space:nowrap}
 .feed-meta>*{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .feed-meta time{flex:none}
-.feed-meta>*+*::before{content:"·";margin-inline-end:6px}
+.feed-meta>*+*::before{content:"·"/"";margin-inline-end:6px}
 .feed-branch,.feed-cwd{font-family:var(--vui-mono),monospace}
 .feed-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-inline-start:auto}
 .feed-button{display:inline-flex;align-items:center;min-height:24px;padding:0 6px;border:1px solid var(--vui-border);border-radius:calc(var(--vui-radius) * .5);background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:.8em;text-decoration:none}
