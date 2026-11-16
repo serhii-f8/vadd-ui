@@ -1,0 +1,18 @@
+{title: 'Checkout incident: request path and queue options', body: [
+  {type: 'flow', nodes: [
+    {id: 'cdn', label: 'CDN', status: 'ok'},
+    {id: 'api', label: 'API gateway', status: 'ok'},
+    {id: 'cart', label: 'Cart service', status: 'ok'},
+    {id: 'pay', label: 'Payment service', status: 'fail'},
+    {id: 'queue', label: 'Job queue', status: 'warn'},
+    {id: 'db', label: 'Postgres', status: 'ok'},
+  ], edges: [
+    ['cdn', 'api'], ['api', 'cart'], ['api', 'pay'], ['cart', 'queue'], ['pay', 'queue'], ['queue', 'db'],
+  ]},
+  {type: 'compare', options: ['SQS', 'Kafka', 'Postgres queue'], pick: 2, criteria: [
+    {label: 'p95 enqueue', values: [18, 6, 4], format: 'ms', better: 'low'},
+    {label: 'Throughput per second', values: [3000, 90000, 1200], format: 'int', better: 'high'},
+    {label: 'Monthly cost', values: [240, 1900, 0], format: 'money:USD', better: 'low'},
+    {label: 'New services to run', values: [1, 3, 0], format: 'int', better: 'low'},
+  ]},
+]}

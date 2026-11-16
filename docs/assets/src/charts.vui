@@ -1,0 +1,12 @@
+{title: 'Charts', body: [
+  {type: 'grid', cols: 2, children: [
+    {type: 'chart', kind: 'line', title: 'Latency', yFormat: 'ms', x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+     series: {p50: [42, 44, 41, 47, 52, 39, 38], p95: [118, 124, 109, 141, 163, 97, 92]}, refLines: [{y: 150, label: 'SLO', tone: 'err'}]},
+    {type: 'chart', kind: 'stacked', title: 'Requests by status', yFormat: 'compact', x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+     series: {'2xx': [41200, 43900, 45100, 47800, 52300], '4xx': [3100, 2900, 3600, 4200, 3900], '5xx': [420, 380, 910, 1640, 510]}},
+    {type: 'chart', kind: 'bar', title: 'Deploys per week', x: ['W40', 'W41', 'W42', 'W43', 'W44', 'W45'], series: {deploys: [14, 19, 11, 23, 27, 21]}},
+    {type: 'chart', kind: 'donut', title: 'Bundle by package', yFormat: 'bytes', x: ['render', 'charts', 'spec', 'boot'], series: {size: [61200, 28400, 17900, 5700]}},
+    {type: 'chart', kind: 'hbar', title: 'Slowest test files', yFormat: 'ms', x: ['fuzz.test.ts', 'visual.spec.ts', 'xss.spec.ts', 'viewer-feed.spec.ts'], series: {time: [48200, 31400, 22900, 12100]}},
+    {type: 'chart', kind: 'area', title: 'Heap during render', yFormat: 'bytes', x: ['0', '1k', '2k', '3k', '4k', '5k'], series: {heap: [8400000, 12600000, 17100000, 19800000, 21400000, 22100000]}},
+  ]},
+]}

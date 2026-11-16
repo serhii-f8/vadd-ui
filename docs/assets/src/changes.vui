@@ -1,0 +1,23 @@
+{title: 'Auth refactor: what changed', body: [
+  {type: 'diff', files: [
+    ['src/auth/refresh.ts', 64, 12, 'M'],
+    ['src/auth/rotation.repo.ts', 88, 0, 'A'],
+    ['src/auth/session.ts', 9, 31, 'M'],
+    ['src/auth/legacy-token.ts', 0, 142, 'D'],
+    ['migrations/0042_token_rotation.sql', 21, 0, 'A'],
+    ['test/auth/refresh.test.ts', 75, 8, 'M'],
+  ], hunks: {
+    'src/auth/session.ts': '@@ -40,7 +40,4 @@\n   const raw = readCookie(req)\n-  const legacy = decodeLegacy(raw)\n-  if (legacy) return upgrade(legacy)\n+  return decode(raw)',
+  }},
+  {type: 'grid', cols: 2, children: [
+    {type: 'tree', title: 'Touched files', items: [
+      {name: 'src/auth', children: [
+        {name: 'refresh.ts', status: 'ok', note: 'rotates on use'},
+        {name: 'rotation.repo.ts', status: 'ok', note: 'new'},
+        {name: 'session.ts', status: 'warn', note: 'needs review'},
+      ]},
+      {name: 'migrations', children: [{name: '0042_token_rotation.sql', status: 'ok'}]},
+    ]},
+    {type: 'code', title: 'rotation.repo.ts', lang: 'ts', lines: true, mark: [3, 4], text: 'export async function rotate(db: Db, token: Token) {\n  return db.tx(async (tx) => {\n    const used = await tx.markUsed(token.id)\n    if (!used) return tx.revokeFamily(token.family)\n    return tx.issue(token.family)\n  })\n}'},
+  ]},
+]}

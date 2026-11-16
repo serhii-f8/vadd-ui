@@ -1,0 +1,37 @@
+{title: 'Release 2.4 readiness', body: [
+  {type: 'stats', items: [
+    {label: 'Tests passed', value: 1482, format: 'int', delta: 37, spark: [1391, 1402, 1410, 1433, 1445, 1461, 1482]},
+    {label: 'Coverage', value: 0.914, format: 'pct', delta: 0.012, deltaFormat: 'delta:pct', tone: 'ok', spark: [0.88, 0.886, 0.893, 0.897, 0.902, 0.909, 0.914]},
+    {label: 'p95 latency', value: 212, format: 'ms', delta: -41, deltaFormat: 'ms', tone: 'ok', spark: [268, 259, 253, 247, 240, 229, 212]},
+    {label: 'Bundle', value: 38798, format: 'bytes', delta: 149, tone: 'warn', spark: [38110, 38240, 38400, 38520, 38610, 38649, 38798]},
+  ]},
+  {type: 'grid', cols: 2, children: [
+    {type: 'section', title: 'Verification', children: [
+      {type: 'checks', items: [
+        {name: 'Typecheck', status: 'ok', cmd: 'pnpm typecheck', ms: 9100},
+        {name: 'Lint', status: 'ok', cmd: 'pnpm lint', ms: 4300},
+        {name: 'Unit tests', status: 'ok', cmd: 'pnpm vitest run', ms: 21400},
+        {name: 'E2E', status: 'fail', cmd: 'pnpm e2e', ms: 47700, output: 'checkout.spec.ts:88  expected 401, got 200\ncheckout.spec.ts:112  expected token to be revoked'},
+        {name: 'Bundle budget', status: 'warn', cmd: 'pnpm check', ms: 1200},
+        {name: 'Publish dry run', status: 'wait', cmd: 'pnpm publish --dry-run'},
+      ]},
+    ]},
+    {type: 'section', title: 'p95 latency, last 8 builds', children: [
+      {type: 'chart', kind: 'area', yFormat: 'ms', height: 'md',
+       x: ['#311', '#312', '#313', '#314', '#315', '#316', '#317', '#318'],
+       series: {checkout: [310, 296, 301, 284, 262, 255, 231, 212], search: [142, 139, 151, 133, 128, 124, 119, 117]},
+       refLines: [{y: 250, label: 'budget', tone: 'warn'}]},
+    ]},
+  ]},
+  {type: 'section', title: 'Slowest endpoints', children: [
+    {type: 'table', columns: ['Endpoint', 'Calls:int', {key: 'hit', label: 'Cache hit', format: 'pct', cell: 'bar'}, 'p50:ms', 'p95:ms', 'Status:status'], sort: [4, 'desc'],
+     rows: [
+      ['POST /checkout', 8700, 0.12, 140, 420, 'fail', {tone: 'err'}],
+      ['GET /orders', 12800, 0.48, 35, 140, 'warn', {tone: 'warn'}],
+      ['POST /cart/items', 31200, 0.31, 28, 95, 'ok'],
+      ['GET /cart', 54300, 0.77, 22, 88, 'ok'],
+      ['GET /products', 182400, 0.93, 18, 64, 'ok'],
+    ]},
+  ]},
+  {type: 'callout', tone: 'warn', text: '**One blocker.** `POST /checkout` accepts a revoked token; fix `auth/refresh.ts` before tagging.'},
+]}

@@ -1,0 +1,10 @@
+{title: 'Test run: auth module', body: [
+  {type: 'stats', items: [['Passed', 142], ['Failed', 1, null, null, null, 'err'], ['Coverage', 0.874, 'pct', 0.012, 'delta:pct']]},
+  {type: 'table', columns: ['Test', 'Status:status', 'Time:ms'], sort: [2, 'desc'], rows: [
+    ['refresh rotates the token', 'ok', 340],
+    ['replayed token is rejected', 'fail', 1210, {tone: 'err'}],
+    ['login sets the cookie', 'ok', 120],
+    ['logout revokes the family', 'ok', 95],
+  ]},
+  {type: 'callout', tone: 'err', text: '`auth.spec.ts:88` expected 401, got 200'},
+]}

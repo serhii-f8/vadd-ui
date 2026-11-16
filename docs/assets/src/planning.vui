@@ -1,0 +1,17 @@
+{title: 'Token rotation: plan and open decision', body: [
+  {type: 'plan', items: [
+    {text: 'Add `refresh_tokens` table and migration', status: 'ok'},
+    {text: 'Rotate on every refresh', status: 'ok', note: 'reuse detection included'},
+    {text: 'Revoke the token family on reuse', status: 'run', children: [
+      {text: 'Repository method', status: 'ok'},
+      {text: 'Wire into `/auth/refresh`', status: 'run'},
+    ]},
+    {text: 'E2E: replayed token returns 401', status: 'fail', note: 'checkout.spec.ts:88'},
+    {text: 'Remove the legacy token decoder', status: 'wait'},
+  ]},
+  {type: 'decision', question: 'Where do revoked token families live?', context: 'Lookups happen on every refresh, about 40 per second at peak.', pick: 0, options: [
+    {label: 'Postgres table', pros: ['One source of truth', 'Transactional with rotation'], cons: ['One more indexed read'], effort: 'S', risk: 'low', reversible: true},
+    {label: 'Redis set with TTL', pros: ['Sub-millisecond lookups'], cons: ['Second store to operate', 'Lost on flush'], effort: 'M', risk: 'med', reversible: true},
+    {label: 'Signed deny-list in JWT', pros: ['No lookup'], cons: ['Cannot revoke before expiry'], effort: 'L', risk: 'high', reversible: false},
+  ]},
+]}
