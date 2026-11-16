@@ -71,7 +71,7 @@ ${kvColumns}
 @container (max-width:479.98px){.vui-kv[data-vui-cols]{grid-template-columns:minmax(0,1fr)}}
 .vui-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:var(--vui-space-2);margin:0}
 .vui-stat{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--vui-space-2) var(--vui-space-3);border:1px solid var(--vui-border);border-radius:var(--vui-radius);background:var(--vui-surface);color:var(--vui-surface-fg)}
-[data-vui-type=card]>[data-vui-type=card],[data-vui-type=card] .vui-stat{padding:0;border-width:0;background:none}
+[data-vui-type=card]>[data-vui-type=card],[data-vui-type=card] .vui-stat{border-width:0;background:none}
 .vui-stat.vui-toned{border-inline-start:3px solid var(--vui-tone-line)}
 .vui-stat.vui-marked{padding-inline-start:calc(1.2em + var(--vui-space-2))}
 .vui-stat .vui-node-mark{inset-block-start:var(--vui-space-2);inset-inline-start:var(--vui-space-1)}
