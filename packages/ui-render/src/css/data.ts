@@ -82,7 +82,8 @@ ${kvColumns}
 .vui-stat-spark{margin-block-start:var(--vui-space-1)}
 .vui-spark{display:block;height:1.5em}
 .vui-spark svg{display:block;overflow:visible}
-.vui-chart,.vui-progress,.vui-chart-plot{position:relative}
+.vui-chart,.vui-progress,.vui-rows li{display:flex;flex-direction:column;gap:var(--vui-space-1);min-width:0}
+.vui-chart-plot{position:relative}
 .vui-chart-plot svg{display:block}
 .vui-chart-hit{position:absolute;inset:0}
 .vui-chart-plot .vui-sr-only{top:0}
