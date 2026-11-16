@@ -30,10 +30,9 @@ export const baseCss = `
 .vui-header{display:flex;flex-direction:column;gap:var(--vui-space-1)}
 .vui-title{margin:0;font-size:1.25em;font-weight:600;line-height:1.3}
 .vui-subtitle{margin:0;color:var(--vui-muted-fg);font-size:.86em}
-.vui-node{display:flex;flex-direction:column;gap:var(--vui-space-2);min-width:0}
+.vui-node,.vui-fold-body,.vui-md,.vui-tabs,.vui-tab-panel{display:flex;flex-direction:column;gap:var(--vui-space-2);min-width:0}
 .vui-node-title{margin:0;font-size:1.05em;font-weight:600;line-height:1.35}
 .vui-note{margin:0;color:var(--vui-muted-fg);font-size:.86em}
-.vui-num{font-variant-numeric:tabular-nums}
 .vui-link{color:var(--vui-info-text);text-decoration:underline;text-underline-offset:2px}
 .vui-code{padding:.1em .3em;border-radius:calc(var(--vui-radius) * .5);background:var(--vui-muted);color:var(--vui-surface-fg);font-family:var(--vui-mono),monospace;font-size:.92em}
 .vui-path-base{font-weight:600}
@@ -56,7 +55,6 @@ ${toneCss}
 .vui-fold-toggle{appearance:none;display:flex;align-items:baseline;gap:var(--vui-space-1);width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .vui-fold-icon{display:inline-block;color:var(--vui-muted-fg);font-size:.8em;transition:transform 120ms ease-out}
 .vui-fold-toggle[aria-expanded="true"] .vui-fold-icon{transform:rotate(90deg)}
-.vui-fold-body{display:flex;flex-direction:column;gap:var(--vui-space-2);min-width:0}
 .vui-fold-body[hidden]{display:none}
 .vui-fold-opening{animation:vui-reveal 120ms ease-out}
 @keyframes vui-reveal{from{opacity:0}to{opacity:1}}
