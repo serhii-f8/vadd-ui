@@ -3,7 +3,7 @@
 Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T20:35:21Z · Mode: manual
 
 ## Summary
-Done 23 / 23 · In progress: none · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
+Done 23 / 24 · In progress: 24 · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -51,6 +51,7 @@ Recorded 2026-11-04 during bootstrap.
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | done | removed | ctx_43252fda1845 | [design](docs/superpowers/specs/2026-11-15-release-prep-design.md) | [plan](docs/superpowers/plans/2026-11-15-release-prep.md) | b9c4b7e | 2026-11-15 |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | done | removed | ctx_66c52ba79c76 | [design](docs/superpowers/specs/2026-11-15-components-ext-design.md) | [plan](docs/superpowers/plans/2026-11-15-components-ext.md) | 63395b0 | 2026-11-15 |
 | 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | done | removed | ctx_0c2b45843a7e | [design](docs/superpowers/specs/2026-11-15-chart-robustness-design.md) | [plan](docs/superpowers/plans/2026-11-15-chart-robustness.md) | 1c41615 | 2026-11-15 |
+| 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | in_progress | | | | | | |
 
 ## Current task log
 none

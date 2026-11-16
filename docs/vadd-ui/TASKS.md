@@ -244,6 +244,18 @@ Slug `chart-robustness`. Depends on: 22. Spec: §9.3, §9.4, §16. Added by the 
   - `vui.min.js` stays within §9.5 (≤ 120 KiB minified, ≤ 38 KiB gzip; about 260 bytes of gzip headroom at the start).
   - The fuzz run covers the new cases, and `pnpm gate` is green.
 
+### 24 — Design polish (renderer and Viewer)
+Slug `design-polish`. Depends on: 23. Spec: §4.1, §6, §8.1, §9.4, §9.5, §15.2. Added by the coordinator after the 2026-11-16 Orca WSL end-to-end run and a design critique of its 18 visuals (VD-190).
+- Acceptance:
+  - Viewer entry chrome is compact: one meta line (time · branch · the workspace path shortened to its last two segments, full path in `title`), and Fold / Open standalone / Copy spec as one small right-aligned group on the title row that wraps below the title at 390 px. Content, not chrome, dominates a feed of 18 entries.
+  - Bar charts cap bar width (no bar fills a whole band); a single-series bar chart with ≤ 12 bars labels each value, formatted with `yFormat`. Line charts with ≤ 30 points show point markers. §9.4 holds (ticks, tooltip, `<title>`/`<desc>`, hidden table), and output stays deterministic.
+  - `log` styles `FATAL`, `CRITICAL` and `PANIC` lines as at least as strong as `ERROR` (§6 lists only four prefixes; log the decision).
+  - Every status token renders the same pill shape, `run` and `wait` included.
+  - A `stats` tile or `card` nested directly inside a `card` or `grid` tile drops its own border and background, so no double frames, and a tone shows once.
+  - `decision` options with no pros, cons or meta do not reserve empty height.
+  - Before/after screenshots in Orca's browser pane, light and dark, and at 390 px; axe clean in both themes; tone text still meets §15.2.
+  - `vui.min.js` stays within §9.5 (≤ 38,912 B gzip by `gzip -9`, about 200 B of headroom at the start), so changes must be net neutral or trade bytes; `vui-ext.min.js` and the Viewer keep their checks. Visual snapshots updated on purpose, and `pnpm gate` is green.
+
 ## Coverage (spec requirement → one task)
 
 | Spec | Requirement | Task |
