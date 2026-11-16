@@ -1613,3 +1613,9 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Context: the fresh-subagent review of task 24 found no critical issues and one important one (the line-marker class clash; markers were later skipped for bytes, VD-192). It also listed minor findings.
 - Decision: fixed: the bar-cap test now asserts the drawn 43.2 px, and the Viewer meta separator has empty alt text (`content:"·"/""`). Deferred, each cosmetic or test-only: (1) `flat-css.test.ts` skips without `dist` (the gate always builds first); (2) it compares the ESM bundle's stylesheet only (the core bundle shares the plugin, and its strip call is checked absent); (3) no test pins the exact label fit threshold; (4) the most negative bar's label can touch its category label; (5) the full branch and path are reachable only by `title` (hover); (6) `shortPath` rejoins mixed separators with `\`. Pre-existing and out of scope: axe reports a moderate `region` finding for the Viewer bar's `h1`, which sits outside a landmark.
 - Spec sections: §4.1, §9.4, §15.2.
+
+## VD-199 — The all-fields renderer test gets a 180 s timeout
+- Date: 2026-11-16 · Task: 24
+- Context: `unchecked.test.ts` › "neither fails a node nor draws NaN" has its own 60 s timeout. It takes about 25 s alone and about 50 s alone under coverage, on both `main`'s renderer source (48 s) and this branch (43 s). In the full parallel `pnpm test:coverage`, on this shared WSL host with other agents running (load 10 to 23), it took 64 to 84 s and failed every time. That includes the untouched baseline at the start of task 24.
+- Decision: raise that one test's timeout to 180 s. The timeout guards against a hang, not speed, and §9.5 speed is measured by `check-perf-budgets`, which is unchanged and green.
+- Alternatives: fewer vitest workers (tried with 4; it still failed); splitting the test (a larger change to a test this task does not own).
