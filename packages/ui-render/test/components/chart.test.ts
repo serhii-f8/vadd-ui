@@ -188,7 +188,8 @@ describe('chart fields', () => {
 
   it('takes stackTotal on stacked only', () => {
     const { box } = chart({ kind: 'bar', x: ['a'], series: { s: [1] }, stackTotal: true })
-    expect(q(box, '.vui-chart-total')).toBeNull()
+    // The one text is the bar's own value label (VD-192), not a total.
+    expect(texts(box, '.vui-chart-total')).toEqual(['1'])
     expect(texts(box, 'thead th')).not.toContain('Total')
   })
 
@@ -740,5 +741,114 @@ describe('chart robustness', () => {
       refLines: [{ y: 1, label: evil, tone: 'ok' }],
     })
     expect(q(box, 'img')).toBeNull()
+  })
+})
+
+describe('chart polish (VD-190)', () => {
+  const rects = (path: string) =>
+    path
+      .split('Z')
+      .filter(Boolean)
+      .map((rect) =>
+        rect
+          .slice(1)
+          .split('L')
+          .map((point) => point.split(' ').map(Number)),
+      )
+  const labels = (box: Element) => texts(box, 'text.vui-chart-total')
+
+  it('caps bar width, so no bar fills its band', () => {
+    for (const kind of ['bar', 'hbar', 'stacked']) {
+      const { box } = chart({ kind, x: ['a', 'b'], series: { s: [1, 2] } })
+      const swapped = kind === 'hbar' ? 1 : 0
+      for (const rect of rects(d(box, 'path.vui-chart-bar'))) {
+        const side = Math.abs((rect[2]?.[swapped] as number) - (rect[0]?.[swapped] as number))
+        expect(side).toBeGreaterThan(0)
+        expect(side).toBeLessThanOrEqual(48)
+      }
+    }
+  })
+
+  it('keeps a capped group of bars centred on its label', () => {
+    const { box } = chart({ kind: 'bar', x: ['a'], series: { s: [1], t: [1] } })
+    const [first, second] = all(box, 'path.vui-chart-bar').map((p) =>
+      rects(p.getAttribute('d') ?? ''),
+    )
+    const left = first?.[0]?.[0]?.[0] as number
+    const right = second?.[0]?.[2]?.[0] as number
+    const label = Number(q(box, '.vui-chart-label')?.getAttribute('x'))
+    expect((left + right) / 2).toBeCloseTo(label, 0)
+  })
+
+  it('labels each bar of one series in yFormat', () => {
+    const { box } = chart({
+      kind: 'bar',
+      yFormat: 'money:USD',
+      x: ['EU', 'US'],
+      series: { r: [1200, 3400] },
+    })
+    expect(labels(box)).toEqual(['$1,200.00', '$3,400.00'])
+  })
+
+  it('labels no bars for two series, more than 12 bars, hbar or stacked', () => {
+    const thirteen = Array.from({ length: 13 }, (_, index) => index + 1)
+    for (const fields of [
+      { kind: 'bar', x: ['a'], series: { s: [1], t: [2] } },
+      { kind: 'bar', x: thirteen.map(String), series: { s: thirteen } },
+      { kind: 'hbar', x: ['a'], series: { s: [1] } },
+      { kind: 'stacked', x: ['a'], series: { s: [1] } },
+    ]) {
+      expect(labels(chart(fields).box)).toEqual([])
+    }
+  })
+
+  it('puts a negative label below its bar, and skips a missing value', () => {
+    const { box } = chart({ kind: 'bar', x: ['a', 'b', 'c'], series: { v: [-5, 3] } })
+    expect(labels(box)).toEqual(['-5', '3'])
+    const [negative, positive] = all(box, 'text.vui-chart-total').map((n) =>
+      Number(n.getAttribute('y')),
+    )
+    const [bar] = rects(d(box, 'path.vui-chart-bar'))
+    const zero = bar?.[0]?.[1] as number
+    expect(negative).toBeGreaterThan(zero)
+    expect(positive).toBeLessThan(zero)
+  })
+
+  it('drops every label when the widest cannot fit its slot', () => {
+    const values = Array.from({ length: 12 }, () => 123456789)
+    const { box } = chart({
+      kind: 'bar',
+      yFormat: 'money:USD',
+      x: values.map((_, index) => `x${index}`),
+      series: { v: values },
+    })
+    expect(labels(box)).toEqual([])
+  })
+
+  it('marks each point of a short line, in its series color', () => {
+    const { box } = line()
+    const dots = all(box, 'path.vui-chart-dot')
+    expect(dots).toHaveLength(2)
+    expect(dots[0]?.getAttribute('data-vui-series')).toBe('1')
+    expect(dots[0]?.getAttribute('d')).toMatch(/^M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0M[\d.]+ [\d.]+h0$/)
+  })
+
+  it('marks no points past 30, nor on an area', () => {
+    const x = Array.from({ length: 31 }, (_, index) => index)
+    expect(all(line({ x, series: { s: x } }).box, '.vui-chart-dot')).toEqual([])
+    expect(all(line({ kind: 'area' }).box, '.vui-chart-dot')).toEqual([])
+  })
+
+  it('draws the same marks twice', () => {
+    const doc = { kind: 'bar', yFormat: 'pct', x: ['a', 'b'], series: { s: [0.2, 0.5] } }
+    expect(q(chart(doc).box, 'svg')?.outerHTML).toBe(q(chart(doc).box, 'svg')?.outerHTML)
+  })
+})
+
+describe('chart polish edges', () => {
+  it('marks no points for a series with none', () => {
+    const { box } = line({ series: { a: [1, 2, 3], b: [] } })
+    expect(all(box, 'path.vui-chart-dot')).toHaveLength(1)
+    expect(all(box, 'path.vui-chart-dot').map((p) => p.getAttribute('d'))).not.toContain('Mh0')
   })
 })

@@ -18,6 +18,8 @@ const MAX_LABEL = 16
 const MAX_TICK = 14
 const MAX_DRAWN = 1000
 const FULL = 100
+// VD-192: a bar is at most 48 px thick; one series of up to 12 bars prints its values; a line
+// of up to 30 points marks them. Literals below, because a constant costs bundle bytes.
 
 export const SPARK_WIDTH = 100
 export const SPARK_HEIGHT = 24
@@ -158,9 +160,13 @@ function cartesian(model: Model, width: number): Drawing {
   }
   axis(tickTexts, (order) => across(ticks[order] as number), !swapped, 'vui-chart-tick')
 
-  const band = (0.8 / Math.min(size, MAX_DRAWN)) * (a1 - a0)
-  const barWidth = stacked ? band : band / series.length
+  const slot = (a1 - a0) / Math.min(size, MAX_DRAWN)
+  const barWidth = Math.min((0.8 * slot) / (stacked ? 1 : series.length), 48)
+  const band = stacked ? barWidth : barWidth * series.length
   const inner = barWidth * 0.9
+  const labelled = kind === 'bar' && series.length < 2 && size < 13
+  const printed: SVGElement[] = []
+  let wide = 0
   const up = new Array<number>(size).fill(0)
   const down = new Array<number>(size).fill(0)
   const zero = across(0)
@@ -173,10 +179,17 @@ function cartesian(model: Model, width: number): Drawing {
         const pile = value < 0 ? down : up
         const base = stacked ? (pile[index] as number) : 0
         pile[index] = base + value
-        const a = along(index) - band / 2 + (stacked ? 0 : order * barWidth)
+        const a = along(index) - band / 2 + (stacked ? 0 : order * barWidth) + barWidth * 0.05
         const from = across(base)
         const to = across(base + value)
         d += `M${pt(a, from)}L${pt(a, to)}L${pt(a + inner, to)}L${pt(a + inner, from)}Z`
+        if (labelled) {
+          const label = model.value(value)
+          wide = Math.max(wide, label.length)
+          printed.push(
+            textMark(a + inner / 2, to + (value < 0 ? 12 : -4), 'middle', 'vui-chart-total', label),
+          )
+        }
       }
       nodes.push(seriesMark('vui-chart-bar', d, order))
       return
@@ -188,7 +201,10 @@ function cartesian(model: Model, width: number): Drawing {
       nodes.push(seriesMark('vui-chart-area', `M${[head, ...run, tail].join('L')}Z`, order))
     }
     nodes.push(seriesMark('vui-chart-line', linePath(run), order))
+    if (kind === 'line' && size < 31 && run[0])
+      nodes.push(seriesMark('vui-chart-dot', `M${run.join('h0M')}h0`, order))
   })
+  if (wide * CHAR <= slot) nodes.push(...printed)
 
   for (const { y, label, tone } of refLines) {
     const b = across(y)
