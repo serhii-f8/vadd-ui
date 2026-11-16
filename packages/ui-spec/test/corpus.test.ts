@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
@@ -24,7 +24,9 @@ import { expectAgreement, expectWellFormed } from './helpers.js'
 const specPath = fileURLToPath(
   new URL('../../../docs/specs/vadd-ui-technical-spec.md', import.meta.url),
 )
-const spec = readFileSync(specPath, 'utf8')
+/** The spec is not in the public repository; the test that quotes it runs only where the file is. */
+const hasSpec = existsSync(specPath)
+const spec = hasSpec ? readFileSync(specPath, 'utf8') : ''
 
 const run = ({ text, input }: Source): ValidationResult =>
   text === undefined ? validate(input as JsonValue) : validateText(text)
@@ -73,7 +75,7 @@ describe('corpus size', () => {
   })
 })
 
-describe('spec examples are in the corpus as written', () => {
+describe.skipIf(!hasSpec)('spec examples are in the corpus as written', () => {
   it.each([
     ['### 19.1', example191],
     ['### 19.2', example192],

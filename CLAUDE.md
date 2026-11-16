@@ -16,6 +16,7 @@ Files: plan and coverage in `docs/vadd-ui/TASKS.md`, status in `PROGRESS.md`, wo
 - Worktrees land in `~/orca/workspaces/vadd-ui/<name>`, on the WSL filesystem. Orca returns ids and paths as Windows UNC paths; translate them with `wslpath` before use in WSL.
 - Orca starts Claude with `--dangerously-skip-permissions` (the user's Orca setting), so workers run in bypass mode, not the `acceptEdits` mode in `.claude/settings.json`.
 - Keep the repo on the WSL filesystem, never under `/mnt/c`.
+- `docs/specs/` and `docs/superpowers/` are private and git-ignored (VD-201): they exist only in this checkout, with a copy in `~/vadd-ui-private/`. A new worktree does not have them, so a worker reads the spec from `/var/www/html/vadd-ui/docs/specs/` and leaves its design spec and plan in `/var/www/html/vadd-ui/docs/superpowers/`, uncommitted. Tests that quote the spec skip when the file is absent.
 
 ## Roles and autonomy
 

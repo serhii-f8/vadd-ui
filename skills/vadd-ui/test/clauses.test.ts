@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { CLAUSES, missingClauses, unclaimed, wording } from './clauses.js'
-import { normalize, readSkill, readSpec, specSection, withoutCrossReferences } from './helpers.js'
+import {
+  hasSpec,
+  normalize,
+  readSkill,
+  readSpec,
+  specSection,
+  withoutCrossReferences,
+} from './helpers.js'
 
 const spec = readSpec()
 const required = ['### 12.2 Required behavior', '### 12.3 Rules embedded in the skill']
-const contract = [...required, "### 12.4 Coexistence with Orca's built-in skill"]
-  .map((heading) => specSection(spec, heading))
-  .join('\n')
+const contract = hasSpec
+  ? [...required, "### 12.4 Coexistence with Orca's built-in skill"]
+      .map((heading) => specSection(spec, heading))
+      .join('\n')
+  : ''
 
-describe('the clause table', () => {
+describe.skipIf(!hasSpec)('the clause table', () => {
   it('quotes the spec word for word', () => {
     const stripped = normalize(withoutCrossReferences(contract))
     for (const { id, spec: quote } of CLAUSES) {

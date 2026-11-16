@@ -125,7 +125,7 @@ Both use the same formatting functions as the DOM renderer, so `87.4%` and `1.21
 
 ## Theming
 
-vadd-ui reads design tokens through CSS custom properties with built-in fallbacks and never redefines them. A host that already defines `--background`, `--foreground`, `--card`, `--border`, `--muted-foreground` and similar tokens gets matching visuals with no configuration; a host that defines none gets the built-in light and dark palettes. The full token map is in the [spec, section 8.1](specs/vadd-ui-technical-spec.md#81-token-mapping).
+vadd-ui reads design tokens through CSS custom properties with built-in fallbacks and never redefines them. A host that already defines `--background`, `--foreground`, `--card`, `--border`, `--muted-foreground` and similar tokens gets matching visuals with no configuration; a host that defines none gets the built-in light and dark palettes.
 
 ## Browser support
 

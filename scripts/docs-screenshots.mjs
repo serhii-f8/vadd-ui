@@ -12,33 +12,33 @@ const assets = join(root, 'docs/assets')
 const source = join(assets, 'src')
 const cli = join(root, 'packages/ui-cli/dist/bin.js')
 
-/** Page width in CSS pixels; anything not listed uses 760. */
+/** Page width in CSS pixels; anything not listed uses 760. @type {Record<string, number>} */
 const WIDTHS = { hero: 1040, ext: 1040 }
 
 const wanted = process.argv.slice(2)
 const corpus = join(root, 'packages/ui-cli/corpus')
 
-/** [name, source document, PNG path without the scheme suffix] */
+/** `png` is the image path without the scheme suffix. */
 const jobs = [
   ...readdirSync(source)
     .filter((file) => file.endsWith('.vui'))
     .map((file) => basename(file, '.vui'))
-    .map((name) => [name, join(source, `${name}.vui`), join(assets, name)]),
+    .map((name) => ({ name, document: join(source, `${name}.vui`), png: join(assets, name) })),
   // One bundled bench case per component; the folder name starts with the component type.
   ...readdirSync(corpus).map((dir) => {
-    const name = dir.split('-')[0]
-    return [name, join(corpus, dir, 'doc.vui'), join(assets, 'components', name)]
+    const name = dir.split('-')[0] ?? dir
+    return { name, document: join(corpus, dir, 'doc.vui'), png: join(assets, 'components', name) }
   }),
-].filter(([name]) => wanted.length === 0 || wanted.includes(name))
+].filter(({ name }) => wanted.length === 0 || wanted.includes(name))
 
 mkdirSync(join(assets, 'components'), { recursive: true })
 const work = mkdtempSync(join(tmpdir(), 'vui-docs-'))
 const browser = await chromium.launch()
 try {
-  for (const [name, document, png] of jobs) {
+  for (const { name, document, png } of jobs) {
     const html = join(work, `${name}.html`)
     execFileSync(process.execPath, [cli, 'render', document, '--format', 'html', '--out', html])
-    for (const colorScheme of ['dark', 'light']) {
+    for (const colorScheme of /** @type {const} */ (['dark', 'light'])) {
       const page = await browser.newPage({
         colorScheme,
         deviceScaleFactor: 2,

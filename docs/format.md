@@ -1,6 +1,6 @@
 # Document format
 
-A vadd-ui document (a "VUI document", file extension `.vui`) is one JSON value that describes what to show. This page is the working reference; the normative text is the [technical spec](specs/vadd-ui-technical-spec.md), sections 5 to 7 and 13.
+A vadd-ui document (a "VUI document", file extension `.vui`) is one JSON value that describes what to show. This page is the reference; `vui schema` prints the same rules as a JSON Schema.
 
 ## Syntax
 

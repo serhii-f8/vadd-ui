@@ -14,9 +14,8 @@
 
 | Page | What it holds |
 | --- | --- |
-| [Technical spec](specs/vadd-ui-technical-spec.md) | The single source of truth for the format, renderer, CLI, security model and budgets. |
 | [VADD integration](vadd-ui/VADD_INTEGRATION.md) | How the VADD web dashboard embeds `<VuiView>`. |
-| [Goals audit](vadd-ui/release/GOALS_AUDIT.md) | Each goal of the spec against the code, with what is met and what is not. |
+| [Goals audit](vadd-ui/release/GOALS_AUDIT.md) | Each project goal against the code, with what is met and what is not. |
 | [Runtime support](vadd-ui/release/RUNTIME_SUPPORT.md) | Browsers and Node versions. |
 | [Host matrix](vadd-ui/release/HOST_MATRIX.md) | Which environments were run for real, and manual steps for the rest. |
 
@@ -24,7 +23,7 @@
 
 | Page | What it holds |
 | --- | --- |
-| [Decisions](vadd-ui/DECISIONS.md) | Every non-obvious choice made while building, including deviations from the spec. |
+| [Decisions](vadd-ui/DECISIONS.md) | Every non-obvious choice made while building, including deviations from the original design. |
 | [Tasks](vadd-ui/TASKS.md) and [progress](../PROGRESS.md) | The build plan and the report for each completed task. |
 | [Release checklist](vadd-ui/release/RELEASE_CHECKLIST.md) | What is left before publishing. |
 

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { validateText } from '@vadd/ui-spec'
 import { describe, expect, it } from 'vitest'
@@ -24,11 +24,15 @@ const document193 = () => {
 }
 
 describe('§19.5', () => {
-  it('reproduces the markdown for the §19.3 document, byte for byte', () => {
-    const expected = section195()
-    expect(expected).toContain('searchSku ⚠')
-    expect(renderMarkdown(document193())).toBe(expected)
-  })
+  // The spec is not in the public repository; this runs only where the file is.
+  it.skipIf(!existsSync(specPath))(
+    'reproduces the markdown for the §19.3 document, byte for byte',
+    () => {
+      const expected = section195()
+      expect(expected).toContain('searchSku ⚠')
+      expect(renderMarkdown(document193())).toBe(expected)
+    },
+  )
 
   it('renders the same document as plain text', () => {
     expect(renderPlain(document193())).toBe(PLAIN)

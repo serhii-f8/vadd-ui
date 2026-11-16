@@ -11,6 +11,7 @@ import {
   estimateTokens,
   fences,
   flags,
+  hasSpec,
   heredocs,
   labelled,
   normalize,
@@ -43,7 +44,7 @@ async function vuiHelp(): Promise<string> {
 }
 
 describe('§12.1 structure', () => {
-  it('has the exact frontmatter', () => {
+  it.skipIf(!hasSpec)('has the exact frontmatter', () => {
     const block = /```yaml\n([\s\S]*?)\n```/.exec(specSection(spec, '### 12.1 Structure'))
     expect(frontmatter).toBe(block?.[1])
   })
@@ -134,7 +135,7 @@ describe('examples', () => {
     for (const line of lines) expect(parseDirectiveLine(line), line).not.toBeNull()
   })
 
-  it('keeps the fixed lines of the §10.2 template', () => {
+  it.skipIf(!hasSpec)('keeps the fixed lines of the §10.2 template', () => {
     const template = /```html\n([\s\S]*?)\n```/.exec(specSection(spec, '### 10.2 CDN template'))
     const [doctype, script, opening] = (template?.[1] ?? '').split('\n')
     const fence = fences(skill).find((text) => text.includes('<!doctype')) ?? ''

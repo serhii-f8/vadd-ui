@@ -17,8 +17,7 @@
   <a href="docs/getting-started.md">Getting started</a> ·
   <a href="docs/components.md">Component gallery</a> ·
   <a href="docs/format.md">Document format</a> ·
-  <a href="docs/embedding.md">Embedding</a> ·
-  <a href="docs/specs/vadd-ui-technical-spec.md">Full spec</a>
+  <a href="docs/embedding.md">Embedding</a>
 </p>
 
 ---
@@ -209,7 +208,7 @@ Measured on the bundled 24-case corpus with `vui bench` (offline token estimate)
 | Core bundle, gzip | 37.9 KiB | ≤ 38 KiB |
 | Agent's first document valid (40-prompt eval) | 97% | 98% |
 
-The two token ratios and the first-try rate miss the spec's targets and are logged as open deviations; charts and flows already beat 0.2×. The full audit is in [docs/vadd-ui/release/GOALS_AUDIT.md](docs/vadd-ui/release/GOALS_AUDIT.md).
+The two token ratios and the first-try rate miss their targets and are logged as open items; charts and flows already beat 0.2×. The full audit is in [docs/vadd-ui/release/GOALS_AUDIT.md](docs/vadd-ui/release/GOALS_AUDIT.md).
 
 ## Development
 
@@ -218,7 +217,7 @@ pnpm install
 pnpm gate     # build, typecheck, lint, unit tests with coverage, Playwright, budget checks
 ```
 
-The format and every behavior are defined in the [technical spec](docs/specs/vadd-ui-technical-spec.md); choices made while building it are in [DECISIONS.md](docs/vadd-ui/DECISIONS.md). The screenshots on this page come from the documents in [`docs/assets/src`](docs/assets/src) and are regenerated with `node scripts/docs-screenshots.mjs`.
+Choices made while building it are in [DECISIONS.md](docs/vadd-ui/DECISIONS.md). The screenshots on this page come from the documents in [`docs/assets/src`](docs/assets/src) and are regenerated with `node scripts/docs-screenshots.mjs`.
 
 ## License
 

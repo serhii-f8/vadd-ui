@@ -1,10 +1,14 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { offlineCounter, type TokenEstimate } from '@vadd/ui-cli'
 
 export const readSkill = (): string => readFileSync(new URL('../SKILL.md', import.meta.url), 'utf8')
 
-export const readSpec = (): string =>
-  readFileSync(new URL('../../../docs/specs/vadd-ui-technical-spec.md', import.meta.url), 'utf8')
+const SPEC = new URL('../../../docs/specs/vadd-ui-technical-spec.md', import.meta.url)
+
+/** The spec is not in the public repository; tests that quote it run only where the file is. */
+export const hasSpec: boolean = existsSync(SPEC)
+
+export const readSpec = (): string => (hasSpec ? readFileSync(SPEC, 'utf8') : '')
 
 export function splitFrontmatter(text: string): { frontmatter: string; body: string } {
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text)
