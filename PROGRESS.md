@@ -3,7 +3,7 @@
 Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T20:35:21Z · Mode: manual
 
 ## Summary
-Done 23 / 24 · In progress: 24 · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
+Done 24 / 24 · In progress: none · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -51,12 +51,19 @@ Recorded 2026-11-04 during bootstrap.
 | 21 | Host matrix and release preparation | §1, §10.3, §15.1, §16, §16.1, §17.2, §17.3, §17.4 | 20 | done | removed | ctx_43252fda1845 | [design](docs/superpowers/specs/2026-11-15-release-prep-design.md) | [plan](docs/superpowers/plans/2026-11-15-release-prep.md) | b9c4b7e | 2026-11-15 |
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | done | removed | ctx_66c52ba79c76 | [design](docs/superpowers/specs/2026-11-15-components-ext-design.md) | [plan](docs/superpowers/plans/2026-11-15-components-ext.md) | 63395b0 | 2026-11-15 |
 | 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | done | removed | ctx_0c2b45843a7e | [design](docs/superpowers/specs/2026-11-15-chart-robustness-design.md) | [plan](docs/superpowers/plans/2026-11-15-chart-robustness.md) | 1c41615 | 2026-11-15 |
-| 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | in_progress | vui-24-design-polish | ctx_f4a8b6927eb4 | | | | |
+| 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | done | removed | ctx_f4a8b6927eb4 | [design](docs/superpowers/specs/2026-11-16-design-polish-design.md) | [plan](docs/superpowers/plans/2026-11-16-design-polish.md) | 3dca1b9 | 2026-11-16 |
 
 ## Current task log
-- 24: selected 2026-11-16 after design critique (VD-190); dispatched ctx_f4a8b6927eb4, worktree vui-24-design-polish, terminal-first.
+none
 
 ## Completed task reports
+### 24 — Design polish (renderer and Viewer)
+- Built: compact Viewer entry chrome (one meta line, cwd cut to its last two segments with the full path in `title`, right-aligned 24 px actions that wrap at 390 px); bars capped at 48 px, with `yFormat` value labels on single-series bar charts of 12 bars or fewer, and labels that collide are dropped; `FATAL`/`CRITICAL`/`PANIC` styled as `err`; a pill for `run`; no frame inside a card's frame; decision options no longer stretch; a new `polish` visual scene. CSS is flattened at build time by an esbuild plugin (build only, no runtime dependency).
+- Decisions: VD-191 to VD-199. DEVIATION VD-192: line point markers were built but skipped, because they cost 50 B over §9.5. `check-bundle-size` measures with Node zlib, about 100 B more than `gzip -9`. VD-199 raises `unchecked.test.ts`'s timeout to 180 s on this loaded host.
+- Evidence (coordinator rerun on `main` at 3dca1b9): `pnpm install && pnpm gate` exit 0. Vitest 131 files, 7,484 tests, 99.1% statements. Playwright 514 passed. `check-bundle-size`: vui.min.js 110.5 KiB min / 38.0 KiB gzip (worker measured 38,910 of 38,912 B by the gate's zlib); vui-ext.min.js 123.6 KiB / 42.9 KiB. Runtime-dep, forbidden-API, token and perf checks pass. Axe clean in both themes (worker). 88 visual baselines updated on purpose, plus 6 `polish-*`.
+- Review: fresh reviewer found 1 Important (marker class clash with scatter), fixed; minors fixed or logged in VD-198.
+- Left: line markers once bytes are freed; minors in VD-198. The core bundle now has about 2 B of headroom, so any future core change must trade bytes.
+
 ### 01 — Monorepo scaffolding
 - Built: pnpm workspace with 7 packages plus `skills/vadd-ui`, per the §3 dependency graph; shared TypeScript configs; Vitest, Playwright, Biome, esbuild; `pnpm gate`; banned-API, runtime-dependency, version, target and bundle-size checks; `.github/workflows/ci.yml`.
 - Decisions: VD-016 to VD-021.
