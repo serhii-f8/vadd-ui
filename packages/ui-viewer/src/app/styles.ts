@@ -23,7 +23,7 @@ body.feed{margin:0;background:var(--vui-bg);font-size:14px}
 .feed-meta>*+*::before{content:"·";margin-inline-end:6px}
 .feed-branch,.feed-cwd{font-family:var(--vui-mono),monospace}
 .feed-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-inline-start:auto}
-.feed-button{padding:1px 6px;border:1px solid var(--vui-border);border-radius:calc(var(--vui-radius) * .5);background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:.8em;text-decoration:none}
+.feed-button{display:inline-flex;align-items:center;min-height:24px;padding:0 6px;border:1px solid var(--vui-border);border-radius:calc(var(--vui-radius) * .5);background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:.8em;text-decoration:none}
 .feed-button:hover{background:var(--vui-accent);color:var(--vui-accent-fg)}
 .feed-button:focus-visible{outline:2px solid var(--vui-info);outline-offset:1px}
 .feed-body{isolation:isolate}
