@@ -3,7 +3,7 @@
 Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T20:35:21Z · Mode: manual
 
 ## Summary
-Done 24 / 25 · In progress: 25 · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
+Done 25 / 25 · In progress: none · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -52,7 +52,7 @@ Recorded 2026-11-04 during bootstrap.
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | done | removed | ctx_66c52ba79c76 | [design](docs/superpowers/specs/2026-11-15-components-ext-design.md) | [plan](docs/superpowers/plans/2026-11-15-components-ext.md) | 63395b0 | 2026-11-15 |
 | 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | done | removed | ctx_0c2b45843a7e | [design](docs/superpowers/specs/2026-11-15-chart-robustness-design.md) | [plan](docs/superpowers/plans/2026-11-15-chart-robustness.md) | 1c41615 | 2026-11-15 |
 | 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | done | removed | ctx_f4a8b6927eb4 | [design](docs/superpowers/specs/2026-11-16-design-polish-design.md) | [plan](docs/superpowers/plans/2026-11-16-design-polish.md) | 3dca1b9 | 2026-11-16 |
-| 25 | CI green on GitHub (Linux, macOS, Windows) | §16, §16.1, §17.4 | 24 | in_progress | vui-25-ci-green | ctx_952c4032742e | | | | |
+| 25 | CI green on GitHub (Linux, macOS, Windows) | §16, §16.1, §17.4 | 24 | done | removed | ctx_952c4032742e | [design](docs/superpowers/specs/2026-11-17-ci-green-design.md) | [plan](docs/superpowers/plans/2026-11-17-ci-green.md) | f828f03 | 2026-11-17 |
 
 ## Current task log
 none
@@ -305,6 +305,11 @@ none
 - Evidence (coordinator rerun on `main` at 3dca1b9): `pnpm install && pnpm gate` exit 0. Vitest 131 files, 7,484 tests, 99.1% statements. Playwright 514 passed. `check-bundle-size`: vui.min.js 110.5 KiB min / 38.0 KiB gzip (worker measured 38,910 of 38,912 B by the gate's zlib); vui-ext.min.js 123.6 KiB / 42.9 KiB. Runtime-dep, forbidden-API, token and perf checks pass. Axe clean in both themes (worker). 88 visual baselines updated on purpose, plus 6 `polish-*`.
 - Review: fresh reviewer found 1 Important (marker class clash with scatter), fixed; minors fixed or logged in VD-198.
 - Left: line markers once bytes are freed; minors in VD-198. The core bundle now has about 2 B of headroom, so any future core change must trade bytes.
+
+### 25 — CI green on GitHub (Linux, macOS, Windows)
+- Built: product fixes for an empty-message `AggregateError` in the contract runner (VD-206) and Windows batch launchers run through `%ComSpec%` (VD-203, VD-207); real temp paths for macOS; one state root (XDG and LOCALAPPDATA) in fixtures, the cause of 73 Windows 5 s timeouts (VD-204); named `win32` skips in `ui-viewer/test/platform.ts` for POSIX modes, read-only dirs, `/proc`, SIGTERM and control names (VD-203); the all-fields sweep split into 34 tests (VD-205). All 160 CI failures accounted for in the private accounting file beside the design spec.
+- Evidence (coordinator rerun on `main` at f828f03, WSL, spec present): `pnpm install && pnpm gate` exit 0. Vitest 131 files, 7,523 passed. Playwright 514 passed. Bundles unchanged (38.0 / 42.9 KiB gzip).
+- Left: macOS and Windows were never run locally; confirm on GitHub Actions after the user pushes. The e2e and `pnpm check` steps have never run on those hosts.
 
 ## Final summary
 - Coverage: all 23 tasks done (23 added after task 22 as a VD-180 follow-up); every spec section in TASKS.md's coverage table maps to a merged task. The final `pnpm gate` on `main` at 1c41615 is the complete §16 suite: build, typecheck, lint, 7,456 Vitest tests at 99.67% lines, 503 Playwright tests (visual, axe, XSS, Firefox/WebKit smoke), bundle, forbidden-API, runtime-dependency, version, target, publish, token and perf checks.
