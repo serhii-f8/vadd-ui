@@ -31,13 +31,12 @@ function rig({ orca = true } = {}): Rig {
   const dir = mkdtempSync(join(tmpdir(), 'vui-e2e-show-'))
   const calls = join(dir, 'calls')
   const tabs = join(dir, 'tabs.json')
-  const stub = join(dir, 'orca-stub')
+  const script = join(dir, 'orca-stub.cjs')
   writeFileSync(tabs, '[]')
   writeFileSync(calls, '')
   writeFileSync(
-    stub,
-    `#!${process.execPath}
-const { appendFileSync, readFileSync } = require('node:fs')
+    script,
+    `const { appendFileSync, readFileSync } = require('node:fs')
 appendFileSync(${JSON.stringify(calls)}, process.argv.slice(2).join(' ') + '\\n')
 const result = process.argv[3] === 'list'
   ? { tabs: JSON.parse(readFileSync(${JSON.stringify(tabs)}, 'utf8')) }
@@ -45,7 +44,7 @@ const result = process.argv[3] === 'list'
 console.log(JSON.stringify({ ok: true, result }))
 `,
   )
-  chmodSync(stub, 0o755)
+  const stub = launcher(dir, script)
   const entries = Object.entries(process.env).filter(([name]) => !name.startsWith('ORCA_'))
   const env: NodeJS.ProcessEnv = {
     ...Object.fromEntries(entries),
@@ -57,6 +56,22 @@ console.log(JSON.stringify({ ok: true, result }))
   const place = { cwd: dir, env, calls, tabs }
   rigs.push(place)
   return place
+}
+
+/**
+ * An executable that runs `script` with this Node: a `#!` file on POSIX, and on Windows a
+ * `.cmd`, the form Orca's own launcher can take there, which `vui` runs through `cmd.exe`.
+ */
+function launcher(dir: string, script: string): string {
+  if (process.platform === 'win32') {
+    const cmd = join(dir, 'orca-stub.cmd')
+    writeFileSync(cmd, `@"${process.execPath}" "${script}" %*\r\n`)
+    return cmd
+  }
+  const stub = join(dir, 'orca-stub')
+  writeFileSync(stub, `#!/bin/sh\nexec "${process.execPath}" "${script}" "$@"\n`)
+  chmodSync(stub, 0o755)
+  return stub
 }
 
 function vui(place: Rig, argv: string[], stdin = ''): Promise<string> {
