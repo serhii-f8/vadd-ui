@@ -174,53 +174,82 @@ function batches(cases: unknown[]): [number, number][] {
   return runs
 }
 
-describe('every field of every core component, past the issue cap', () => {
-  it('neither fails a node nor draws NaN', () => {
-    const cases: unknown[] = []
-    const labels: string[] = []
-    for (const sample of sampleNodes()) {
-      for (const [, , pointer] of places(sample)) {
-        for (const [name, make] of STAND_INS) {
-          const copy = structuredClone(sample)
-          const [owner, key] = places(copy).find((place) => place[2] === pointer) as Place
-          ;(owner as Record<string | number, unknown>)[key] = make()
-          cases.push(copy)
-          labels.push(`${sample.type} ${pointer} = ${name}`)
-        }
+interface Case {
+  doc: unknown
+  label: string
+}
+
+/** Every sample with every place holding each stand-in, grouped by type and chart kind. */
+function sweepCases(): Map<string, Case[]> {
+  const groups = new Map<string, Case[]>()
+  for (const sample of sampleNodes()) {
+    const group = `${sample.type}${typeof sample.kind === 'string' ? ` ${sample.kind}` : ''}`
+    const list = groups.get(group) ?? []
+    groups.set(group, list)
+    for (const [, , pointer] of places(sample)) {
+      for (const [name, make] of STAND_INS) {
+        const copy = structuredClone(sample)
+        const [owner, key] = places(copy).find((place) => place[2] === pointer) as Place
+        ;(owner as Record<string | number, unknown>)[key] = make()
+        list.push({ doc: copy, label: `${sample.type} ${pointer} = ${name}` })
       }
     }
-    expect(cases.length).toBeGreaterThan(25_000)
-    const problems: string[] = []
-    let rendered = 0
-    // A batch the node limit cuts is split, so each case renders whole exactly once.
-    const pending = batches(cases)
-    for (let run = pending.pop(); run !== undefined; run = pending.pop()) {
-      const [start, end] = run
-      const { box, handle } = showUnchecked(cases.slice(start, end))
-      if (handle.diagnostics.some(({ code }) => code === 'limit-nodes')) {
-        box.remove()
-        const middle = Math.ceil((start + end) / 2)
-        if (end - start === 1) problems.push(`${labels[start]} alone is over the node limit`)
-        else pending.push([start, middle], [middle, end])
-        continue
-      }
-      for (const path of failed(handle)) {
-        problems.push(`render-failed: ${labels[start + Number(path.split('/')[2]) - 1]}`)
-      }
-      // One element per body entry, the pad first: a node or its error card.
-      const drawn = [...box.querySelectorAll('.vui-doc > :is(.vui-node, .vui-card-error)')]
-      if (drawn.length !== end - start + 1) {
-        problems.push(`batch at ${start} drew ${drawn.length - 1} of ${end - start} cases`)
-      }
-      drawn.slice(1).forEach((element, index) => {
-        for (const bad of badAttributes(element)) problems.push(`${labels[start + index]}: ${bad}`)
-      })
-      rendered += end - start
+  }
+  return groups
+}
+
+/** Renders every case whole exactly once; a batch the node limit cuts is split. */
+function sweep(cases: Case[]): { rendered: number; problems: string[] } {
+  const problems: string[] = []
+  let rendered = 0
+  const pending = batches(cases.map(({ doc }) => doc))
+  for (let run = pending.pop(); run !== undefined; run = pending.pop()) {
+    const [start, end] = run
+    const { box, handle } = showUnchecked(cases.slice(start, end).map(({ doc }) => doc))
+    if (handle.diagnostics.some(({ code }) => code === 'limit-nodes')) {
       box.remove()
+      const middle = Math.ceil((start + end) / 2)
+      if (end - start === 1) problems.push(`${cases[start]?.label} alone is over the node limit`)
+      else pending.push([start, middle], [middle, end])
+      continue
     }
-    expect(rendered).toBe(cases.length)
-    expect(problems).toEqual([])
-    // VD-199: alone it takes 25 s, about 50 s under coverage; a full parallel run on a busy host
-    // needs more, and the timeout guards a hang, not speed.
-  }, 180_000)
+    for (const path of failed(handle)) {
+      problems.push(`render-failed: ${cases[start + Number(path.split('/')[2]) - 1]?.label}`)
+    }
+    // One element per body entry, the pad first: a node or its error card.
+    const drawn = [...box.querySelectorAll('.vui-doc > :is(.vui-node, .vui-card-error)')]
+    if (drawn.length !== end - start + 1) {
+      problems.push(`batch at ${start} drew ${drawn.length - 1} of ${end - start} cases`)
+    }
+    drawn.slice(1).forEach((element, index) => {
+      for (const bad of badAttributes(element)) {
+        problems.push(`${cases[start + index]?.label}: ${bad}`)
+      }
+    })
+    rendered += end - start
+    box.remove()
+  }
+  return { rendered, problems }
+}
+
+// VD-199, task 25: the sweep is about 31 000 cases, 25 s alone on WSL and over 180 s on a
+// GitHub runner under coverage as one test. One test per component (per kind for charts) keeps
+// every case and lets each finish well inside its timeout, which guards a hang, not speed.
+describe('every field of every core component, past the issue cap', () => {
+  const groups = sweepCases()
+
+  it('still holds every case', () => {
+    const total = [...groups.values()].reduce((sum, cases) => sum + cases.length, 0)
+    expect(total).toBeGreaterThan(25_000)
+  })
+
+  it.each([...groups.entries()])(
+    '%s: neither fails a node nor draws NaN',
+    (_, cases) => {
+      const { rendered, problems } = sweep(cases)
+      expect(rendered).toBe(cases.length)
+      expect(problems).toEqual([])
+    },
+    60_000,
+  )
 })
