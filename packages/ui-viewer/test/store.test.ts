@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import type { VuiDocument } from '@vadd/ui-spec'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DocStore, MAX_BYTES, MAX_DOCS, slugify } from '../src/store.js'
+import { NO_POSIX_MODES } from './platform.js'
 
 // A full disk cannot be made on demand, so one armed call on the temporary file throws (the
 // pattern of `ui-cli`'s file-host test). A failed write still leaves a partial file, as one does.
@@ -95,7 +96,7 @@ describe('DocStore.add', () => {
     expect(new DocStore(temp()).add(doc('Звіт')).id).toBe('1-v')
   })
 
-  it('keeps documents owner-only, in an owner-only directory', () => {
+  it.skipIf(NO_POSIX_MODES)('keeps documents owner-only, in an owner-only directory', () => {
     const dir = join(temp(), 'nested/state')
     const store = new DocStore(dir)
     store.add(doc('x'))

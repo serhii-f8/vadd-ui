@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { stateDirOf, workspaceHash } from '../src/paths.js'
 import { freePort, request, stateHome, tempDir } from './helpers.js'
+import { NO_SIGTERM } from './platform.js'
 
 // The real `dist/viewer.js`, which `pnpm gate` builds first, in a real process.
 
@@ -46,7 +47,8 @@ describe('dist/viewer.js', () => {
     const dir = stateDirOf(workspaceHash(cwd), env)
     expect(JSON.parse(readFileSync(join(dir, 'viewer.json'), 'utf8')).pid).toBe(viewer.child.pid)
     viewer.child.kill('SIGTERM')
-    expect(await viewer.exited).toBe(0)
+    // Windows ends the process at once, so only a POSIX host sees the handler's exit 0.
+    expect(await viewer.exited).toBe(NO_SIGTERM ? null : 0)
   })
 
   it('exits 1 with one line when it cannot start', async () => {

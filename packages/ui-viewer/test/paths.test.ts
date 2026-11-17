@@ -45,7 +45,9 @@ describe('workspaceOf', () => {
 
 describe('stateDirOf', () => {
   it('uses XDG_STATE_HOME', () => {
-    expect(stateDirOf('abc', { XDG_STATE_HOME: '/state' }, 'linux')).toBe('/state/vadd-ui/abc')
+    // Joined by the host's rules: `/state/vadd-ui/abc` on POSIX, where this branch runs for real.
+    const expected = join('/state', 'vadd-ui', 'abc')
+    expect(stateDirOf('abc', { XDG_STATE_HOME: '/state' }, 'linux')).toBe(expected)
   })
 
   it.each([

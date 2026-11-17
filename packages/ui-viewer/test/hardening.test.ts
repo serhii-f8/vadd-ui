@@ -14,6 +14,7 @@ import {
   stateHome,
   tempDir,
 } from './helpers.js'
+import { NO_POSIX_MODES } from './platform.js'
 
 // §15.3, one `describe` per row, each against a whole started Viewer.
 
@@ -97,7 +98,7 @@ describe('§15.3 Unauthorized writers', () => {
     expect((await write(viewer)).status).toBe(201)
 
     const file = join(stateDirOf(workspaceHash(workspace), env), 'viewer.json')
-    expect(statSync(file).mode & 0o777).toBe(0o600)
+    if (!NO_POSIX_MODES) expect(statSync(file).mode & 0o777).toBe(0o600)
     expect(JSON.parse(readFileSync(file, 'utf8')).writeToken).toBe(viewer.writeToken)
     const page = await call(viewer, `/v/${viewer.readToken}/`)
     expect(page.text).not.toContain(viewer.writeToken)

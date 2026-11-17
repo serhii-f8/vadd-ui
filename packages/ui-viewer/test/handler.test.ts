@@ -7,6 +7,7 @@ import { LIMITS, MEDIA_TYPE, type VuiDocument } from '@vadd/ui-spec'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readBundle } from '../src/visual-file.js'
 import { BEARER, FEED, HASH, openStream, READ, request, type Served, serve } from './helpers.js'
+import { NO_READONLY_DIRS } from './platform.js'
 
 const DOC = { vui: 1, title: 'Report', body: ['hello'] }
 
@@ -414,9 +415,7 @@ describe('the standalone page (VD-123)', () => {
 })
 
 describe('an unwritable docs directory (VD-160)', () => {
-  const root = process.getuid?.() === 0
-
-  it.skipIf(root)(
+  it.skipIf(NO_READONLY_DIRS)(
     'answers 507 {error: storage}, broadcasts nothing, and keeps serving',
     async () => {
       const { post, get, dir, port } = await start()
