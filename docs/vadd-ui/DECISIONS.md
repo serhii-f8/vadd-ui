@@ -1670,3 +1670,10 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Date: 2026-11-17 · Task: 25
 - Context: a fresh reviewer read the branch against the CI logs.
 - Decision: fixed the critical finding (`cmd.exe` by bare name, see VD-203) and the important one (`lifecycle` "exits 5 when the state directory cannot be written" passed on Windows only because the fake system refuses to spawn, so it now skips under `NO_READONLY_DIRS`). Minor findings: `describeError` keeps the inner errors (fixed); the e2e harness `stop()` now also counts a signal exit as gone (fixed, an old hang risk on Windows); the `paths.test` asymmetry is written down in VD-204 (accepted); macOS process-group check via `ps` (rejected, VD-203 note).
+
+## VD-208 — Orca moved its visual sources; the contract job follows them
+- Date: 2026-11-17 · Task: none (user request: the scheduled `orca-contract` job failed)
+- Context: Orca main (`f5cdfc7`) moved `native-chat-visual-directive.ts` and `native-chat-visual-shell.ts` into `src/shared/native-chat/visuals/`. `check-orca-contract.mjs` then exited 2, "usage", which hid the drift behind what looks like a bad command line. Orca also moved `--font-sans` and `--font-mono` from the shell's token list into the shared panel allowlist, so its combined theme token list has the same 27 tokens in a new order.
+- Decision: the script looks for the two files in either layout, newest first, and a checkout that has neither is reported as a finding (exit 1); exit 2 is kept for a missing `--orca` or a folder with no `src/`. `e2e/harness/orca` is refreshed byte for byte from `f5cdfc7` at Orca's new paths, and `ORCA_THEME_TOKENS` follows Orca's order. The comparison stays strict about order, so any later change in Orca shows up.
+- Alternatives: compare the token list as a set (would hide a reorder, which costs nothing to follow); only accept the new layout (an older checkout would fail for no reason).
+- Notes: done by the coordinator without a worker, since it is a host-contract refresh that `scheduled.yml` documents as a manual step. The size of `ui-spec` does not change: only the order of the list does.

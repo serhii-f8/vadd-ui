@@ -1,4 +1,4 @@
-import { PANEL_DESIGN_TOKEN_ALLOWLIST } from '../plugins/frames/plugin-panel-design-tokens'
+import { PANEL_DESIGN_TOKEN_ALLOWLIST } from '../../plugins/frames/plugin-panel-design-tokens'
 
 /** Shared Electron-free sandbox document. Parse CSP before visual markup so later HTML cannot loosen it.
  * Allow pinned-CDN scripts/styles/fonts/images only; block fetch/sockets/frames/forms. Allowed-CDN requests can still carry data: disclosed accepted risk, not a no-egress guarantee. */
@@ -63,9 +63,7 @@ export const NATIVE_CHAT_VISUAL_THEME_TOKENS = [
   '--chart-2',
   '--chart-3',
   '--chart-4',
-  '--chart-5',
-  '--font-sans',
-  '--font-mono'
+  '--chart-5'
 ] as const
 
 export type NativeChatVisualTheme = {
@@ -212,6 +210,13 @@ document.addEventListener('DOMContentLoaded', schedule)
 window.addEventListener('load', schedule)
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule)
 })()`
+}
+
+/** A fresh channel for one visual document. */
+export function newNativeChatVisualChannel(): string {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 /** Build per-document srcdoc; unique channel tags every shell message so the host can reject other documents’ traffic. */

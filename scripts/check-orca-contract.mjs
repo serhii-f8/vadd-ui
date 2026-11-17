@@ -21,8 +21,10 @@ import {
 } from './lib/orca-contract.mjs'
 
 const OURS = fileURLToPath(new URL('../packages/ui-spec/src/host/orca.ts', import.meta.url))
-const DIRECTIVE = 'src/shared/native-chat/native-chat-visual-directive.ts'
-const SHELL = 'src/shared/native-chat/native-chat-visual-shell.ts'
+const DIRECTIVE = 'native-chat-visual-directive.ts'
+const SHELL = 'native-chat-visual-shell.ts'
+// Newest first: Orca moved both files into visuals/ in November 2026 (VD-208).
+const LAYOUTS = ['src/shared/native-chat/visuals', 'src/shared/native-chat']
 const SKILL = 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md'
 
 /** @param {string} name */
@@ -52,15 +54,28 @@ async function load(files) {
 }
 
 const orca = flag('--orca')
-if (!orca || !existsSync(join(orca, DIRECTIVE))) {
+if (!orca || !existsSync(join(orca, 'src'))) {
   console.error(
-    `usage: check-orca-contract.mjs --orca <checkout with ${DIRECTIVE}> [--orca-cli "<command>"]`,
+    'usage: check-orca-contract.mjs --orca <stablyai/orca checkout> [--orca-cli "<command>"]',
   )
   process.exit(2)
 }
 
+// A checkout without the files is drift to report, not bad usage.
+const layout = LAYOUTS.find((dir) => existsSync(join(orca, dir, DIRECTIVE)))
+if (!layout) {
+  finish(
+    'check-orca-contract',
+    [
+      `${DIRECTIVE} is not where it was (${LAYOUTS.join(', ')}); find it in Orca and update LAYOUTS`,
+    ],
+    '',
+  )
+  process.exit(1)
+}
+
 const ours = await load([OURS])
-const theirs = await load([join(orca, DIRECTIVE), join(orca, SHELL)])
+const theirs = await load([join(orca, layout, DIRECTIVE), join(orca, layout, SHELL)])
 const skillPath = join(orca, SKILL)
 const tokens = existsSync(skillPath) ? skillTokens(readFileSync(skillPath, 'utf8')) : []
 const findings = [

@@ -30,13 +30,13 @@ import {
   NATIVE_CHAT_VISUAL_MAX_PER_MESSAGE,
   NATIVE_CHAT_VISUAL_TITLE_MAX_LENGTH,
   parseNativeChatVisualDirectiveLine,
-} from './harness/orca/src/shared/native-chat/native-chat-visual-directive.js'
+} from './harness/orca/src/shared/native-chat/visuals/native-chat-visual-directive.js'
 import {
   NATIVE_CHAT_VISUAL_CDN_ORIGINS,
   NATIVE_CHAT_VISUAL_MAX_HEIGHT,
   NATIVE_CHAT_VISUAL_MIN_HEIGHT,
   NATIVE_CHAT_VISUAL_THEME_TOKENS,
-} from './harness/orca/src/shared/native-chat/native-chat-visual-shell.js'
+} from './harness/orca/src/shared/native-chat/visuals/native-chat-visual-shell.js'
 
 // Orca Chat UI does not run on this machine (WSL), so this is the proof: the real CLI's real
 // files, in Orca's own document builder, in a sandboxed frame, read by Orca's own parser.

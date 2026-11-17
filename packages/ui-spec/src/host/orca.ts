@@ -4,7 +4,7 @@ import { cleanText } from '../dev-view.js'
 // `index.ts` must not import this, or it reaches the bundle.
 //
 // Read from `stablyai/orca` at the tag below, which is the installed version:
-// `src/shared/native-chat/native-chat-visual-directive.ts`, `native-chat-visual-shell.ts` and
+// `src/shared/native-chat/visuals/native-chat-visual-directive.ts`, `native-chat-visual-shell.ts` and
 // `src/shared/plugins/frames/plugin-panel-design-tokens.ts`. `e2e/orca-chat.spec.ts` compares
 // this file with the copies in `e2e/harness/orca/`.
 
@@ -51,13 +51,13 @@ export const ORCA_THEME_TOKENS = [
   '--input',
   '--ring',
   '--radius',
+  '--font-sans',
+  '--font-mono',
   '--chart-1',
   '--chart-2',
   '--chart-3',
   '--chart-4',
   '--chart-5',
-  '--font-sans',
-  '--font-mono',
 ] as const
 
 const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*\.html$/

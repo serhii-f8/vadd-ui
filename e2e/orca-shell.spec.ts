@@ -3,7 +3,7 @@ import { openVisual, settled } from './harness/host.js'
 import {
   NATIVE_CHAT_VISUAL_CSP,
   nativeChatVisualThemeCss,
-} from './harness/orca/src/shared/native-chat/native-chat-visual-shell.js'
+} from './harness/orca/src/shared/native-chat/visuals/native-chat-visual-shell.js'
 import { THEMES } from './harness/theme.js'
 
 const WIDTH = 720

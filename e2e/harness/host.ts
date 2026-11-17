@@ -7,7 +7,7 @@ import {
   NATIVE_CHAT_VISUAL_FRAME_NAME_PREFIX,
   NATIVE_CHAT_VISUAL_SIZE_TYPE,
   nativeChatVisualThemeMessage,
-} from './orca/src/shared/native-chat/native-chat-visual-shell.js'
+} from './orca/src/shared/native-chat/visuals/native-chat-visual-shell.js'
 import { type Scheme, THEMES } from './theme.js'
 
 const CHANNEL = 'vui-harness'

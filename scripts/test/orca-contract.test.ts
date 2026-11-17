@@ -1,4 +1,12 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -14,7 +22,7 @@ import { repoRoot, run } from './helpers.js'
 
 const SKILL = readFileSync(`${repoRoot}scripts/test/fixtures/orca/SKILL.md`, 'utf8')
 const SKILL_PATH = 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md'
-const DIRECTIVE = 'src/shared/native-chat/native-chat-visual-directive.ts'
+const DIRECTIVE = 'src/shared/native-chat/visuals/native-chat-visual-directive.ts'
 
 /** An Orca checkout as far as the check reads it: the vendored sources and the skill excerpt. */
 function orcaTree(): string {
@@ -136,6 +144,32 @@ describe('check-orca-contract.mjs', () => {
       `${process.execPath} ${fake}`,
     )
     expect(out).toContain('no longer lists --split')
+    expect(code).toBe(1)
+  })
+
+  it('still reads the layout before Orca moved the files into visuals/', () => {
+    const root = orcaTree()
+    const flat = join(root, 'src/shared/native-chat')
+    // One level up, so a relative import loses a `../`, as it was before the move.
+    for (const name of ['native-chat-visual-directive.ts', 'native-chat-visual-shell.ts']) {
+      const moved = join(flat, 'visuals', name)
+      writeFileSync(
+        join(flat, name),
+        readFileSync(moved, 'utf8').replaceAll("from '../../", "from '../"),
+      )
+      rmSync(moved)
+    }
+    const { code, out } = run('check-orca-contract.mjs', '--orca', root)
+    expect(out).toContain('check-orca-contract: 10 constants and 27 skill tokens match')
+    expect(code).toBe(0)
+  })
+
+  it('fails, naming the file, when Orca moves the sources again', () => {
+    const root = orcaTree()
+    const visuals = join(root, 'src/shared/native-chat/visuals')
+    renameSync(join(visuals, 'native-chat-visual-directive.ts'), join(visuals, 'moved.ts'))
+    const { code, out } = run('check-orca-contract.mjs', '--orca', root)
+    expect(out).toContain('native-chat-visual-directive.ts is not where it was')
     expect(code).toBe(1)
   })
 
