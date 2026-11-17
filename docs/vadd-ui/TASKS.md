@@ -256,6 +256,16 @@ Slug `design-polish`. Depends on: 23. Spec: §4.1, §6, §8.1, §9.4, §9.5, §1
   - Before/after screenshots in Orca's browser pane, light and dark, and at 390 px; axe clean in both themes; tone text still meets §15.2.
   - `vui.min.js` stays within §9.5 (≤ 38,912 B gzip by `gzip -9`, about 200 B of headroom at the start), so changes must be net neutral or trade bytes; `vui-ext.min.js` and the Viewer keep their checks. Visual snapshots updated on purpose, and `pnpm gate` is green.
 
+### 25 — CI green on GitHub (Linux, macOS, Windows)
+Slug `ci-green`. Depends on: 24. Spec: §16, §16.1, §17.4. Added by the coordinator after the first GitHub Actions runs of `.github/workflows/ci.yml` failed (VD-202). Run 43909607804 on commit 577584b: `gate` (ubuntu) 2 failures, `portable (macos-latest)` 42, `portable (windows-latest)` well over 100; `engines` passed.
+- Acceptance:
+  - `gate` (ubuntu): `ui-viewer/test/contract.test.ts` "reports an unreachable server as failures, not a throw" passes. On Node 22 a refused connection to `localhost` is an `AggregateError` with an empty `message`; the contract runner must report a useful error (the code, or the inner errors), so this is a product fix, not a test edit. `ui-render/test/components/unchecked.test.ts` "neither fails a node nor draws NaN" no longer times out on a GitHub runner (it took more than 180 s; VD-199): make it fast enough, or split it, without dropping coverage.
+  - `portable (macos-latest)`: `os.tmpdir()` is under the `/var` → `/private/var` symlink, while `workspaceOf` returns real paths, so test fixtures disagree with the code (hash, state dir, `--workspace`). Fix fixtures to use real paths (for example `realpathSync` in `packages/ui-cli/test/helpers.ts` `tempDir`, and any other `mkdtempSync` site that compares paths), and fix any product path that misbehaves under the symlink. All failures of that job pass.
+  - `portable (windows-latest)`: every failure is either fixed in the product (a real Windows bug, for example spawning or finding the detached Viewer, its liveness check, `/proc` reads, path joins with `/`, `.cmd`/`.exe` resolution of the Orca CLI) or the test is made portable. A test may skip on `win32` only where the behavior does not exist there (POSIX modes such as 0600/0700, `chmod` read-only directories, signals Windows lacks, `/proc`), with the reason in the skip and a decision logged. Tests that time out at 5 s because the Viewer never starts must be traced to the cause, not given a longer timeout, unless the cause is proven to be runner slowness.
+  - The full failure lists are in the logs saved by the coordinator (paths in the dispatch). Every failing test in those logs is accounted for in the report: fixed, made portable, or skipped with a reason.
+  - Nothing changes in the §9.5 bundle budgets (the core bundle has about 2 B of headroom); renderer packages keep their rules.
+  - `pnpm gate` is green locally (WSL). The worker cannot run Windows or macOS, and must not push: it reports the commits, and the coordinator verifies on GitHub after the user pushes.
+
 ## Coverage (spec requirement → one task)
 
 | Spec | Requirement | Task |
