@@ -52,7 +52,7 @@ Recorded 2026-11-04 during bootstrap.
 | 22 | ext components | §6.3, §6.4, §6.5 | 21 | done | removed | ctx_66c52ba79c76 | [design](docs/superpowers/specs/2026-11-15-components-ext-design.md) | [plan](docs/superpowers/plans/2026-11-15-components-ext.md) | 63395b0 | 2026-11-15 |
 | 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | done | removed | ctx_0c2b45843a7e | [design](docs/superpowers/specs/2026-11-15-chart-robustness-design.md) | [plan](docs/superpowers/plans/2026-11-15-chart-robustness.md) | 1c41615 | 2026-11-15 |
 | 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | done | removed | ctx_f4a8b6927eb4 | [design](docs/superpowers/specs/2026-11-16-design-polish-design.md) | [plan](docs/superpowers/plans/2026-11-16-design-polish.md) | 3dca1b9 | 2026-11-16 |
-| 25 | CI green on GitHub (Linux, macOS, Windows) | §16, §16.1, §17.4 | 24 | in_progress | | | | | | |
+| 25 | CI green on GitHub (Linux, macOS, Windows) | §16, §16.1, §17.4 | 24 | in_progress | vui-25-ci-green | ctx_952c4032742e | | | | |
 
 ## Current task log
 none
