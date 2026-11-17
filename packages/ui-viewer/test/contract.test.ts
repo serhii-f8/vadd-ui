@@ -1,7 +1,13 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
-import { CONTRACT_CASES, type ContractTarget, contractCases, runContract } from '../src/contract.js'
+import {
+  CONTRACT_CASES,
+  type ContractTarget,
+  contractCases,
+  describeError,
+  runContract,
+} from '../src/contract.js'
 import { createViewerHandler } from '../src/handler.js'
 import { DocStore } from '../src/store.js'
 import { FEED, HASH, READ, tempDir, WRITE } from './helpers.js'
@@ -88,6 +94,43 @@ describe('runContract', () => {
     const results = await runContract({ ...target, timeoutMs: 500 })
     expect(results.every((result) => !result.ok)).toBe(true)
     expect(results[0]?.error).toMatch(/ECONNREFUSED|socket|closed|refused/i)
+  })
+})
+
+// Node 22 tries every address of `localhost` and, refused on all, throws an AggregateError whose
+// message is empty: the report must still say why (task 25, run 43909607804).
+describe('describeError', () => {
+  const refused = (address: string) =>
+    Object.assign(new Error(`connect ECONNREFUSED ${address}`), { code: 'ECONNREFUSED' })
+
+  it('names the code of an empty-message AggregateError', () => {
+    const error = Object.assign(
+      new AggregateError([refused('::1:9'), refused('127.0.0.1:9')], ''),
+      {
+        code: 'ECONNREFUSED',
+      },
+    )
+    expect(describeError(error)).toMatch(/ECONNREFUSED/)
+  })
+
+  it('names the inner errors when the AggregateError has no code', () => {
+    const error = new AggregateError([refused('::1:9'), refused('127.0.0.1:9')], '')
+    expect(describeError(error)).toBe(
+      'connect ECONNREFUSED ::1:9; connect ECONNREFUSED 127.0.0.1:9',
+    )
+  })
+
+  it('takes the code of an error with no message', () => {
+    expect(describeError(Object.assign(new Error(''), { code: 'EPIPE' }))).toBe('EPIPE')
+  })
+
+  it('keeps a message', () => {
+    expect(describeError(new Error('boom'))).toBe('boom')
+  })
+
+  it('falls back to the name, and takes a thrown string as it is', () => {
+    expect(describeError(new AggregateError([], ''))).toBe('AggregateError')
+    expect(describeError('plain')).toBe('plain')
   })
 })
 
