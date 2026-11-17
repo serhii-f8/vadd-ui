@@ -1,6 +1,7 @@
 import { chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import type { ParsedArgs } from '../src/args.js'
 import { selectHost } from '../src/host/select.js'
 import { fakeSystem, tempDir } from './helpers.js'
@@ -31,7 +32,7 @@ describe('selectHost (§4.0)', () => {
     expect(selectHost(parsed(), system).name).toBe('viewer')
   })
 
-  it('passes over a read-only scratch dir', () => {
+  it.skipIf(NO_READONLY_DIRS)('passes over a read-only scratch dir', () => {
     const dir = tempDir()
     chmodSync(dir, 0o500)
     const system = fakeSystem({ env: { ORCA_CHAT_SCRATCH_DIR: dir } })

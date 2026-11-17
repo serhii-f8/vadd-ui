@@ -1,6 +1,10 @@
+import { posix } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createTab, gotoTab, listTabs, resolveOrca } from '../src/host/orca.js'
-import { fakeSystem } from './helpers.js'
+import { fakeSystem as anySystem, type FakeSystem } from './helpers.js'
+
+/** A Linux system on any host: its paths are POSIX, whatever `path.join` the host has. */
+const fakeSystem = (options: FakeSystem = {}) => anySystem({ pathJoin: posix.join, ...options })
 
 describe('resolveOrca (VD-011)', () => {
   const files = { '/bin/orca-ide': '', '/bin/orca': '', '/opt/named': '' }

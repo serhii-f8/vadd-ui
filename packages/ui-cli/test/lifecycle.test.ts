@@ -12,6 +12,7 @@ import { type AddressInfo, createServer as createNetServer, type Socket } from '
 import { join } from 'node:path'
 import { readViewerInfo, stateDirOf, updateViewerInfo, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NO_POSIX_MODES } from '../../ui-viewer/test/platform.js'
 import type { CliError } from '../src/outcome.js'
 import type { SpawnedViewer, System } from '../src/system.js'
 import { ensureViewer, findViewer, placeOf, stopViewer, tryLock } from '../src/viewer/lifecycle.js'
@@ -80,7 +81,7 @@ describe('ensureViewer', () => {
     expect(seen[0]?.slice(1)).toEqual(['--workspace', workspace, '--bind', '127.0.0.1'])
   })
 
-  it('gives the log 0600 in a 0700 directory', async () => {
+  it.skipIf(NO_POSIX_MODES)('gives the log 0600 in a 0700 directory', async () => {
     const { system, dir } = setup()
     await ensureViewer(system)
     expect(statSync(join(dir, 'viewer.log')).mode & 0o777).toBe(0o600)

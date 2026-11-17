@@ -1,9 +1,10 @@
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import type { ExecResult, System } from '../src/system.js'
 import { fakeSystem, stateHome, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
 
@@ -95,7 +96,8 @@ describe('vui doctor', () => {
 
   it('finds the Orca CLI', async () => {
     const env = { PATH: '/bin', ...stateHome() }
-    const system = fakeSystem({ cwd: tempDir(), env, files: { '/bin/orca-ide': '' } })
+    const files = { '/bin/orca-ide': '' }
+    const system = fakeSystem({ cwd: tempDir(), env, files, pathJoin: posix.join })
     const { of } = await checks(system)
     expect(of('orca-cli')).toMatchObject({ status: 'ok', detail: '/bin/orca-ide' })
   })
@@ -106,7 +108,7 @@ describe('vui doctor', () => {
     expect(of('orca-chat').status).toBe('ok')
   })
 
-  it('fails a scratch dir it cannot write', async () => {
+  it.skipIf(NO_READONLY_DIRS)('fails a scratch dir it cannot write', async () => {
     const dir = tempDir()
     chmodSync(dir, 0o500)
     const env = { ORCA_CHAT_SCRATCH_DIR: dir, ...stateHome() }

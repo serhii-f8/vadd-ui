@@ -9,10 +9,11 @@ import {
 } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { isVisualFileName, ORCA_FILE_MAX_BYTES, parseDirectiveLine } from '@vadd/ui-spec/host/orca'
 import { readViewerInfo, slugify, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { NO_CONTROL_NAMES, NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import { OUTPUT_LIMIT } from '../src/output.js'
 import type { System } from '../src/system.js'
 import {
@@ -300,24 +301,8 @@ describe('--host orca-chat', () => {
 })
 
 describe('auto with a folder it cannot use', () => {
-  it.each([
-    [
-      'writable but not searchable',
-      () => {
-        const dir = tempDir()
-        chmodSync(dir, 0o200)
-        return dir
-      },
-    ],
+  const unusable: [string, () => string][] = [
     ['missing', () => join(tempDir(), 'gone')],
-    [
-      'read-only',
-      () => {
-        const dir = tempDir()
-        chmodSync(dir, 0o500)
-        return dir
-      },
-    ],
     [
       'a file',
       () => {
@@ -326,17 +311,40 @@ describe('auto with a folder it cannot use', () => {
         return file
       },
     ],
-  ])('goes to the Viewer: %s', async (_name, make) => {
-    const workspace = tempDir()
-    const env = { ...stateHome(), ORCA_CHAT_SCRATCH_DIR: make() }
-    farm = new ViewerFarm(env)
-    const { exit, stdout } = await vui(['show'], {
-      stdin: DOC,
-      system: farm.system({ cwd: workspace }),
-    })
-    expect(exit).toBe(0)
-    expect(stdout).toContain('in viewer')
-  })
+  ]
+  const locked: [string, () => string][] = [
+    [
+      'writable but not searchable',
+      () => {
+        const dir = tempDir()
+        chmodSync(dir, 0o200)
+        return dir
+      },
+    ],
+    [
+      'read-only',
+      () => {
+        const dir = tempDir()
+        chmodSync(dir, 0o500)
+        return dir
+      },
+    ],
+  ]
+
+  it.each([...unusable, ...(NO_READONLY_DIRS ? [] : locked)])(
+    'goes to the Viewer: %s',
+    async (_name, make) => {
+      const workspace = tempDir()
+      const env = { ...stateHome(), ORCA_CHAT_SCRATCH_DIR: make() }
+      farm = new ViewerFarm(env)
+      const { exit, stdout } = await vui(['show'], {
+        stdin: DOC,
+        system: farm.system({ cwd: workspace }),
+      })
+      expect(exit).toBe(0)
+      expect(stdout).toContain('in viewer')
+    },
+  )
 })
 
 describe('--host file', () => {
@@ -351,7 +359,7 @@ describe('--host file', () => {
     expect(stdout).toBe(`vui: wrote ${path} (${Buffer.byteLength(visual(dir))} bytes)\n`)
   })
 
-  it('keeps a hostile --dir to one line', async () => {
+  it.skipIf(NO_CONTROL_NAMES)('keeps a hostile --dir to one line', async () => {
     const parent = tempDir()
     const dir = join(parent, 'a\nb')
     mkdirSync(dir)
@@ -394,15 +402,19 @@ describe('--host file', () => {
         return file
       },
     ],
-    [
-      'read-only',
-      () => {
-        const dir = tempDir()
-        chmodSync(dir, 0o500)
-        return dir
-      },
-    ],
-  ])('exits 5: %s', async (_name, make) => {
+    ...(NO_READONLY_DIRS
+      ? []
+      : ([
+          [
+            'read-only',
+            () => {
+              const dir = tempDir()
+              chmodSync(dir, 0o500)
+              return dir
+            },
+          ],
+        ] as [string, () => string][])),
+  ] as [string, () => string][])('exits 5: %s', async (_name, make) => {
     const { exit, json } = await vuiJson(['show', '--host', 'file', '--dir', make()], {
       stdin: DOC,
       system: system(),
@@ -638,6 +650,7 @@ describe('the post to a running Viewer', () => {
     const sys = running.system({
       cwd: workspace,
       files: { '/bin/orca-ide': '' },
+      pathJoin: posix.join,
       exec: (_file, args) => {
         calls.push(args.join(' '))
         return { ok: true, stdout: '{"ok":true,"result":{}}' }

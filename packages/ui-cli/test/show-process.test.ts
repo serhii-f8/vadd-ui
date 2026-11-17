@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NO_POSIX_MODES, NO_PROC, NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import { stateHome, tempDir } from './helpers.js'
 
 // The real `dist/bin.js` and a real detached Viewer, which `pnpm gate` builds first.
@@ -84,12 +85,14 @@ describe('dist/bin.js show', () => {
     expect(stdout).toMatch(/\nvui: open http:\/\/localhost:\d+\/v\/[0-9a-f]{32}\/\n$/)
     const { pid } = info(place)
     expect(alive(pid)).toBe(true)
-    // Field 5 of /proc/<pid>/stat is the process group, past the name in parentheses.
-    const fields = readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ')[1]?.split(' ') ?? []
-    expect(Number(fields[2])).toBe(pid)
+    if (!NO_PROC) {
+      // Field 5 of /proc/<pid>/stat is the process group, past the name in parentheses.
+      const fields = readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ')[1]?.split(' ') ?? []
+      expect(Number(fields[2])).toBe(pid)
+    }
     expect(log(place)).toContain('Viewer listening on port')
     expect(log(place)).not.toContain(info(place).readToken)
-    expect(statMode(join(place.dir, 'viewer.log'))).toBe(0o600)
+    if (!NO_POSIX_MODES) expect(statMode(join(place.dir, 'viewer.log'))).toBe(0o600)
   })
 
   it('reuses it', async () => {
@@ -134,7 +137,7 @@ describe('dist/bin.js show', () => {
   })
 
   // VD-160: a Viewer whose `docs/` cannot be written answers 507, and `vui show` exits 5.
-  it.skipIf(process.getuid?.() === 0)('exits 5 when the Viewer cannot write docs/', async () => {
+  it.skipIf(NO_READONLY_DIRS)('exits 5 when the Viewer cannot write docs/', async () => {
     const place = workspace()
     expect((await vui(place, ['show'], DOC)).exit).toBe(0)
     const docs = join(place.dir, 'docs')
@@ -206,11 +209,10 @@ function orcaStub(): { stub: string; calls: string } {
   const dir = tempDir()
   const calls = join(dir, 'calls')
   const tabs = join(dir, 'tabs')
-  const stub = join(dir, 'orca-stub')
+  const script = join(dir, 'orca-stub.cjs')
   writeFileSync(
-    stub,
-    `#!${process.execPath}
-const { appendFileSync, existsSync, readFileSync, writeFileSync } = require('node:fs')
+    script,
+    `const { appendFileSync, existsSync, readFileSync, writeFileSync } = require('node:fs')
 const args = process.argv.slice(2)
 appendFileSync(${JSON.stringify(calls)}, args.join(' ') + '\\n')
 const tabs = ${JSON.stringify(tabs)}
@@ -233,8 +235,7 @@ const result = args[1] === 'list' ? { tabs: known } : known[known.length - 1]
 console.log(JSON.stringify({ ok: true, result }))
 `,
   )
-  chmodSync(stub, 0o755)
-  return { stub, calls }
+  return { stub: launcher(dir, script), calls }
 }
 
 describe('dist/bin.js viewer', () => {
@@ -264,4 +265,20 @@ describe('dist/bin.js viewer', () => {
 
 function statMode(path: string): number {
   return statSync(path).mode & 0o777
+}
+
+/**
+ * An executable that runs `script` with this Node: a `#!` file on POSIX, and on Windows a
+ * `.cmd`, the form Orca's own launcher can take there, which `vui` runs through `cmd.exe`.
+ */
+function launcher(dir: string, script: string): string {
+  if (process.platform === 'win32') {
+    const cmd = join(dir, 'orca-stub.cmd')
+    writeFileSync(cmd, `@"${process.execPath}" "${script}" %*\r\n`)
+    return cmd
+  }
+  const stub = join(dir, 'orca-stub')
+  writeFileSync(stub, `#!/bin/sh\nexec "${process.execPath}" "${script}" "$@"\n`)
+  chmodSync(stub, 0o755)
+  return stub
 }
