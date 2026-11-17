@@ -1639,3 +1639,28 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Context: the first GitHub Actions runs on `main` (run 43909607804, commit 577584b) failed in `gate` (2 tests), `portable (macos-latest)` (42) and `portable (windows-latest)` (100+). The local gate is green on WSL; the matrix jobs had never run before the repository got a remote.
 - Decision: one task, through a worker, covering all three jobs: product fixes where Windows or macOS shows a real bug, portable tests elsewhere, and `win32` skips only for behavior that does not exist there, each with a reason. The worker cannot run Windows or macOS, so the coordinator confirms the result on GitHub once the user pushes.
 - Alternatives: dropping Windows and macOS from the matrix (§16.1 lists them); marking them `continue-on-error` (hides real bugs, such as the AggregateError message on Linux).
+
+## VD-203 — Tests skip only what the host lacks, named in `platform.ts`
+- Date: 2026-11-17 · Task: 25
+- Context: on `windows-latest` many tests checked behavior that Windows does not have: POSIX modes (`statSync().mode` reads 0o666), `chmod` on directories (ignored, so a read-only or unsearchable directory stays writable), `/proc`, a SIGTERM handler (`kill('SIGTERM')` ends the process at once, exit code `null`), and a newline in a file name.
+- Decision: `packages/ui-viewer/test/platform.ts` exports one constant per missing behavior, each named for its reason with a comment: `NO_POSIX_MODES`, `NO_READONLY_DIRS` (Windows, or root, which the old `getuid() === 0` skips covered), `NO_PROC` (any non-Linux host), `NO_SIGTERM`, `NO_CONTROL_NAMES`. A test about that behavior alone uses `it.skipIf(...)`; a test that checks more guards only the one assertion (`viewer.json`'s mode, the detached Viewer's process group), so the rest still runs on Windows. ui-cli tests import it from ui-viewer's test folder.
+- Alternatives: skipping whole files on `win32` (hides the Viewer, show and Orca paths that do work there); emulating modes with ACL reads (a test of Windows ACLs, not of §15.3).
+- Notes: the `.cmd` Orca stub of the process and e2e tests runs on Windows instead of skipping, so `commandLine`'s `cmd.exe /d /c` path is exercised there.
+
+## VD-204 — Test fixtures use real temp paths and one state root for both platform rules
+- Date: 2026-11-17 · Task: 25
+- Context: two fixture faults, no product fault. macOS: `os.tmpdir()` is under `/var` → `/private/var`, and `workspaceOf` real-paths the cwd, so a fixture hashing the link path named another state directory. Windows: `fakeSystem` simulates `linux` (state under `XDG_STATE_HOME`), while the in-process Viewer of `ViewerFarm`, the real Viewer and the tests' own `stateDirOf` calls use the host rule (`LOCALAPPDATA`, unset, so the real home). The CLI never saw the Viewer's `viewer.json`: that is the 73 tests that timed out at 5 s, traced, not slowed. On a real Windows host the CLI (`system.platform`) and the Viewer (`process.platform`) agree.
+- Decision: `tempDir()` in the ui-cli and ui-viewer test helpers (and the store test's `temp()`) returns `realpathSync(mkdtempSync(...))`. A `stateHome(dir = tempDir())` helper gives `XDG_STATE_HOME` and `LOCALAPPDATA` the same directory, and replaces every bare `XDG_STATE_HOME:` in test environments; the e2e harness, `cli-show` and `orca-chat` specs set both too. A fake Linux system that looks up fake `/bin` paths joins them with `posix.join`; expectations about real paths are built with the host `join`.
+- Alternatives: `fakeSystem` defaulting to the host platform (every test written for Linux behavior, such as WSL detection or bare `orca`, would change meaning on Windows); a `platform` option on `startViewer` (a product API only tests would use).
+
+## VD-205 — The all-fields sweep is one test per component (supersedes VD-199's timeout)
+- Date: 2026-11-17 · Task: 25
+- Context: the 31 320-case sweep of `unchecked.test.ts` ran as one test: about 23 s alone on WSL, and over 180 s under coverage on the `gate` runner, past VD-199's timeout.
+- Decision: the cases are built once and grouped by component, and by `kind` for charts (34 groups). Each group is its own test with a 60 s hang guard and asserts that it rendered all of its cases with no problem; one more test holds the total above 25 000. The same cases render the same way, batched within a group. The largest group takes 3.5 s alone on WSL.
+- Alternatives: a longer timeout again (the guard would stop meaning anything); fewer stand-ins or samples (drops coverage).
+
+## VD-206 — The contract runner names an error that has no message
+- Date: 2026-11-17 · Task: 25
+- Context: on the `gate` runner, Node 22 resolves `localhost` to `::1` and `127.0.0.1` and, refused on both, rejects with an `AggregateError` whose `message` is empty. `runContract` reported `error: ''`, so a user of `vui viewer contract` against a stopped server learned nothing. WSL resolves one address, so the local gate never saw it.
+- Decision: `describeError` (exported from `ui-viewer/src/contract.ts`) gives the message, else the error `code`, else the inner errors' descriptions joined by `; `, else the error's name. Unit-tested with constructed errors; the integration test is unchanged.
+- Alternatives: loosening the test's pattern (hides the product gap); forcing `127.0.0.1` in the target (the user's URL may say `localhost`).
