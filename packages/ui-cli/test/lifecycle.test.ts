@@ -12,7 +12,7 @@ import { type AddressInfo, createServer as createNetServer, type Socket } from '
 import { join } from 'node:path'
 import { readViewerInfo, stateDirOf, updateViewerInfo, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
-import { NO_POSIX_MODES } from '../../ui-viewer/test/platform.js'
+import { NO_POSIX_MODES, NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import type { CliError } from '../src/outcome.js'
 import type { SpawnedViewer, System } from '../src/system.js'
 import { ensureViewer, findViewer, placeOf, stopViewer, tryLock } from '../src/viewer/lifecycle.js'
@@ -172,7 +172,7 @@ describe('ensureViewer', () => {
     expect(error).toMatchObject({ exit: 4, code: 'no-host' })
   })
 
-  it('exits 5 when the state directory cannot be written', async () => {
+  it.skipIf(NO_READONLY_DIRS)('exits 5 when the state directory cannot be written', async () => {
     const root = tempDir()
     chmodSync(root, 0o500)
     const workspace = tempDir()

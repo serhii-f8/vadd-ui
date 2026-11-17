@@ -110,7 +110,9 @@ describe('describeError', () => {
         code: 'ECONNREFUSED',
       },
     )
-    expect(describeError(error)).toMatch(/ECONNREFUSED/)
+    expect(describeError(error)).toBe(
+      'ECONNREFUSED (connect ECONNREFUSED ::1:9; connect ECONNREFUSED 127.0.0.1:9)',
+    )
   })
 
   it('names the inner errors when the AggregateError has no code', () => {

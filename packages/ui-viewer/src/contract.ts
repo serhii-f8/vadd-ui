@@ -492,12 +492,13 @@ export function describeError(error: unknown): string {
   if (!(error instanceof Error)) return String(error)
   if (error.message !== '') return error.message
   const { code } = error as NodeJS.ErrnoException
-  if (typeof code === 'string' && code !== '') return code
-  if (error instanceof AggregateError) {
-    const inner = error.errors.map(describeError).filter((text) => text !== '')
-    if (inner.length > 0) return inner.join('; ')
-  }
-  return error.name
+  const named = typeof code === 'string' && code !== '' ? code : undefined
+  const inner =
+    error instanceof AggregateError
+      ? error.errors.map(describeError).filter(Boolean).join('; ')
+      : ''
+  if (named !== undefined) return inner === '' ? named : `${named} (${inner})`
+  return inner || error.name
 }
 
 /** Every case, in order; one failure does not stop the rest. Never throws. */

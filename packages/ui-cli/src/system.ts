@@ -56,14 +56,23 @@ export function viewerEntry(): string {
   return require.resolve('@vadd/ui-viewer/viewer.js')
 }
 
+/**
+ * Windows' command interpreter by its full path, as Node's own `shell: true` finds it: a bare
+ * `cmd.exe` is looked up on `PATH`, which need not hold System32.
+ */
+export function windowsShell(env: NodeJS.ProcessEnv): string {
+  return env.ComSpec || 'cmd.exe'
+}
+
 /** Node refuses to spawn a batch file directly, and Orca's Windows launcher can be one. */
 export function commandLine(
   file: string,
   args: readonly string[],
   platform: NodeJS.Platform,
+  env: NodeJS.ProcessEnv = {},
 ): [string, string[]] {
   if (platform === 'win32' && BATCH_FILE.test(file)) {
-    return ['cmd.exe', ['/d', '/c', file, ...args]]
+    return [windowsShell(env), ['/d', '/c', file, ...args]]
   }
   return [file, [...args]]
 }
@@ -73,7 +82,7 @@ function exec(
   args: readonly string[],
   options: { timeoutMs?: number } = {},
 ): Promise<ExecResult> {
-  const [command, argv] = commandLine(file, args, process.platform)
+  const [command, argv] = commandLine(file, args, process.platform, process.env)
   return new Promise((resolve) => {
     const child = spawn(command, argv, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
     let stdout = ''

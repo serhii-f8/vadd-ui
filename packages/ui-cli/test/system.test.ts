@@ -98,4 +98,13 @@ describe('commandLine', () => {
       ['/d', '/c', 'C:\\o\\orca.cmd', 'a'],
     ])
   })
+
+  // As Node's own `shell: true` does: a PATH without System32 must not lose cmd (task 25).
+  it('takes cmd from ComSpec, by its full path', () => {
+    const env = { ComSpec: 'C:\\Windows\\system32\\cmd.exe' }
+    expect(commandLine('C:\\o\\orca.cmd', ['a'], 'win32', env)).toEqual([
+      'C:\\Windows\\system32\\cmd.exe',
+      ['/d', '/c', 'C:\\o\\orca.cmd', 'a'],
+    ])
+  })
 })

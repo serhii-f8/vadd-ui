@@ -70,7 +70,8 @@ export async function launchViewer(options: LaunchOptions = {}): Promise<LiveVie
   ) as ViewerFile
   const stop = () =>
     new Promise<void>((resolve) => {
-      if (child.exitCode !== null) resolve()
+      // Gone already, by an exit or a signal (Windows ends it at once on SIGTERM).
+      if (child.exitCode !== null || child.signalCode !== null) resolve()
       child.once('exit', () => resolve())
       child.kill('SIGTERM')
     })
