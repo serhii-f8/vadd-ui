@@ -5,7 +5,15 @@ import { join } from 'node:path'
 import { readViewerInfo, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { System } from '../src/system.js'
-import { type FakeSystem, fakeSystem, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
+import {
+  type FakeSystem,
+  fakeSystem,
+  stateHome,
+  tempDir,
+  ViewerFarm,
+  vui,
+  vuiJson,
+} from './helpers.js'
 
 const DOC = '{"title":"Test run","body":["hello"]}'
 const OPEN = /^vui: open http:\/\/localhost:\d+\/v\/[0-9a-f]{32}\/$/
@@ -50,7 +58,7 @@ function tabs(...list: { browserPageId: string; url: string }[]): FakeReply {
 
 function setup(options: { orca?: OrcaScript; env?: NodeJS.ProcessEnv } = {}): Fixture {
   const workspace = tempDir()
-  const env: NodeJS.ProcessEnv = { XDG_STATE_HOME: tempDir(), ...options.env }
+  const env: NodeJS.ProcessEnv = { ...stateHome(), ...options.env }
   const calls: string[][] = []
   const script = options.orca
   const fake: FakeSystem = { cwd: workspace }
@@ -265,7 +273,7 @@ describe('no usable host', () => {
   it('exits 5 when the state directory cannot be made', async () => {
     const file = join(tempDir(), 'file')
     writeFileSync(file, '')
-    const system = fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: file } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome(file) } })
     expect((await vui(['show'], { stdin: DOC, system })).exit).toBe(5)
   })
 })
@@ -603,7 +611,7 @@ function json(res: ServerResponse, status: number, value: unknown): void {
 }
 
 const custom = (url: string, token?: string) => {
-  const env: NodeJS.ProcessEnv = { VUI_VIEWER_URL: url, XDG_STATE_HOME: tempDir() }
+  const env: NodeJS.ProcessEnv = { VUI_VIEWER_URL: url, ...stateHome() }
   if (token !== undefined) env.VUI_VIEWER_TOKEN = token
   return fakeSystem({ env, cwd: tempDir() })
 }

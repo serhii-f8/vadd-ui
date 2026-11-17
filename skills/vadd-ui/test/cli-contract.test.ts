@@ -1,6 +1,12 @@
 import { parseDirectiveLine } from '@vadd/ui-spec/host/orca'
 import { afterEach, describe, expect, it } from 'vitest'
-import { fakeSystem, tempDir, ViewerFarm, vui } from '../../../packages/ui-cli/test/helpers.js'
+import {
+  fakeSystem,
+  stateHome,
+  tempDir,
+  ViewerFarm,
+  vui,
+} from '../../../packages/ui-cli/test/helpers.js'
 import { heredocs, readSkill } from './helpers.js'
 
 const example = heredocs(readSkill())[0] ?? ''
@@ -25,7 +31,7 @@ describe('the outcomes the skill describes', () => {
   })
 
   it('prints `vui: shown` and then `vui: open <url>` for the example on a Viewer', async () => {
-    const farm = new ViewerFarm({ XDG_STATE_HOME: tempDir() })
+    const farm = new ViewerFarm({ ...stateHome() })
     farms.push(farm)
     const system = farm.system({ cwd: tempDir() })
     const { exit, stdout } = await vui(TITLE, { stdin: example, system })

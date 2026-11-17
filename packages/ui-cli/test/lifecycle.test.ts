@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { CliError } from '../src/outcome.js'
 import type { SpawnedViewer, System } from '../src/system.js'
 import { ensureViewer, findViewer, placeOf, stopViewer, tryLock } from '../src/viewer/lifecycle.js'
-import { fakeSystem, tempDir, ViewerFarm } from './helpers.js'
+import { fakeSystem, stateHome, tempDir, ViewerFarm } from './helpers.js'
 
 let farm: ViewerFarm | undefined
 
@@ -26,7 +26,7 @@ afterEach(async () => {
 
 function setup(): { farm: ViewerFarm; system: System; dir: string; workspace: string } {
   const workspace = tempDir()
-  const env = { XDG_STATE_HOME: tempDir() }
+  const env = { ...stateHome() }
   farm = new ViewerFarm(env)
   const system = farm.system({ cwd: workspace })
   return { farm, system, workspace, dir: stateDirOf(workspaceHash(workspace), env) }
@@ -175,7 +175,7 @@ describe('ensureViewer', () => {
     const root = tempDir()
     chmodSync(root, 0o500)
     const workspace = tempDir()
-    const system = fakeSystem({ cwd: workspace, env: { XDG_STATE_HOME: root } })
+    const system = fakeSystem({ cwd: workspace, env: { ...stateHome(root) } })
     const error = await ensureViewer(system).catch((reason) => reason)
     chmodSync(root, 0o700)
     expect(error).toMatchObject({ exit: 5, code: 'io' })

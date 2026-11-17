@@ -1,4 +1,4 @@
-import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
@@ -163,8 +163,18 @@ export async function vuiJson(
   return { exit, json }
 }
 
+/** Real, since `workspaceOf` is: on macOS `tmpdir()` is under the `/var` → `/private/var` link. */
 export function tempDir(): string {
-  return mkdtempSync(join(tmpdir(), 'vui-test-'))
+  return realpathSync(mkdtempSync(join(tmpdir(), 'vui-test-')))
+}
+
+/**
+ * The state root for both platforms' rules (§4.1): Windows reads `LOCALAPPDATA`, the rest
+ * `XDG_STATE_HOME`. A test that simulates Linux on a Windows host, or runs a real Viewer there,
+ * finds the same directory either way.
+ */
+export function stateHome(dir = tempDir()): { XDG_STATE_HOME: string; LOCALAPPDATA: string } {
+  return { XDG_STATE_HOME: dir, LOCALAPPDATA: dir }
 }
 
 export function tempFile(name: string, content: string | Buffer): string {

@@ -20,7 +20,7 @@ import {
   ViewerStartError,
   viewerState,
 } from '../src/server.js'
-import { freePort, request, tempDir } from './helpers.js'
+import { freePort, request, stateHome, tempDir } from './helpers.js'
 
 const running = new Set<RunningViewer>()
 const blockers = new Set<Server>()
@@ -32,7 +32,7 @@ interface Fixture extends StartOptions {
 }
 
 function fixture(): Fixture {
-  const env = { XDG_STATE_HOME: tempDir() }
+  const env = { ...stateHome() }
   const workspace = tempDir()
   return { workspace, env, dir: stateDirOf(workspaceHash(workspace), env), ports: [0] }
 }
@@ -374,7 +374,7 @@ describe('idle exit', () => {
 describe('liveViewer', () => {
   it('finds the running Viewer of this workspace', async () => {
     const workspace = tempDir()
-    const env = { XDG_STATE_HOME: tempDir(), VUI_PORT: String(await freePort()) }
+    const env = { ...stateHome(), VUI_PORT: String(await freePort()) }
     const viewer = await startViewer({ workspace, env })
     const hash = workspaceHash(workspace)
     expect((await liveViewer(viewer.stateDir, hash))?.port).toBe(viewer.port)

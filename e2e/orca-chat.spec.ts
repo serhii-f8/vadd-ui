@@ -82,7 +82,8 @@ function env(dir: string, extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   const entries = Object.entries(process.env).filter(
     ([name]) => !name.startsWith('ORCA_') && !name.startsWith('VUI_'),
   )
-  return { ...Object.fromEntries(entries), XDG_STATE_HOME: join(dir, 'state'), ...extra }
+  const state = join(dir, 'state')
+  return { ...Object.fromEntries(entries), XDG_STATE_HOME: state, LOCALAPPDATA: state, ...extra }
 }
 
 function vui(cwd: string, argv: string[], environment: NodeJS.ProcessEnv, input = '') {

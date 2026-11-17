@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   utimesSync,
@@ -50,7 +51,7 @@ afterEach(() => {
 })
 
 function temp(): string {
-  return mkdtempSync(join(tmpdir(), 'vui-store-'))
+  return realpathSync(mkdtempSync(join(tmpdir(), 'vui-store-')))
 }
 
 function doc(title?: unknown, extra: object = {}): VuiDocument {

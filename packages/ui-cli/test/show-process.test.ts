@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
-import { tempDir } from './helpers.js'
+import { stateHome, tempDir } from './helpers.js'
 
 // The real `dist/bin.js` and a real detached Viewer, which `pnpm gate` builds first.
 
@@ -27,7 +27,7 @@ function cleanEnv(extra: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 
 function workspace(extra: NodeJS.ProcessEnv = {}): Workspace {
   const cwd = tempDir()
-  const env = cleanEnv({ XDG_STATE_HOME: tempDir(), ...extra })
+  const env = cleanEnv({ ...stateHome(), ...extra })
   const place = { cwd, env, dir: stateDirOf(workspaceHash(cwd), env) }
   open.add(place)
   return place

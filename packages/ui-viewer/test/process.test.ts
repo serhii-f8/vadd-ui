@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { stateDirOf, workspaceHash } from '../src/paths.js'
-import { freePort, request, tempDir } from './helpers.js'
+import { freePort, request, stateHome, tempDir } from './helpers.js'
 
 // The real `dist/viewer.js`, which `pnpm gate` builds first, in a real process.
 
@@ -37,7 +37,7 @@ describe('dist/viewer.js', () => {
   it('serves, warns on 0.0.0.0, and exits 0 on SIGTERM', async () => {
     const cwd = tempDir()
     const port = await freePort()
-    const env = { XDG_STATE_HOME: tempDir(), VUI_PORT: String(port) }
+    const env = { ...stateHome(), VUI_PORT: String(port) }
     const viewer = launch(['--bind', '0.0.0.0'], env, cwd)
     await viewer.ready
     expect(viewer.stderr()).toMatch(/warning.*0\.0\.0\.0/)
@@ -50,7 +50,7 @@ describe('dist/viewer.js', () => {
   })
 
   it('exits 1 with one line when it cannot start', async () => {
-    const viewer = launch(['--bind', '10.0.0.1'], { XDG_STATE_HOME: tempDir() }, tempDir())
+    const viewer = launch(['--bind', '10.0.0.1'], { ...stateHome() }, tempDir())
     expect(await viewer.exited).toBe(1)
     expect(viewer.stderr().trim().split('\n')).toHaveLength(1)
   })

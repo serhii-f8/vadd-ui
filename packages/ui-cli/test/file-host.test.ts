@@ -19,6 +19,7 @@ import {
   BUNDLE,
   type FakeSystem,
   fakeSystem,
+  stateHome,
   tempDir,
   ViewerFarm,
   vui,
@@ -57,7 +58,7 @@ afterEach(async () => {
 function system(env: NodeJS.ProcessEnv = {}, fake: FakeSystem = {}): System {
   return fakeSystem({
     cwd: tempDir(),
-    env: { XDG_STATE_HOME: tempDir(), ...env },
+    env: { ...stateHome(), ...env },
     ...fake,
   })
 }
@@ -327,7 +328,7 @@ describe('auto with a folder it cannot use', () => {
     ],
   ])('goes to the Viewer: %s', async (_name, make) => {
     const workspace = tempDir()
-    const env = { XDG_STATE_HOME: tempDir(), ORCA_CHAT_SCRATCH_DIR: make() }
+    const env = { ...stateHome(), ORCA_CHAT_SCRATCH_DIR: make() }
     farm = new ViewerFarm(env)
     const { exit, stdout } = await vui(['show'], {
       stdin: DOC,
@@ -592,7 +593,7 @@ describe('the post to a running Viewer', () => {
     const workspace = tempDir()
     mkdirSync(join(workspace, '.git'))
     writeFileSync(join(workspace, '.git', 'HEAD'), 'ref: refs/heads/feature\n')
-    const env = { XDG_STATE_HOME: tempDir() }
+    const env = { ...stateHome() }
     farm = new ViewerFarm(env)
     return { workspace, stateDir: stateDirOf(workspaceHash(workspace), env), running: farm }
   }

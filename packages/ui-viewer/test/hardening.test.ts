@@ -6,7 +6,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { stateDirOf, workspaceHash } from '../src/paths.js'
 import { type RunningViewer, type StartOptions, startViewer } from '../src/server.js'
 import { MAX_CLIENTS } from '../src/sse.js'
-import { openStream, type Reply, type RequestOptions, request, tempDir } from './helpers.js'
+import {
+  openStream,
+  type Reply,
+  type RequestOptions,
+  request,
+  stateHome,
+  tempDir,
+} from './helpers.js'
 
 // §15.3, one `describe` per row, each against a whole started Viewer.
 
@@ -20,7 +27,7 @@ afterEach(async () => {
 async function start(options: Partial<StartOptions> = {}): Promise<RunningViewer> {
   const viewer = await startViewer({
     workspace: tempDir(),
-    env: { XDG_STATE_HOME: tempDir() },
+    env: { ...stateHome() },
     ports: [0],
     ...options,
   })
@@ -80,7 +87,7 @@ describe('§15.3 Unauthorized readers', () => {
 
 describe('§15.3 Unauthorized writers', () => {
   it('needs the separate write token, which only viewer.json holds', async () => {
-    const env = { XDG_STATE_HOME: tempDir() }
+    const env = { ...stateHome() }
     const workspace = tempDir()
     const viewer = await start({ env, workspace })
     expect(viewer.writeToken).toHaveLength(32)
@@ -232,7 +239,7 @@ describe('§15.3 Lifetime', () => {
   })
 
   it('rotates tokens on every start, so old URLs stop working', async () => {
-    const env = { XDG_STATE_HOME: tempDir() }
+    const env = { ...stateHome() }
     const workspace = tempDir()
     const first = await start({ env, workspace })
     await first.close()

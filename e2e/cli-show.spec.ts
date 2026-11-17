@@ -51,6 +51,7 @@ console.log(JSON.stringify({ ok: true, result }))
     ...Object.fromEntries(entries),
     PATH: dirname(process.execPath),
     XDG_STATE_HOME: join(dir, 'state'),
+    LOCALAPPDATA: join(dir, 'state'),
     ...(orca ? { ORCA_CLI_COMMAND: stub } : {}),
   }
   const place = { cwd: dir, env, calls, tabs }
