@@ -4,8 +4,17 @@ import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { readViewerInfo, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import type { System } from '../src/system.js'
-import { type FakeSystem, fakeSystem, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
+import {
+  type FakeSystem,
+  fakeSystem,
+  stateHome,
+  tempDir,
+  ViewerFarm,
+  vui,
+  vuiJson,
+} from './helpers.js'
 
 const DOC = '{"title":"Test run","body":["hello"]}'
 const OPEN = /^vui: open http:\/\/localhost:\d+\/v\/[0-9a-f]{32}\/$/
@@ -50,7 +59,7 @@ function tabs(...list: { browserPageId: string; url: string }[]): FakeReply {
 
 function setup(options: { orca?: OrcaScript; env?: NodeJS.ProcessEnv } = {}): Fixture {
   const workspace = tempDir()
-  const env: NodeJS.ProcessEnv = { XDG_STATE_HOME: tempDir(), ...options.env }
+  const env: NodeJS.ProcessEnv = { ...stateHome(), ...options.env }
   const calls: string[][] = []
   const script = options.orca
   const fake: FakeSystem = { cwd: workspace }
@@ -265,7 +274,7 @@ describe('no usable host', () => {
   it('exits 5 when the state directory cannot be made', async () => {
     const file = join(tempDir(), 'file')
     writeFileSync(file, '')
-    const system = fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: file } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome(file) } })
     expect((await vui(['show'], { stdin: DOC, system })).exit).toBe(5)
   })
 })
@@ -293,40 +302,46 @@ describe('a Viewer that dies under a show', () => {
 })
 
 describe('a failure after the document is stored', () => {
-  it('is a warning, with no pane, since a retry would store it twice', async () => {
-    const fixture = setup({ orca: {} })
-    await vui(['viewer', 'start'], { system: fixture.system })
-    chmodSync(fixture.dir, 0o500)
-    const { exit, stdout, stderr } = await show(fixture)
-    chmodSync(fixture.dir, 0o700)
-    expect(exit).toBe(0)
-    expect(stdout.split('\n')[0]).toBe('vui: shown "Test run" (#1) in viewer')
-    expect(stderr).toMatch(/^vui: warning: Orca did not open a pane \(state-not-writable\)\n$/)
-  })
+  it.skipIf(NO_READONLY_DIRS)(
+    'is a warning, with no pane, since a retry would store it twice',
+    async () => {
+      const fixture = setup({ orca: {} })
+      await vui(['viewer', 'start'], { system: fixture.system })
+      chmodSync(fixture.dir, 0o500)
+      const { exit, stdout, stderr } = await show(fixture)
+      chmodSync(fixture.dir, 0o700)
+      expect(exit).toBe(0)
+      expect(stdout.split('\n')[0]).toBe('vui: shown "Test run" (#1) in viewer')
+      expect(stderr).toMatch(/^vui: warning: Orca did not open a pane \(state-not-writable\)\n$/)
+    },
+  )
 
   // VD-163: the pane exists once `tab create` answered, whatever happens to the record of it.
-  it('is a warning about the record, not a failed pane, when the id cannot be saved', async () => {
-    let fixture: Fixture | undefined
-    fixture = setup({
-      orca: {
-        create: () => {
-          chmodSync((fixture as Fixture).dir, 0o500)
-          return created()
+  it.skipIf(NO_READONLY_DIRS)(
+    'is a warning about the record, not a failed pane, when the id cannot be saved',
+    async () => {
+      let fixture: Fixture | undefined
+      fixture = setup({
+        orca: {
+          create: () => {
+            chmodSync((fixture as Fixture).dir, 0o500)
+            return created()
+          },
         },
-      },
-    })
-    await vui(['viewer', 'start'], { system: fixture.system })
-    const { exit, stdout, stderr } = await show(fixture)
-    chmodSync(fixture.dir, 0o700)
-    expect(exit).toBe(0)
-    expect(stdout).toBe('vui: shown "Test run" (#1) in viewer\n')
-    expect(stderr).toBe(
-      'vui: warning: the Orca pane opened but could not be remembered; the next show may open another\n',
-    )
-    expect(readViewerInfo(fixture.dir)?.browserPageId).toBeUndefined()
-  })
+      })
+      await vui(['viewer', 'start'], { system: fixture.system })
+      const { exit, stdout, stderr } = await show(fixture)
+      chmodSync(fixture.dir, 0o700)
+      expect(exit).toBe(0)
+      expect(stdout).toBe('vui: shown "Test run" (#1) in viewer\n')
+      expect(stderr).toBe(
+        'vui: warning: the Orca pane opened but could not be remembered; the next show may open another\n',
+      )
+      expect(readViewerInfo(fixture.dir)?.browserPageId).toBeUndefined()
+    },
+  )
 
-  it('reports that pane as opened under --json', async () => {
+  it.skipIf(NO_READONLY_DIRS)('reports that pane as opened under --json', async () => {
     let fixture: Fixture | undefined
     fixture = setup({
       orca: {
@@ -343,7 +358,7 @@ describe('a failure after the document is stored', () => {
     expect(json).not.toHaveProperty('paneFailure')
   })
 
-  it('still prints the URL without Orca', async () => {
+  it.skipIf(NO_READONLY_DIRS)('still prints the URL without Orca', async () => {
     const fixture = setup()
     await vui(['viewer', 'start'], { system: fixture.system })
     chmodSync(fixture.dir, 0o500)
@@ -603,7 +618,7 @@ function json(res: ServerResponse, status: number, value: unknown): void {
 }
 
 const custom = (url: string, token?: string) => {
-  const env: NodeJS.ProcessEnv = { VUI_VIEWER_URL: url, XDG_STATE_HOME: tempDir() }
+  const env: NodeJS.ProcessEnv = { VUI_VIEWER_URL: url, ...stateHome() }
   if (token !== undefined) env.VUI_VIEWER_TOKEN = token
   return fakeSystem({ env, cwd: tempDir() })
 }

@@ -11,11 +11,12 @@ const check = (root: string) => run(script, '--root', root)
 function compileProbe(config: 'browser' | 'node'): string {
   const outDir = mkdtempSync(join(tmpdir(), 'vui-probe-'))
   const project = `${repoRoot}scripts/test/fixtures/target-probe/${config}`
-  const result = spawnSync(
-    `${repoRoot}node_modules/.bin/tsc`,
-    ['-p', project, '--outDir', outDir],
-    { encoding: 'utf8' },
-  )
+  // Node on TypeScript's own entry: `.bin/tsc` is a shell script, and `tsc.cmd` on Windows,
+  // which spawnSync cannot run without a shell.
+  const tsc = `${repoRoot}node_modules/typescript/bin/tsc`
+  const result = spawnSync(process.execPath, [tsc, '-p', project, '--outDir', outDir], {
+    encoding: 'utf8',
+  })
   expect(result.stdout).toBe('')
   return readFileSync(join(outDir, 'probe.js'), 'utf8')
 }

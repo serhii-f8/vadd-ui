@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ExecResult, System } from '../src/system.js'
-import { fakeSystem, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
+import { fakeSystem, stateHome, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
 
 let farm: ViewerFarm | undefined
 
@@ -12,7 +12,7 @@ afterEach(async () => {
 })
 
 function setup(exec?: (file: string) => Partial<ExecResult>): System {
-  farm = new ViewerFarm({ XDG_STATE_HOME: tempDir() })
+  farm = new ViewerFarm({ ...stateHome() })
   return farm.system({ cwd: tempDir(), ...(exec ? { exec } : {}) })
 }
 

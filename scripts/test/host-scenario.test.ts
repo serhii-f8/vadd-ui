@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   estimateOffset,
@@ -123,7 +124,7 @@ describe('workspaceEnv', () => {
 
   it('isolates state and drops VUI_ variables', () => {
     const env = workspaceEnv(base, '/tmp/w', 'orca')
-    expect(env.XDG_STATE_HOME).toBe('/tmp/w/state')
+    expect(env.XDG_STATE_HOME).toBe(join('/tmp/w', 'state'))
     expect(env.VUI_PORT).toBeUndefined()
     expect(env.ORCA_CLI_COMMAND).toBe('orca-ide')
   })
@@ -134,6 +135,7 @@ describe('workspaceEnv', () => {
       '/tmp/w',
       'browser',
       (dir: string) => dir === '/opt/orca-ide/bin',
+      ':',
     )
     expect(Object.keys(env).filter((name) => name.startsWith('ORCA_'))).toEqual([])
     expect(env.PATH).toBe('/usr/bin:/home/u/.local/bin')

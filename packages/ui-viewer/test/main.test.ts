@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { runViewer } from '../src/main.js'
 import { stateDirOf, workspaceHash } from '../src/paths.js'
 import type { RunningViewer } from '../src/server.js'
-import { freePort, tempDir } from './helpers.js'
+import { freePort, stateHome, tempDir } from './helpers.js'
 
 let viewer: RunningViewer | undefined
 
@@ -16,7 +16,7 @@ afterEach(async () => {
 
 async function deps(warn = vi.fn()) {
   const VUI_PORT = String(await freePort())
-  return { cwd: tempDir(), env: { XDG_STATE_HOME: tempDir(), VUI_PORT }, warn }
+  return { cwd: tempDir(), env: { ...stateHome(), VUI_PORT }, warn }
 }
 
 describe('runViewer', () => {

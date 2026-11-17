@@ -57,6 +57,14 @@ describe('openBrowser (§4.1)', () => {
     expect(tried).toEqual([command])
   })
 
+  it('runs start through ComSpec on Windows', async () => {
+    const shell = 'C:\\Windows\\system32\\cmd.exe'
+    const { exec, tried } = chain({ [shell]: { ok: true } })
+    const system = fakeSystem({ platform: 'win32', env: { ComSpec: shell }, exec })
+    expect(await openBrowser(system, URL_)).toBe(shell)
+    expect(tried).toEqual([[shell, '/d', '/c', 'start', '""', URL_]])
+  })
+
   it('opens nothing over SSH', async () => {
     const { exec, tried } = chain({})
     const env = { SSH_CONNECTION: 'a b c d' }

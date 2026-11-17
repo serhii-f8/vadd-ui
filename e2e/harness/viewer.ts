@@ -47,7 +47,8 @@ export function freePort(): Promise<number> {
 export async function launchViewer(options: LaunchOptions = {}): Promise<LiveViewer> {
   const state = options.state ?? mkdtempSync(join(tmpdir(), 'vui-e2e-state-'))
   const cwd = options.cwd ?? mkdtempSync(join(tmpdir(), 'vui-e2e-work-'))
-  const env: NodeJS.ProcessEnv = { ...process.env, XDG_STATE_HOME: state }
+  // Windows reads LOCALAPPDATA where the rest read XDG_STATE_HOME (§4.1).
+  const env: NodeJS.ProcessEnv = { ...process.env, XDG_STATE_HOME: state, LOCALAPPDATA: state }
   if (options.port === undefined) delete env.VUI_PORT
   else env.VUI_PORT = String(options.port)
   const child = spawn(process.execPath, [ENTRY], {
@@ -69,7 +70,8 @@ export async function launchViewer(options: LaunchOptions = {}): Promise<LiveVie
   ) as ViewerFile
   const stop = () =>
     new Promise<void>((resolve) => {
-      if (child.exitCode !== null) resolve()
+      // Gone already, by an exit or a signal (Windows ends it at once on SIGTERM).
+      if (child.exitCode !== null || child.signalCode !== null) resolve()
       child.once('exit', () => resolve())
       child.kill('SIGTERM')
     })

@@ -12,10 +12,11 @@ import { type AddressInfo, createServer as createNetServer, type Socket } from '
 import { join } from 'node:path'
 import { readViewerInfo, stateDirOf, updateViewerInfo, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NO_POSIX_MODES, NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import type { CliError } from '../src/outcome.js'
 import type { SpawnedViewer, System } from '../src/system.js'
 import { ensureViewer, findViewer, placeOf, stopViewer, tryLock } from '../src/viewer/lifecycle.js'
-import { fakeSystem, tempDir, ViewerFarm } from './helpers.js'
+import { fakeSystem, stateHome, tempDir, ViewerFarm } from './helpers.js'
 
 let farm: ViewerFarm | undefined
 
@@ -26,7 +27,7 @@ afterEach(async () => {
 
 function setup(): { farm: ViewerFarm; system: System; dir: string; workspace: string } {
   const workspace = tempDir()
-  const env = { XDG_STATE_HOME: tempDir() }
+  const env = { ...stateHome() }
   farm = new ViewerFarm(env)
   const system = farm.system({ cwd: workspace })
   return { farm, system, workspace, dir: stateDirOf(workspaceHash(workspace), env) }
@@ -80,7 +81,7 @@ describe('ensureViewer', () => {
     expect(seen[0]?.slice(1)).toEqual(['--workspace', workspace, '--bind', '127.0.0.1'])
   })
 
-  it('gives the log 0600 in a 0700 directory', async () => {
+  it.skipIf(NO_POSIX_MODES)('gives the log 0600 in a 0700 directory', async () => {
     const { system, dir } = setup()
     await ensureViewer(system)
     expect(statSync(join(dir, 'viewer.log')).mode & 0o777).toBe(0o600)
@@ -171,11 +172,11 @@ describe('ensureViewer', () => {
     expect(error).toMatchObject({ exit: 4, code: 'no-host' })
   })
 
-  it('exits 5 when the state directory cannot be written', async () => {
+  it.skipIf(NO_READONLY_DIRS)('exits 5 when the state directory cannot be written', async () => {
     const root = tempDir()
     chmodSync(root, 0o500)
     const workspace = tempDir()
-    const system = fakeSystem({ cwd: workspace, env: { XDG_STATE_HOME: root } })
+    const system = fakeSystem({ cwd: workspace, env: { ...stateHome(root) } })
     const error = await ensureViewer(system).catch((reason) => reason)
     chmodSync(root, 0o700)
     expect(error).toMatchObject({ exit: 5, code: 'io' })

@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, realpathSync } from 'node:fs'
 import { createServer, request as httpRequest, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -32,8 +32,18 @@ export async function freePort(): Promise<number> {
   }
 }
 
+/** Real, since `workspaceOf` is: on macOS `tmpdir()` is under the `/var` → `/private/var` link. */
 export function tempDir(): string {
-  return mkdtempSync(join(tmpdir(), 'vui-viewer-'))
+  return realpathSync(mkdtempSync(join(tmpdir(), 'vui-viewer-')))
+}
+
+/**
+ * The state root for both platforms' rules (§4.1): Windows reads `LOCALAPPDATA`, the rest
+ * `XDG_STATE_HOME`. A test that simulates Linux on a Windows host, or runs a real Viewer there,
+ * finds the same directory either way.
+ */
+export function stateHome(dir = tempDir()): { XDG_STATE_HOME: string; LOCALAPPDATA: string } {
+  return { XDG_STATE_HOME: dir, LOCALAPPDATA: dir }
 }
 
 export interface Reply {

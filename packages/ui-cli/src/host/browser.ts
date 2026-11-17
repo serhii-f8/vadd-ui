@@ -1,5 +1,5 @@
 import { detectEnvironment } from '../environment.js'
-import type { System } from '../system.js'
+import { type System, windowsShell } from '../system.js'
 
 type Launch = [file: string, ...args: string[]]
 
@@ -19,7 +19,9 @@ function launches(system: System, url: string): Launch[] {
     ]
   }
   if (system.platform === 'darwin') return [['open', url]]
-  if (system.platform === 'win32') return [['cmd.exe', '/d', '/c', 'start', '""', url]]
+  if (system.platform === 'win32') {
+    return [[windowsShell(system.env), '/d', '/c', 'start', '""', url]]
+  }
   return [['xdg-open', url]]
 }
 

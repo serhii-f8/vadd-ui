@@ -169,11 +169,12 @@ describe('vui bench (§11.1, §14)', () => {
 describe('the skill file', () => {
   it('is looked up in the repo, then the project, then the user', () => {
     const list = skillCandidates('/work', '/home/u')
+    // By the host's path rules: these are real paths the bench reads.
     expect(list.slice(1)).toEqual([
-      '/work/.claude/skills/vadd-ui/SKILL.md',
-      '/home/u/.claude/skills/vadd-ui/SKILL.md',
+      join('/work', '.claude/skills/vadd-ui/SKILL.md'),
+      join('/home/u', '.claude/skills/vadd-ui/SKILL.md'),
     ])
-    expect(list[0]).toMatch(/skills\/vadd-ui\/SKILL\.md$/)
+    expect(list[0]).toMatch(/skills[\\/]vadd-ui[\\/]SKILL\.md$/)
   })
 
   it('is reported as not measured when there is none', async () => {

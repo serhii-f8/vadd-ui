@@ -1,11 +1,12 @@
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
 import type { ExecResult, System } from '../src/system.js'
-import { fakeSystem, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
+import { fakeSystem, stateHome, tempDir, ViewerFarm, vui, vuiJson } from './helpers.js'
 
 interface Check {
   name: string
@@ -34,7 +35,7 @@ const POWERSHELL_PATH = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershe
 function wsl(mode: string, reach: Partial<ExecResult>, env: NodeJS.ProcessEnv = {}): System {
   return fakeSystem({
     cwd: tempDir(),
-    env: { ...WSL, XDG_STATE_HOME: tempDir(), ...env },
+    env: { ...WSL, ...stateHome(), ...env },
     exec: (file) => {
       if (file === 'wslinfo') return { ok: true, stdout: `${mode}\n` }
       if (file === 'powershell.exe') return reach
@@ -45,7 +46,7 @@ function wsl(mode: string, reach: Partial<ExecResult>, env: NodeJS.ProcessEnv = 
 
 describe('vui doctor', () => {
   it('reports every §11.1 check on a plain machine, with no failure', async () => {
-    const system = fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: tempDir() } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome() } })
     const { exit, list } = await checks(system)
     expect(exit).toBe(0)
     expect(list.map(({ name }) => name)).toEqual([
@@ -61,7 +62,7 @@ describe('vui doctor', () => {
   it('prints one line per check, and a fix under a failure', async () => {
     const file = join(tempDir(), 'file')
     writeFileSync(file, '')
-    const system = fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: file } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome(file) } })
     const { exit, stdout } = await vui(['doctor'], { system })
     expect(exit).toBe(4)
     expect(stdout).toMatch(/^ok {3}node: /m)
@@ -81,35 +82,36 @@ describe('vui doctor', () => {
     ['ssh', { SSH_CONNECTION: 'a b c d' }, 'ssh -L'],
     ['wsl', WSL, 'Ubuntu-22.04'],
   ])('names the %s environment', async (kind, env, text) => {
-    const system = fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: tempDir(), ...env } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome(), ...env } })
     const { of } = await checks(system)
     expect(of('environment').detail).toContain(kind)
     expect(of('environment').detail).toContain(text)
   })
 
   it('tells a container to publish the port', async () => {
-    const env = { XDG_STATE_HOME: tempDir() }
+    const env = { ...stateHome() }
     const system = fakeSystem({ cwd: tempDir(), env, files: { '/.dockerenv': '' } })
     expect((await checks(system)).of('environment').detail).toContain('--bind 0.0.0.0')
   })
 
   it('finds the Orca CLI', async () => {
-    const env = { PATH: '/bin', XDG_STATE_HOME: tempDir() }
-    const system = fakeSystem({ cwd: tempDir(), env, files: { '/bin/orca-ide': '' } })
+    const env = { PATH: '/bin', ...stateHome() }
+    const files = { '/bin/orca-ide': '' }
+    const system = fakeSystem({ cwd: tempDir(), env, files, pathJoin: posix.join })
     const { of } = await checks(system)
     expect(of('orca-cli')).toMatchObject({ status: 'ok', detail: '/bin/orca-ide' })
   })
 
   it('accepts a writable scratch dir', async () => {
-    const env = { ORCA_CHAT_SCRATCH_DIR: tempDir(), XDG_STATE_HOME: tempDir() }
+    const env = { ORCA_CHAT_SCRATCH_DIR: tempDir(), ...stateHome() }
     const { of } = await checks(fakeSystem({ cwd: tempDir(), env }))
     expect(of('orca-chat').status).toBe('ok')
   })
 
-  it('fails a scratch dir it cannot write', async () => {
+  it.skipIf(NO_READONLY_DIRS)('fails a scratch dir it cannot write', async () => {
     const dir = tempDir()
     chmodSync(dir, 0o500)
-    const env = { ORCA_CHAT_SCRATCH_DIR: dir, XDG_STATE_HOME: tempDir() }
+    const env = { ORCA_CHAT_SCRATCH_DIR: dir, ...stateHome() }
     const { of, exit } = await checks(fakeSystem({ cwd: tempDir(), env }))
     chmodSync(dir, 0o700)
     expect(exit).toBe(4)
@@ -118,13 +120,13 @@ describe('vui doctor', () => {
   })
 
   it('says a stopped Viewer starts by itself', async () => {
-    const { of } = await checks(fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: tempDir() } }))
+    const { of } = await checks(fakeSystem({ cwd: tempDir(), env: { ...stateHome() } }))
     expect(of('viewer')).toMatchObject({ status: 'info' })
     expect(of('viewer').detail).toContain('vui show')
   })
 
   it('reports a healthy Viewer', async () => {
-    farm = new ViewerFarm({ XDG_STATE_HOME: tempDir() })
+    farm = new ViewerFarm({ ...stateHome() })
     const system = farm.system({ cwd: tempDir() })
     await vui(['viewer', 'start'], { system })
     const { of } = await checks(system)
@@ -134,7 +136,7 @@ describe('vui doctor', () => {
 
   it('fails a Viewer that does not answer', async () => {
     const workspace = tempDir()
-    const env = { XDG_STATE_HOME: tempDir() }
+    const env = { ...stateHome() }
     const dir = stateDirOf(workspaceHash(workspace), env)
     const sockets: Socket[] = []
     const server = createNetServer((socket) => sockets.push(socket))
@@ -150,7 +152,7 @@ describe('vui doctor', () => {
   })
 
   it('warns about a Viewer of another version', async () => {
-    farm = new ViewerFarm({ XDG_STATE_HOME: tempDir() })
+    farm = new ViewerFarm({ ...stateHome() })
     const system = farm.system({ cwd: tempDir() })
     await vui(['viewer', 'start'], { system })
     const { readViewerInfo, updateViewerInfo } = await import('@vadd/ui-viewer')
@@ -229,7 +231,7 @@ describe('reachability from Windows', () => {
     const seen: string[] = []
     const system = fakeSystem({
       cwd: tempDir(),
-      env: { ...WSL, XDG_STATE_HOME: tempDir() },
+      env: { ...WSL, ...stateHome() },
       exec: (file) => {
         seen.push(file)
         return file === POWERSHELL_PATH ? { ok: true, stdout: '200\r\n' } : { missing: true }
@@ -241,7 +243,7 @@ describe('reachability from Windows', () => {
   })
 
   it('warns when PowerShell cannot be found, which proves nothing', async () => {
-    const system = fakeSystem({ cwd: tempDir(), env: { ...WSL, XDG_STATE_HOME: tempDir() } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...WSL, ...stateHome() } })
     const { of, exit } = await checks(system)
     expect(exit).toBe(0)
     expect(of('windows').status).toBe('warn')
@@ -252,7 +254,7 @@ describe('reachability from Windows', () => {
     let answered = 0
     const system = fakeSystem({
       cwd: tempDir(),
-      env: { ...WSL, XDG_STATE_HOME: tempDir() },
+      env: { ...WSL, ...stateHome() },
       exec: (file, args) => {
         if (file !== 'powershell.exe') return { missing: true }
         const url = /http:\/\/localhost:\d+\/health/.exec(args.join(' '))?.[0] as string
@@ -266,7 +268,7 @@ describe('reachability from Windows', () => {
   })
 
   it('probes the running Viewer on its port', async () => {
-    farm = new ViewerFarm({ ...WSL, XDG_STATE_HOME: tempDir() })
+    farm = new ViewerFarm({ ...WSL, ...stateHome() })
     let command = ''
     const system = farm.system({
       cwd: tempDir(),
@@ -284,7 +286,7 @@ describe('reachability from Windows', () => {
   })
 
   it('is not checked outside WSL', async () => {
-    const system = fakeSystem({ cwd: tempDir(), env: { XDG_STATE_HOME: tempDir() } })
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome() } })
     expect((await checks(system)).list.some(({ name }) => name === 'windows')).toBe(false)
   })
 })
@@ -296,7 +298,7 @@ describe('doctor with VUI_VIEWER_URL', () => {
     })
     await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
     const { port } = server.address() as AddressInfo
-    const env = { VUI_VIEWER_URL: `http://127.0.0.1:${port}/v/x`, XDG_STATE_HOME: tempDir() }
+    const env = { VUI_VIEWER_URL: `http://127.0.0.1:${port}/v/x`, ...stateHome() }
     const { of } = await checks(fakeSystem({ cwd: tempDir(), env }))
     server.close()
     expect(of('viewer').status).toBe('ok')
@@ -304,14 +306,14 @@ describe('doctor with VUI_VIEWER_URL', () => {
   })
 
   it('fails an endpoint that does not answer', async () => {
-    const env = { VUI_VIEWER_URL: 'http://127.0.0.1:9/v/x', XDG_STATE_HOME: tempDir() }
+    const env = { VUI_VIEWER_URL: 'http://127.0.0.1:9/v/x', ...stateHome() }
     const { of, exit } = await checks(fakeSystem({ cwd: tempDir(), env }))
     expect(exit).toBe(4)
     expect(of('viewer').fix).toContain('VUI_VIEWER_URL')
   })
 
   it('fails an invalid one without throwing', async () => {
-    const env = { VUI_VIEWER_URL: 'nonsense', XDG_STATE_HOME: tempDir() }
+    const env = { VUI_VIEWER_URL: 'nonsense', ...stateHome() }
     const { of } = await checks(fakeSystem({ cwd: tempDir(), env }))
     expect(of('viewer').status).toBe('fail')
   })

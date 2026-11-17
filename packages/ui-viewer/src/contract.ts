@@ -484,6 +484,23 @@ export function contractCases(target: ContractTarget): ContractCase[] {
   })
 }
 
+/**
+ * Why a case failed, never empty: Node 22 reports a refused `localhost` (each of its addresses
+ * refused) as an AggregateError with an empty message, the code and the inner errors aside.
+ */
+export function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error)
+  if (error.message !== '') return error.message
+  const { code } = error as NodeJS.ErrnoException
+  const named = typeof code === 'string' && code !== '' ? code : undefined
+  const inner =
+    error instanceof AggregateError
+      ? error.errors.map(describeError).filter(Boolean).join('; ')
+      : ''
+  if (named !== undefined) return inner === '' ? named : `${named} (${inner})`
+  return inner || error.name
+}
+
 /** Every case, in order; one failure does not stop the rest. Never throws. */
 export async function runContract(target: ContractTarget): Promise<ContractResult[]> {
   const results: ContractResult[] = []
@@ -495,7 +512,7 @@ export async function runContract(target: ContractTarget): Promise<ContractResul
       results.push({
         name,
         ok: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: describeError(error),
       })
     }
   }
