@@ -1661,6 +1661,6 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 
 ## VD-206 — The contract runner names an error that has no message
 - Date: 2026-11-17 · Task: 25
-- Context: on the `gate` runner, Node 22 resolves `localhost` to `::1` and `127.0.0.1` and, refused on both, rejects with an `AggregateError` whose `message` is empty. `runContract` reported `error: ''`, so a user of `vui viewer contract` against a stopped server learned nothing. WSL resolves one address, so the local gate never saw it.
+- Context: on the `gate` runner, Node 22 resolves `localhost` to `::1` and `127.0.0.1` and, refused on both, rejects with an `AggregateError` whose `message` is empty. `runContract` reported `error: ''`, so a host checking its server with `@vadd/ui-viewer/contract` learned nothing about why. WSL resolves one address, so the local gate never saw it.
 - Decision: `describeError` (exported from `ui-viewer/src/contract.ts`) gives the message, else the error `code`, else the inner errors' descriptions joined by `; `, else the error's name. Unit-tested with constructed errors; the integration test is unchanged.
 - Alternatives: loosening the test's pattern (hides the product gap); forcing `127.0.0.1` in the target (the user's URL may say `localhost`).
