@@ -1,7 +1,8 @@
-import { rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { directiveLine } from '@vadd/ui-spec/host/orca'
 import { slugify } from '@vadd/ui-viewer'
 import { outputTooLarge } from '../commands.js'
+import { ioReason } from '../io-error.js'
 import { CliError, EXIT, noHost, type Outcome } from '../outcome.js'
 import { OUTPUT_LIMIT, renderOutput } from '../output.js'
 import type { Overrides } from '../pipeline.js'
@@ -39,10 +40,9 @@ function writeNew(dir: string, slug: string, text: string, system: System): Writ
       writeFileSync(path, text, { flag: 'wx' })
       return { file, path }
     } catch (error) {
-      const { code, message } = error as NodeJS.ErrnoException
-      if (code === 'EEXIST') continue
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') continue
       discard(path)
-      throw new CliError(EXIT.io, 'io', `cannot write ${path}: ${code ?? message}`)
+      throw new CliError(EXIT.io, 'io', `cannot write ${path}: ${ioReason(error)}`)
     }
   }
   throw new CliError(EXIT.io, 'io', `no free file name in ${dir} after ${NAME_TRIES} tries`)
@@ -101,11 +101,22 @@ export function deliverToChat(delivery: Delivery): Promise<Outcome> {
   })
 }
 
-/** `selectHost` has seen to it that `--dir` is there. */
+/** B10: a missing `--dir` is made, parents and all, as `mkdir -p` would. */
+function ensureDirectory(dir: string): void {
+  try {
+    mkdirSync(dir, { recursive: true })
+  } catch (error) {
+    throw new CliError(EXIT.io, 'io', `cannot create ${dir}: ${ioReason(error)}`)
+  }
+}
+
+/** `selectHost` has seen to it that `--dir` was given. */
 export function deliverToDirectory(delivery: Delivery): Promise<Outcome> {
+  const dir = delivery.dir as string
+  ensureDirectory(dir)
   return deliverFile(delivery, {
     host: 'file',
-    dir: delivery.dir as string,
+    dir,
     line: ({ path }, _title, bytes) => safe(`vui: wrote ${path} (${bytes} bytes)`),
     extra: () => ({}),
   })

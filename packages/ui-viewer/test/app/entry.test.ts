@@ -17,7 +17,10 @@ const header: DocHeader = {
 function setup(overrides: Partial<DocHeader> = {}, options: Partial<EntryOptions> = {}) {
   const load = vi.fn(async (_id: string) => DOC)
   const onGrow = vi.fn()
-  const track = vi.fn((root: HTMLElement) => root.setAttribute('data-vui-theme', 'dark'))
+  const track = vi.fn((root: HTMLElement) => {
+    root.setAttribute('data-vui-theme', 'dark')
+    return () => undefined
+  })
   const openLink = vi.fn()
   const entry = createEntry(
     { ...header, ...overrides },

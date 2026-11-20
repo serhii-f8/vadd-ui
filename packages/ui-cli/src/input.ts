@@ -1,5 +1,6 @@
 import { createReadStream, fstatSync } from 'node:fs'
 import type { Io } from './io.js'
+import { ioReason } from './io-error.js'
 import { CliError, EXIT, usageError } from './outcome.js'
 
 export interface Input {
@@ -54,8 +55,7 @@ export async function readInput(
     return await collect(fromStdin ? stdin : createReadStream(source), maxBytes)
   } catch (error) {
     if (error instanceof CliError) throw error
-    const reason = (error as NodeJS.ErrnoException).code ?? (error as Error).message
     const name = fromStdin ? 'stdin' : source
-    throw new CliError(EXIT.io, 'io', `cannot read ${name}: ${reason}`)
+    throw new CliError(EXIT.io, 'io', `cannot read ${name}: ${ioReason(error)}`)
   }
 }

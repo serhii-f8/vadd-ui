@@ -93,7 +93,7 @@ export function Report({ doc }: { doc: string }) {
 
 On load, the bundle finds every `<script type="application/vui+json">`, renders it into a sibling `<div class="vui-root">`, and injects its stylesheet once. Inside the embedded document, write `</` as `<\/`.
 
-`vui.min.js` holds the core components (37.9 KiB gzipped). `vui-ext.min.js` adds `compare`, `flow` and `scatter` charts (42.7 KiB gzipped); use it instead when a document needs them. Both are in `packages/ui/dist` after a build.
+`vui.min.js` holds the core components (37.9 KiB gzipped). `vui-ext.min.js` is the core plus `compare`, `flow` and `scatter` charts (42.7 KiB gzipped). It **replaces** `vui.min.js`: load one of the two, never both on one page, or the second bundle's components go missing. Use `vui-ext.min.js` when a document needs those components. Both are in `packages/ui/dist` after a build.
 
 ## JavaScript API
 

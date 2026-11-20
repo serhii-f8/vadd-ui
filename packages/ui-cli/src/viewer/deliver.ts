@@ -14,8 +14,10 @@ export interface Delivery {
   noOpen: boolean
   system: System
   readBundle: (ext?: boolean) => string
-  /** §11.5's name, for hosts that write a file. */
+  /** §11.5's name: the file name on hosts that write one, the feed entry's name on the Viewer. */
   name?: string
+  /** `--replace` (VD-212): the Viewer updates the entry named `name` in place. Files ignore it. */
+  replace?: boolean
   /** `--dir`. */
   dir?: string
 }
@@ -58,16 +60,25 @@ const localTarget = ({ info }: Running): Target => ({
   token: info.writeToken,
 })
 
+/** `?name=…&replace=1`, which a host that does not know them ignores. */
+export function namingQuery({ name, replace }: Pick<Delivery, 'name' | 'replace'>): string {
+  if (name === undefined) return ''
+  const query = new URLSearchParams({ name })
+  if (replace === true) query.set('replace', '1')
+  return `?${query}`
+}
+
 /** A Viewer can die between discovery and the POST, so a refused connection starts over once. */
 async function postLocal(
   document: VuiDocument,
   system: System,
+  query: string,
 ): Promise<{ posted: Posted; viewer: Running }> {
   const viewer = await ensureViewer(system)
-  const posted = await postDocument(localTarget(viewer), document, system)
+  const posted = await postDocument(localTarget(viewer), document, system, query)
   if (posted.kind !== 'unreachable') return { posted, viewer }
   const next = await ensureViewer(system)
-  const retried = await postDocument(localTarget(next), document, system)
+  const retried = await postDocument(localTarget(next), document, system, query)
   if (retried.kind === 'unreachable') throw noHost('the Viewer does not answer')
   return { posted: retried, viewer: { ...next, previous: next.previous ?? viewer.previous } }
 }
@@ -78,7 +89,7 @@ function success(
   pane: Pane,
   urlLine: boolean,
 ): Outcome {
-  const { seq, id, url, clients } = posted
+  const { seq, id, url, clients, replaced } = posted
   const lines = [shownLine(document, seq), ...(urlLine ? [safe(`vui: open ${url}`)] : [])]
   const warning =
     pane.failure !== undefined
@@ -99,6 +110,7 @@ function success(
       url,
       title,
       clients,
+      ...(replaced === true ? { replaced } : {}),
       pane: pane.state,
       ...(pane.pageId === undefined ? {} : { browserPageId: pane.pageId }),
       ...(pane.failure === undefined ? {} : { paneFailure: pane.failure }),
@@ -109,7 +121,8 @@ function success(
 
 /** Custom endpoints get no pane: a page id has no `viewer.json` to live in. */
 async function deliverCustom(delivery: Delivery, target: Target): Promise<Outcome> {
-  const posted = await postDocument(target, delivery.document, delivery.system)
+  const query = namingQuery(delivery)
+  const posted = await postDocument(target, delivery.document, delivery.system, query)
   if (posted.kind === 'unreachable') throw noHost('VUI_VIEWER_URL does not answer')
   if (posted.kind === 'refused') return refused(posted)
   return success(delivery, posted, { state: 'none' }, posted.clients === 0)
@@ -150,7 +163,7 @@ export async function deliverToViewer(delivery: Delivery): Promise<Outcome> {
   const { document, noOpen, system } = delivery
   const target = customEndpoint(system.env)
   if (target !== undefined) return deliverCustom(delivery, target)
-  const { posted, viewer } = await postLocal(document, system)
+  const { posted, viewer } = await postLocal(document, system, namingQuery(delivery))
   if (posted.kind === 'refused') return refused(posted)
   if (posted.kind === 'unreachable') throw noHost('the Viewer does not answer')
   const skip = noOpen || posted.clients > 0

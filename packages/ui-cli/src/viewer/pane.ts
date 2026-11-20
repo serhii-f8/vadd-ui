@@ -40,7 +40,10 @@ async function openOrReuse(system: System, orca: string, viewer: Running): Promi
   if (pageId !== undefined || previous !== undefined) {
     const tabs = await listTabs(system, orca)
     if (isAt(tabs, pageId, viewer.url)) return { state: 'kept', pageId }
-    if (previous !== undefined && isAt(tabs, previous.pageId, previous.url)) {
+    // A slow Orca (calls take seconds over the WSL bridge) can give no list. A `goto` on a
+    // page that is gone just fails, so the old pane is still worth one try (B1, VD-210).
+    const unlisted = tabs === undefined
+    if (previous !== undefined && (unlisted || isAt(tabs, previous.pageId, previous.url))) {
       const moved = await gotoTab(system, orca, previous.pageId, viewer.url)
       if (moved) return record(viewer, previous.pageId, 'moved')
     }

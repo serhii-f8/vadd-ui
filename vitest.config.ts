@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import { configDefaults, defineConfig } from 'vitest/config'
 
@@ -28,6 +30,12 @@ const alias = Object.fromEntries([
     fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url)),
   ]),
 ])
+
+// B14: no test may write to the real state root (`~/.local/state/vadd-ui`, or `LOCALAPPDATA` on
+// Windows), even one that builds its environment from `process.env` and forgets `stateHome()`.
+// One temporary root per run, for both platform rules (VD-204, VD-215).
+const stateRoot = mkdtempSync(join(tmpdir(), 'vui-test-state-'))
+const stateEnv = { XDG_STATE_HOME: stateRoot, LOCALAPPDATA: stateRoot }
 
 // What the bundle build defines, from the same manifest. At the transform, since Vitest
 // turns a plain `define` into a global that these workers do not see.
@@ -96,6 +104,7 @@ export default defineConfig({
           // The feed app is browser code, in a package that is otherwise Node.
           exclude: [...configDefaults.exclude, 'packages/ui-viewer/test/app/**'],
           environment: 'node',
+          env: stateEnv,
         },
       },
       {
@@ -108,7 +117,7 @@ export default defineConfig({
             'packages/ui-viewer/test/app/**/*.test.ts',
           ],
           environment: 'jsdom',
-          env: { VUI_REACT_MAJOR: '19' },
+          env: { ...stateEnv, VUI_REACT_MAJOR: '19' },
         },
       },
       {
@@ -118,7 +127,7 @@ export default defineConfig({
           name: 'jsdom-react18',
           include: ['packages/ui-react/test/**/*.test.{ts,tsx}'],
           environment: 'jsdom',
-          env: { VUI_REACT_MAJOR: '18' },
+          env: { ...stateEnv, VUI_REACT_MAJOR: '18' },
         },
       },
     ],

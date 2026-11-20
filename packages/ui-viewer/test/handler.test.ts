@@ -111,16 +111,58 @@ describe('every response', () => {
 
 describe('methods', () => {
   it.each([
-    ['DELETE', '/', 'GET'],
-    ['POST', '/app.js', 'GET'],
-    ['PUT', '/api/docs', 'GET, POST'],
-    ['POST', '/api/events', 'GET'],
-    ['OPTIONS', '/api/docs', 'GET, POST'],
+    ['DELETE', '/', 'GET, HEAD'],
+    ['POST', '/app.js', 'GET, HEAD'],
+    ['PUT', '/api/docs', 'GET, HEAD, POST'],
+    ['POST', '/api/events', 'GET, HEAD'],
+    ['OPTIONS', '/api/docs', 'GET, HEAD, POST'],
   ])('%s %s is 405', async (method, path, allow) => {
     const { get } = await start()
     const reply = await get(path, { method })
     expect(reply.status).toBe(405)
     expect(reply.headers.allow).toBe(allow)
+  })
+})
+
+describe('HEAD (B11)', () => {
+  const same = ['content-type', 'content-length', 'content-security-policy', 'cache-control']
+
+  it.each(['/', '/app.js', '/api/docs', '/api/docs/{id}', '/docs/{id}.html', '/api/docs/nope'])(
+    'answers HEAD %s as GET does, with no body',
+    async (template) => {
+      const { get, post } = await start()
+      const { id } = (await post(DOC)).json()
+      const path = template.replace('{id}', id)
+      const full = await get(path)
+      const head = await get(path, { method: 'HEAD' })
+      expect(head.status).toBe(full.status)
+      for (const name of same) expect(head.headers[name]).toBe(full.headers[name])
+      expect(head.text).toBe('')
+    },
+  )
+
+  it.each(['/health', '/favicon.ico'])('answers HEAD %s at the origin', async (path) => {
+    const { port } = await start()
+    const full = await request(port, path)
+    const head = await request(port, path, { method: 'HEAD' })
+    expect(head.status).toBe(full.status)
+    expect(head.headers['content-length']).toBe(full.headers['content-length'])
+    expect(head.text).toBe('')
+  })
+
+  it('answers HEAD on the event stream without holding a client', async () => {
+    const { get, handler } = await start()
+    const head = await get('/api/events', { method: 'HEAD' })
+    expect(head.status).toBe(200)
+    expect(head.headers['content-type']).toBe('text/event-stream')
+    expect(head.text).toBe('')
+    expect(handler.clients()).toBe(0)
+  })
+
+  it('is 404 where GET is, with a wrong token', async () => {
+    const { port } = await start()
+    const head = await request(port, `/v/${'x'.repeat(32)}/`, { method: 'HEAD' })
+    expect(head.status).toBe(404)
   })
 })
 
@@ -216,6 +258,45 @@ describe('POST /api/docs', () => {
     await stream.until('event: doc')
     expect(stream.text()).toContain('"id":"1-report"')
     stream.close()
+  })
+
+  it('replaces a named entry in place and announces it as an update (--replace)', async () => {
+    const { post, get, port } = await start()
+    const first = await post(DOC, BEARER, '?name=build')
+    expect(first.json()).toMatchObject({ seq: 1 })
+    await post({ ...DOC, title: 'Other' })
+    const stream = await openStream(port, `/v/${READ}/api/events`)
+    await stream.until('event: hello')
+    const reply = await post({ ...DOC, title: 'Build 2' }, BEARER, '?name=build&replace=1')
+    expect(reply.status).toBe(201)
+    expect(reply.json()).toMatchObject({ seq: 1, id: '1-report', replaced: true, clients: 1 })
+    await stream.until('event: update')
+    expect(stream.text()).toContain('"title":"Build 2"')
+    stream.close()
+    expect(JSON.parse((await get('/api/docs/1-report')).text).title).toBe('Build 2')
+    expect((await get('/api/docs')).json().docs).toHaveLength(2)
+  })
+
+  it('adds a named entry when there is none to replace', async () => {
+    const { post } = await start()
+    const reply = await post(DOC, BEARER, '?name=build&replace=1')
+    expect(reply.json()).toMatchObject({ seq: 1 })
+    expect(reply.json()).not.toHaveProperty('replaced')
+    expect((await post(DOC, BEARER, '?name=build&replace=1')).json()).toMatchObject({
+      seq: 1,
+      replaced: true,
+    })
+  })
+
+  it.each([
+    ['?replace=1', 'replace without a name'],
+    [`?name=${'n'.repeat(201)}`, 'a name over 200 characters'],
+    ['?name=', 'an empty name'],
+  ])('refuses %s (%s) with 400', async (query) => {
+    const { post } = await start()
+    const reply = await post(DOC, BEARER, query)
+    expect(reply.status).toBe(400)
+    expect(reply.json()).toEqual({ ok: false, error: 'bad-query' })
   })
 
   it('reports activity on each document', async () => {

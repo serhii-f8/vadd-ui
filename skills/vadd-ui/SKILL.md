@@ -12,7 +12,7 @@ user-invocable: false
 4. **Emit.** Run `vui show --title "…" <<'EOF' … EOF`. On exit 1 or 2, fix the reported paths and retry once. On a second failure or exit 4, answer in markdown. On exit 3, cut the data and retry once. On exit 5, answer in markdown.
 5. **Reference.** If stdout is a `::orca-visual{…}` line, paste it verbatim: put it on its own line in the reply, outside code blocks. If it starts with `vui: shown`, the visual is already on screen: mention it in at most one short clause ("results are in the viewer"). If a `vui: open <url>` line follows, give the user that URL.
 6. **Fallback without the CLI.** If `vui` is not installed and `ORCA_CHAT_SCRATCH_DIR` is set, write the CDN template below to a new file in the scratch folder and reference it. Otherwise answer in markdown.
-7. **Look up, don't guess.** For a component not in the cheat-sheet, or unsure fields, run `vui catalog <type>` first.
+7. **Look up, don't guess.** For a component not in the cheat-sheet, or unsure fields, run `vui catalog <type>` first. Also `vui catalog common` and `vui catalog formats`.
 
 ## Cheat-sheet
 
@@ -22,21 +22,20 @@ vui show --title "Release check" <<'EOF'
   {type: 'stats', items: [['Tests', 142, null, -3], ['Coverage', 0.874, 'pct']]}, // [label, value, format?, delta?, deltaFormat?, tone?]
   {type: 'checks', items: [
     {name: 'Unit', status: 'ok', ms: 21400},
-    {name: 'E2E', status: 'fail', output: 'a.spec.ts:88 expected 401'},
+    {name: 'E2E', status: 'fail', output: 'got 401'},
   ]},
   {type: 'section', title: 'Latency', children: [
     {type: 'chart', kind: 'line', yFormat: 'ms', x: ['10:00', '10:05'], series: {p95: [120, 88]}},
     {type: 'table', columns: ['Query', '2026:int', 'Hit:pct'], sort: [1, 'desc'],
      rows: [['list', 18420, 0.93], ['sku', 2204, 0.41, {tone: 'warn'}]]},
   ]},
-  {type: 'plan', items: [{text: 'Add table', status: 'ok'}]},
   {type: 'decision', question: 'Cache?', pick: 0, options: [{label: 'LRU'}, {label: 'Redis'}]},
-  {type: 'callout', tone: 'warn', text: ':fail: Replay works.'},
+  {type: 'callout', tone: 'warn', text: ':fail: Replay.'},
 ]}
 EOF
 ```
 
-**Other types:** stack, grid, card, tabs, divider, md, code, kv, list, progress, compare, diff, tree, timeline, log, flow.
+**Other types:** stack, grid, card, tabs, divider, md, code, kv, list, plan, progress, compare, diff, tree, timeline, log, flow.
 
 **Statuses:** ok, fail, warn, info, run, wait, skip, none.
 
@@ -63,7 +62,7 @@ EOF
 <script type="application/vui+json">{title: 'Report', body: [{type: 'md', text: 'Done'}]}</script>
 ```
 
-`compare`, `flow` and `scatter` need `vui-ext.min.js` there. Inside the template, write `</` as `<\/`. Reference the file with `::orca-visual{file="report-7c1e.html" title="Report"}`. File names use only `A-Za-z0-9._-`; titles have no quotes or backslashes.
+`compare`, `flow` and `scatter` need `vui-ext.min.js` instead, never both. Needs the npm release. Inside the template, write `</` as `<\/`. Reference the file with `::orca-visual{file="report-7c1e.html" title="Report"}`. File names use only `A-Za-z0-9._-`; titles have no quotes or backslashes.
 
 ## Precedence
 

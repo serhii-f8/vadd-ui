@@ -16,19 +16,22 @@ import { CliError, EXIT, type Outcome, usageError } from './outcome.js'
 import { FORMATS, OUTPUT_LIMIT, type OutputFormat, renderOutput, writeOutput } from './output.js'
 import { exitCodeOf, inputTooLarge, prepare } from './pipeline.js'
 import { formatDiagnostics, safe, safeJson } from './print.js'
+import { COMMON_REFERENCE, commonText, FORMAT_REFERENCE, formatsText } from './reference.js'
 
 const USAGE = `vui: show a VUI document, or render it without a host
 
-vui show [file|-] [--title T] [--name N] [--host auto|viewer|orca-chat|file] [--dir D] [--no-open]
+vui show [file|-] [--title T] [--name N [--replace]] [--host auto|viewer|orca-chat|file] [--dir D] [--no-open]
 vui viewer start|stop|status|open|url [--bind A]
-vui doctor
+vui doctor [--quick]
 vui render [file|-] --format html|md|text [--out F] [--cdn]
 vui validate [file|-] [--strict]
-vui catalog [component]
+vui catalog [component|common|formats]
 vui schema
 vui extract [file.html|-]
 vui bench [dir]
 
+--name names the file (file, orca-chat) or the feed entry (viewer). --replace updates the
+Viewer entry with that name in place, or adds one; the file hosts accept it and do nothing more.
 Stdin is read when the file is - or omitted. --json works on every command.
 Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 4 no host, 5 I/O.
 `
@@ -37,6 +40,9 @@ const STDOUT = '-'
 const LISTED_DOCUMENTS = 5
 
 const COMPONENT_NAMES: readonly string[] = CATALOG.map(({ name }) => name)
+/** Not components: §5.4's fields and §7's formats (VD-213). No component has either name. */
+const REFERENCES = ['common', 'formats']
+const CATALOG_NAMES: readonly string[] = [...COMPONENT_NAMES, ...REFERENCES]
 
 async function readDocument(parsed: ParsedArgs, io: Io): Promise<Input> {
   return readInput(parsed.positional[0], io.stdin, LIMITS.inputBytes)
@@ -97,15 +103,23 @@ export async function render(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   }
 }
 
+/** A human reading a clean `validate` sees that it ran (task 26). */
+function okLine(diagnostics: Diagnostic[]): string {
+  const warnings = diagnostics.filter(({ severity }) => severity === 'warn').length
+  if (warnings === 0) return 'ok\n'
+  return `ok (${warnings} ${warnings === 1 ? 'warning' : 'warnings'})\n`
+}
+
 export async function validate(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   const strict = parsed.flags.strict === true
   const input = await readDocument(parsed, io)
   const { diagnostics } = input.tooLarge
     ? { diagnostics: [inputTooLarge()] }
     : prepare(input.text, io.now())
+  const exit = exitCodeOf(diagnostics, strict)
   return {
-    exit: exitCodeOf(diagnostics, strict),
-    stdout: formatDiagnostics(diagnostics, { info: strict }),
+    exit,
+    stdout: `${formatDiagnostics(diagnostics, { info: strict })}${exit === EXIT.ok ? okLine(diagnostics) : ''}`,
     json: { diagnostics },
   }
 }
@@ -132,7 +146,7 @@ function entryText(entry: CatalogEntry): string {
 }
 
 function unknownComponent(name: string): CliError {
-  const near = suggest(name.slice(0, 40), COMPONENT_NAMES)
+  const near = suggest(name.slice(0, 40), CATALOG_NAMES)
   const hint = near === undefined ? '' : ` (did you mean "${near}"?)`
   return usageError(`unknown component ${JSON.stringify(name.slice(0, 60))}${hint}`)
 }
@@ -145,7 +159,14 @@ export function catalog(parsed: ParsedArgs): Outcome {
     const components = CATALOG.map(({ name: item, group, summary }) => {
       return { name: item, group, summary }
     })
-    return { exit: EXIT.ok, stdout: lines.join(''), json: { components } }
+    const more = 'more: vui catalog common | formats\n'
+    return { exit: EXIT.ok, stdout: `${lines.join('')}${more}`, json: { components } }
+  }
+  if (name === 'common') {
+    return { exit: EXIT.ok, stdout: commonText(), json: { common: COMMON_REFERENCE } }
+  }
+  if (name === 'formats') {
+    return { exit: EXIT.ok, stdout: formatsText(), json: { formats: FORMAT_REFERENCE } }
   }
   const entry = findComponent(name)
   if (entry === undefined) throw unknownComponent(name)

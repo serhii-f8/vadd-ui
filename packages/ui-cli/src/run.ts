@@ -8,14 +8,14 @@ import { safe, safeJson } from './print.js'
 import { show } from './show.js'
 import { viewerCommand } from './viewer-command.js'
 
-function dispatch(parsed: ParsedArgs, io: Io): Outcome | Promise<Outcome> {
+function dispatch(parsed: ParsedArgs, io: Io, json: boolean): Outcome | Promise<Outcome> {
   switch (parsed.command) {
     case 'show':
       return show(parsed, io)
     case 'viewer':
       return viewerCommand(parsed, io)
     case 'doctor':
-      return doctor(io)
+      return doctor(io, { json, quick: parsed.flags.quick === true })
     case 'render':
       return render(parsed, io)
     case 'validate':
@@ -57,7 +57,7 @@ function print(outcome: Outcome, json: boolean, io: Io): void {
 export async function run(argv: readonly string[], io: Io): Promise<ExitCode> {
   let outcome: Outcome
   try {
-    outcome = await dispatch(parseArgs(argv), io)
+    outcome = await dispatch(parseArgs(argv), io, wantsJson(argv))
   } catch (error) {
     outcome = failure(error)
   }

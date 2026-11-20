@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
 import { join, posix } from 'node:path'
@@ -63,15 +63,62 @@ describe('vui doctor', () => {
     const file = join(tempDir(), 'file')
     writeFileSync(file, '')
     const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome(file) } })
-    const { exit, stdout } = await vui(['doctor'], { system })
+    const { exit, stdout, stderr } = await vui(['doctor'], { system })
     expect(exit).toBe(4)
-    expect(stdout).toMatch(/^ok {3}node: /m)
-    expect(stdout).toMatch(/^fail {1}state: .*\n {5}fix: /m)
-    expect(stdout).toMatch(/^info {1}orca-cli: /m)
+    expect(stderr).toMatch(/^ok {3}node: /m)
+    expect(stderr).toMatch(/^fail {1}state: .*\n {5}fix: /m)
+    expect(stderr).toMatch(/^info {1}orca-cli: /m)
+    expect(stdout).toBe('vui: doctor: 6 checks, 1 failure\n')
+  })
+
+  it('prints each check as it finishes, before the slow ones end', async () => {
+    const lines: string[] = []
+    let atProbe = ''
+    const base = wsl('mirrored', { ok: true, stdout: '200\r\n' })
+    const system: System = {
+      ...base,
+      exec: (file, args, options) => {
+        if (file === 'powershell.exe') atProbe = lines.join('')
+        return base.exec(file, args, options)
+      },
+    }
+    const { run } = await import('../src/run.js')
+    await run(['doctor'], {
+      stdin: process.stdin,
+      stdout: () => undefined,
+      stderr: (text) => lines.push(text),
+      now: () => new Date(),
+      readBundle: () => '',
+      readSchema: () => '',
+      system,
+    })
+    expect(atProbe).toMatch(/^ok {3}node: [\s\S]*^info {1}viewer: /m)
+    expect(atProbe).not.toContain('windows')
+    expect(lines.join('')).toMatch(/^ok {3}windows: /m)
+  })
+
+  it('leaves no workspace folder behind for its write check (B14)', async () => {
+    const workspace = tempDir()
+    const env = { ...stateHome() }
+    const { of } = await checks(fakeSystem({ cwd: workspace, env }))
+    expect(of('state').status).toBe('ok')
+    expect(existsSync(stateDirOf(workspaceHash(workspace), env))).toBe(false)
+  })
+
+  it('keeps a workspace folder that was there before', async () => {
+    const workspace = tempDir()
+    const env = { ...stateHome() }
+    const dir = stateDirOf(workspaceHash(workspace), env)
+    mkdirSync(dir, { recursive: true })
+    await checks(fakeSystem({ cwd: workspace, env }))
+    expect(existsSync(dir)).toBe(true)
   })
 
   it('fails an old Node', async () => {
-    const system = { ...fakeSystem({ cwd: tempDir() }), nodeVersion: '18.19.0' }
+    const system = {
+      ...fakeSystem({ cwd: tempDir(), env: { ...stateHome() } }),
+      nodeVersion: '18.19.0',
+    }
     const { exit, of } = await checks(system)
     expect(exit).toBe(4)
     expect(of('node').status).toBe('fail')
@@ -163,6 +210,34 @@ describe('vui doctor', () => {
     expect(exit).toBe(0)
     expect(of('viewer')).toMatchObject({ status: 'warn' })
     expect(of('viewer').fix).toContain('vui viewer stop')
+  })
+})
+
+describe('--quick', () => {
+  it('skips the Windows probe and says so', async () => {
+    let probed = false
+    const base = wsl('mirrored', { ok: true, stdout: '200\r\n' })
+    const system: System = {
+      ...base,
+      exec: (file, args, options) => {
+        if (file.includes('powershell')) probed = true
+        return base.exec(file, args, options)
+      },
+    }
+    const { exit, json } = await vuiJson(['doctor', '--quick'], { system })
+    expect(exit).toBe(0)
+    expect(probed).toBe(false)
+    expect((json.checks as Check[]).at(-1)).toEqual({
+      name: 'windows',
+      status: 'skipped',
+      detail: 'skipped by --quick',
+    })
+  })
+
+  it('changes nothing outside WSL', async () => {
+    const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome() } })
+    const { json } = await vuiJson(['doctor', '--quick'], { system })
+    expect((json.checks as Check[]).map(({ name }) => name)).not.toContain('windows')
   })
 })
 

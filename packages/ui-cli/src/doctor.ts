@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
@@ -8,13 +8,15 @@ import { detectEnvironment, type Environment, networkingMode } from './environme
 import { resolveOrca } from './host/orca.js'
 import { isWritableDirectory } from './host/select.js'
 import type { Io } from './io.js'
+import { ioReason } from './io-error.js'
 import { CliError, EXIT, type Outcome } from './outcome.js'
 import { safe } from './print.js'
 import type { ExecResult, System } from './system.js'
 import { customEndpoint, healthOf, type Target } from './viewer/client.js'
 import { type Place, placeOf } from './viewer/lifecycle.js'
 
-type Status = 'ok' | 'info' | 'warn' | 'fail'
+/** `skipped`: `--quick` left it out. */
+type Status = 'ok' | 'info' | 'warn' | 'fail' | 'skipped'
 
 export interface Check {
   name: string
@@ -25,6 +27,7 @@ export interface Check {
 
 const MIN_NODE = 20
 const STATUS_WIDTH = 5
+const SKIPPED: Check = { name: 'windows', status: 'skipped', detail: 'skipped by --quick' }
 const LOOPBACK = '127.0.0.1'
 /** `localhost` tries `::1` first, where nothing listens (§15.3), which took 21 s on mirrored. */
 const PROBE_TIMEOUT_MS = 45_000
@@ -70,18 +73,29 @@ function orcaChatCheck({ env }: System): Check {
   return { name, status: 'fail', detail: `${dir} is not a writable directory`, fix }
 }
 
+function removeEmpty(dir: string): void {
+  try {
+    rmdirSync(dir)
+  } catch {
+    // Not empty: someone else is using it.
+  }
+}
+
 function stateCheck({ stateDir }: Place): Check {
   const name = 'state'
+  const existed = existsSync(stateDir)
   try {
     mkdirSync(stateDir, { recursive: true, mode: 0o700 })
     const probe = join(stateDir, `doctor.${process.pid}.tmp`)
     writeFileSync(probe, '')
     rmSync(probe)
+    // B14: a folder made only for this check would stay behind empty. A show starting at the
+    // same moment may have put something in it, which `rmdir` leaves, and that is no failure.
+    if (!existed) removeEmpty(stateDir)
     return { name, status: 'ok', detail: stateDir }
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code ?? 'error'
     const fix = 'Make the directory writable, or set XDG_STATE_HOME to one that is.'
-    return { name, status: 'fail', detail: `${stateDir}: ${code}`, fix }
+    return { name, status: 'fail', detail: `${stateDir}: ${ioReason(error)}`, fix }
   }
 }
 
@@ -175,25 +189,34 @@ function customTarget(system: System): Target | Check | undefined {
   }
 }
 
-async function runChecks(system: System): Promise<Check[]> {
+export interface DoctorOptions {
+  /** `--quick`: no Windows probe, which can take 20 s and more. */
+  quick?: boolean
+  /** Told each check as it finishes, so a slow one is not silence. */
+  onCheck?: (check: Check) => void
+}
+
+async function runChecks(system: System, options: DoctorOptions): Promise<Check[]> {
+  const checks: Check[] = []
+  const add = (check: Check): void => {
+    checks.push(check)
+    options.onCheck?.(check)
+  }
   const environment = detectEnvironment(system)
   const place = placeOf(system)
+  add(nodeCheck(system))
+  add(environmentCheck(environment))
+  add(orcaCliCheck(system))
+  add(orcaChatCheck(system))
+  add(stateCheck(place))
   const custom = customTarget(system)
   const found = await viewerState(place.stateDir, place.hash)
+  if (custom === undefined) add(viewerCheck(found))
+  else if ('status' in custom) add(custom)
+  else add(await customViewerCheck(custom))
+  if (environment.kind !== 'wsl') return checks
   const live = found.state === 'live' ? found.info : undefined
-  let viewer: Check
-  if (custom === undefined) viewer = viewerCheck(found)
-  else if ('status' in custom) viewer = custom
-  else viewer = await customViewerCheck(custom)
-  const checks = [
-    nodeCheck(system),
-    environmentCheck(environment),
-    orcaCliCheck(system),
-    orcaChatCheck(system),
-    stateCheck(place),
-    viewer,
-  ]
-  if (environment.kind === 'wsl') checks.push(await windowsCheck(system, live))
+  add(options.quick === true ? SKIPPED : await windowsCheck(system, live))
   return checks
 }
 
@@ -202,13 +225,22 @@ function lineOf({ name, status, detail, fix }: Check): string {
   return fix === undefined ? head : `${head}${' '.repeat(STATUS_WIDTH)}fix: ${safe(fix)}\n`
 }
 
-/** §11.1. Any `fail` exits 4: the host this machine would use may not work. */
-export async function doctor(io: Io): Promise<Outcome> {
-  const checks = await runChecks(io.system)
+/**
+ * §11.1. Any `fail` exits 4: the host this machine would use may not work. In human mode each
+ * check goes to stderr as it finishes, and stdout gets one summary line (VD-214); `--json`
+ * prints the whole list at the end, as before.
+ */
+export async function doctor(io: Io, options: { json: boolean; quick: boolean }): Promise<Outcome> {
+  const onCheck = options.json ? undefined : (check: Check) => io.stderr(lineOf(check))
+  const checks = await runChecks(io.system, {
+    quick: options.quick,
+    ...(onCheck ? { onCheck } : {}),
+  })
   const failures = checks.filter(({ status }) => status === 'fail').length
+  const noun = failures === 1 ? 'failure' : 'failures'
   return {
     exit: failures === 0 ? EXIT.ok : EXIT.noHost,
-    stdout: checks.map(lineOf).join(''),
+    stdout: `vui: doctor: ${checks.length} checks, ${failures} ${noun}\n`,
     json: { checks, failures },
   }
 }

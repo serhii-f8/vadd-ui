@@ -103,6 +103,47 @@ function connect(fixture: Fixture): Promise<() => void> {
   return fetch(url, { signal: abort.signal }).then(() => () => abort.abort())
 }
 
+describe('--name and --replace', () => {
+  it('updates the named entry in place on the Viewer', async () => {
+    const fixture = setup()
+    await show(fixture, ['--name', 'build'])
+    await show(fixture)
+    const { json } = await showJson(
+      fixture,
+      ['--name', 'build', '--replace'],
+      '{"title":"v2","body":["x"]}',
+    )
+    expect(json).toMatchObject({ ok: true, seq: 1, replaced: true, title: 'v2' })
+    const { stdout } = await show(fixture, ['--name', 'build', '--replace'])
+    expect(stdout.split('\n')[0]).toBe('vui: shown "Test run" (#1) in viewer')
+  })
+
+  it('adds an entry when no entry has the name', async () => {
+    const fixture = setup()
+    await show(fixture)
+    const { json } = await showJson(fixture, ['--name', 'build', '--replace'])
+    expect(json).toMatchObject({ seq: 2 })
+    expect(json).not.toHaveProperty('replaced')
+  })
+
+  it('refuses --replace without --name, before touching a host', async () => {
+    const fixture = setup()
+    const { exit, stderr } = await show(fixture, ['--replace'])
+    expect(exit).toBe(2)
+    expect(stderr).toBe('vui: --replace needs --name\n')
+    expect(fixture.farm.spawns).toBe(0)
+  })
+
+  it('is accepted by the file host, which only names the file', async () => {
+    const dir = tempDir()
+    const fixture = setup()
+    const argv = ['--host', 'file', '--dir', dir, '--name', 'build', '--replace']
+    const { exit, json } = await showJson(fixture, argv)
+    expect(exit).toBe(0)
+    expect(json.file).toMatch(/^build-[0-9a-f]{4}\.html$/)
+  })
+})
+
 describe('vui show, without Orca', () => {
   it('prints the one line, then the URL line, on the first show', async () => {
     const fixture = setup()
@@ -469,6 +510,41 @@ describe('the Orca pane', () => {
     expect(json.url).not.toBe(first.url)
     expect(fixture.calls[1]).toEqual(['goto', '--page', 'page-1', '--url', json.url, '--json'])
     expect(readViewerInfo(fixture.dir)?.browserPageId).toBe('page-1')
+  })
+
+  it('moves the pane after a graceful stop (B1)', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    const first = (await showJson(fixture)).json as { url: string }
+    orca.list = () => tabs({ browserPageId: 'page-1', url: first.url })
+    await vui(['viewer', 'stop'], { system: fixture.system })
+    const { json } = await showJson(fixture)
+    expect(json).toMatchObject({ pane: 'moved', browserPageId: 'page-1' })
+  })
+
+  it('still tries to move the old pane when Orca gives no tab list (B1)', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    await showJson(fixture)
+    orca.list = () => ({ ok: false, timedOut: true })
+    await vui(['viewer', 'stop'], { system: fixture.system })
+    fixture.calls.length = 0
+    const { json } = await showJson(fixture)
+    expect(json).toMatchObject({ pane: 'moved', browserPageId: 'page-1' })
+    expect(fixture.calls.map((call) => (call[0] === 'tab' ? call[1] : call[0]))).toEqual([
+      'list',
+      'goto',
+    ])
+  })
+
+  it('opens a pane when there is no list and the old pane is gone', async () => {
+    const orca: OrcaScript = { goto: () => ({ ok: false, stdout: '{"ok":false}' }) }
+    const fixture = setup({ orca })
+    await showJson(fixture)
+    orca.list = () => ({ ok: false, timedOut: true })
+    await vui(['viewer', 'stop'], { system: fixture.system })
+    const { json } = await showJson(fixture)
+    expect(json.pane).toBe('opened')
   })
 
   it('prints no URL for a pane it moved', async () => {

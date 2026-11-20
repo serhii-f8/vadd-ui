@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs'
 import { usesExt, type VuiDocument } from '@vadd/ui-spec'
 import { renderMarkdown, renderPlain } from '@vadd/ui-text'
 import { cdnHtml, GENERATOR_LABEL, inlineHtml } from '@vadd/ui-viewer'
+import { ioReason } from './io-error.js'
 import { CliError, EXIT } from './outcome.js'
 
 /** §11.4: 500 KiB, unlike the 256 KiB of §13.4, which is the document's own. */
@@ -42,7 +43,6 @@ export function writeOutput(path: string, text: string): void {
   try {
     writeFileSync(path, text)
   } catch (error) {
-    const reason = (error as NodeJS.ErrnoException).code ?? (error as Error).message
-    throw new CliError(EXIT.io, 'io', `cannot write ${path}: ${reason}`)
+    throw new CliError(EXIT.io, 'io', `cannot write ${path}: ${ioReason(error)}`)
   }
 }

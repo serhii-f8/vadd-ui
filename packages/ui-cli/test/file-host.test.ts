@@ -392,8 +392,28 @@ describe('--host file', () => {
     expect(readdirSync(scratch)).toEqual([])
   })
 
+  it('creates a missing --dir, parents included (B10)', async () => {
+    const dir = join(tempDir(), 'a', 'b')
+    const { exit } = await vui(['show', '--host', 'file', '--dir', dir], {
+      stdin: DOC,
+      system: system(),
+    })
+    expect(exit).toBe(0)
+    expect(readdirSync(dir)).toHaveLength(1)
+  })
+
+  it('explains a --dir under a file in words (B10)', async () => {
+    const file = join(tempDir(), 'f')
+    writeFileSync(file, '')
+    const { exit, stderr } = await vui(['show', '--host', 'file', '--dir', join(file, 'x')], {
+      stdin: DOC,
+      system: system(),
+    })
+    expect(exit).toBe(5)
+    expect(stderr).toMatch(/^vui: cannot create .*x: not a directory\n$/)
+  })
+
   it.each([
-    ['missing', () => join(tempDir(), 'gone')],
     [
       'a file',
       () => {
@@ -450,7 +470,7 @@ describe('file names', () => {
     })
     expect(failure.next).toBeUndefined()
     expect(exit).toBe(5)
-    expect(stderr).toContain('ENOSPC')
+    expect(stderr).toContain('no space left on the device')
     expect(readdirSync(dir)).toEqual([])
   })
 

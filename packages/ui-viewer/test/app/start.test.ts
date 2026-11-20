@@ -71,6 +71,8 @@ function list(...seqs: number[]): void {
 
 beforeEach(() => {
   stub()
+  // B9: the feed keeps the theme choice here, so one test's toggle would leak into the next.
+  localStorage.clear()
   document.head.replaceChildren()
   document.body.replaceChildren()
   document.body.removeAttribute('class')
@@ -156,6 +158,35 @@ describe('startFeed', () => {
       'Doc 2',
       'Doc 3',
     ])
+  })
+
+  it('replaces an updated entry in place, open, with the new content (--replace)', async () => {
+    list(1, 2)
+    startFeed(window)
+    FakeSource.last.emit('hello')
+    await settle()
+    replies.set('api/docs/1-doc', { status: 200, text: JSON.stringify({ vui: 1, body: ['v2'] }) })
+    FakeSource.last.emit('update', JSON.stringify({ ...header(1), title: 'Doc 1 v2' }))
+    expect(entries().map((entry) => entry.querySelector('h2')?.textContent)).toEqual([
+      'Doc 1 v2',
+      'Doc 2',
+    ])
+    const host = () => entries()[0]?.querySelector('.feed-body') as HTMLElement
+    await vi.waitFor(() => expect(host().shadowRoot?.textContent).toContain('v2'))
+  })
+
+  it('lets go of a replaced entry: no theme updates, its render destroyed', async () => {
+    list(1)
+    startFeed(window)
+    FakeSource.last.emit('hello')
+    const host = () => entries()[0]?.querySelector('.feed-body') as HTMLElement
+    await vi.waitFor(() => expect(host().shadowRoot?.textContent).toContain('text 1'))
+    const oldRoot = host().shadowRoot?.querySelector('div') as HTMLElement
+    const theme = oldRoot.dataset.vuiTheme
+    FakeSource.last.emit('update', JSON.stringify(header(1)))
+    expect(oldRoot.childElementCount).toBe(0)
+    ;(document.querySelector('.feed-theme') as HTMLButtonElement).click()
+    expect(oldRoot.dataset.vuiTheme).toBe(theme)
   })
 
   it('opens only the last 10 of a batch', async () => {

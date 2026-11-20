@@ -31,6 +31,8 @@ const PREFIX = /^\/v\/([^/]+)(\/.*)$/
 const API_DOC = /^\/api\/docs\/([^/]+)$/
 const STANDALONE = /^\/docs\/([^/]+)\.html$/
 const DIGITS = /^\d+$/
+/** `vui show --name`: a label, kept beside the document, never in a path. */
+const MAX_NAME = 200
 const BEARER = /^Bearer (.+)$/i
 
 const HTML = 'text/html; charset=utf-8'
@@ -78,7 +80,9 @@ function send(
   body: string,
   headers: Record<string, string> = {},
 ): void {
-  res.writeHead(status, { 'Content-Type': type, ...headers })
+  // Set here, so a HEAD (whose body Node drops) carries the same headers as its GET (B11).
+  const length = String(Buffer.byteLength(body))
+  res.writeHead(status, { 'Content-Type': type, 'Content-Length': length, ...headers })
   res.end(body)
 }
 
@@ -122,6 +126,20 @@ function numberParam(query: URLSearchParams, name: string, fallback: number): nu
   return DIGITS.test(text) ? Number(text) : undefined
 }
 
+interface Naming {
+  name?: string
+  replace: boolean
+}
+
+/** `?name=<n>[&replace=1]` (`vui show --name … --replace`, VD-212). `undefined` when bad. */
+function namingOf(query: URLSearchParams): Naming | undefined {
+  const name = query.get('name')
+  const replace = query.get('replace') === '1'
+  if (name === null) return replace ? undefined : { replace }
+  if (name === '' || name.length > MAX_NAME) return undefined
+  return { name, replace }
+}
+
 function decode(bytes: Buffer): string | undefined {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
@@ -161,6 +179,11 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
   }
 
   const events: Action = ({ req, res }) => {
+    if (req.method === 'HEAD') {
+      // The headers of a stream, and no client: a HEAD would never read one.
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' }).end()
+      return
+    }
     const last = req.headers['last-event-id']
     const replay = typeof last === 'string' && DIGITS.test(last) ? Number(last) : undefined
     const headers = replay === undefined ? [] : store.after(replay, MAX_PAGE)
@@ -170,9 +193,14 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
     }
   }
 
-  const writeDoc: Action = async ({ req, res }) => {
+  const writeDoc: Action = async ({ req, res, query }) => {
     if (!isWriter(req)) {
       sendJson(res, 401, { ok: false, error: 'unauthorized' }, { 'WWW-Authenticate': 'Bearer' })
+      return
+    }
+    const naming = namingOf(query)
+    if (naming === undefined) {
+      refuse(res, 400, 'bad-query')
       return
     }
     const tooLarge = () => {
@@ -205,18 +233,23 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       return
     }
     let header: DocHeader
+    let replaced: DocHeader | undefined
     try {
-      header = store.add(document)
+      const { name, replace } = naming
+      replaced = replace && name !== undefined ? store.replace(name, document) : undefined
+      header = replaced ?? store.add(document, name)
     } catch (error) {
       // VD-160: a failed write to `docs/` is the host's disk, not a bug; anything else stays a 500.
       if (!isFsError(error)) throw error
       sendJson(res, 507, { ok: false, error: 'storage' })
       return
     }
-    hub.broadcast(header)
+    if (replaced === undefined) hub.broadcast(header)
+    else hub.broadcastUpdate(header)
     onActivity?.(hub.count)
     const url = viewerUrl(port(), readToken)
-    sendJson(res, 201, { seq: header.seq, id: header.id, url, clients: hub.count })
+    const reply = { seq: header.seq, id: header.id, url, clients: hub.count }
+    sendJson(res, 201, replaced === undefined ? reply : { ...reply, replaced: true })
   }
 
   const routes: Record<string, Route> = {
@@ -282,11 +315,13 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
     const target = req.url ?? '/'
     const mark = target.indexOf('?')
     const path = mark < 0 ? target : target.slice(0, mark)
-    if (req.method === 'GET' && path === '/favicon.ico') {
+    // B11: HEAD runs the GET action, and Node sends no body for it.
+    const method = req.method === 'HEAD' ? 'GET' : (req.method ?? '')
+    if (method === 'GET' && path === '/favicon.ico') {
       res.writeHead(204).end()
       return
     }
-    if (req.method === 'GET' && path === '/health') {
+    if (method === 'GET' && path === '/health') {
       sendJson(res, 200, { ok: true, version: packageVersion, workspaceHash })
       return
     }
@@ -300,9 +335,12 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       notFound(res)
       return
     }
-    const action = Object.hasOwn(route, req.method ?? '') ? route[req.method as string] : undefined
+    const action = Object.hasOwn(route, method) ? route[method] : undefined
     if (action === undefined) {
-      res.setHeader('Allow', Object.keys(route).join(', '))
+      const allowed = Object.keys(route).flatMap((name) =>
+        name === 'GET' ? ['GET', 'HEAD'] : [name],
+      )
+      res.setHeader('Allow', allowed.join(', '))
       refuse(res, 405, 'method-not-allowed')
       return
     }

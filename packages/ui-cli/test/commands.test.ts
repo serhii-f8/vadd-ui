@@ -2,8 +2,17 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { version } from '@vadd/ui'
-import { COMPONENT_TYPES, type JsonValue, LIMITS, validateText } from '@vadd/ui-spec'
+import {
+  COMPONENT_TYPES,
+  FORMAT_NAMES,
+  type JsonValue,
+  LIMITS,
+  TONES,
+  validateText,
+} from '@vadd/ui-spec'
+import { COMMON_FIELDS } from '@vadd/ui-spec/catalog'
 import { describe, expect, it } from 'vitest'
+import { offlineCounter } from '../src/bench/tokens.js'
 import { OUTPUT_LIMIT } from '../src/output.js'
 import { BUNDLE, NOW, SCHEMA, tempDir, tempFile, vui, vuiJson } from './helpers.js'
 
@@ -213,7 +222,7 @@ describe('render', () => {
     const out = join(tempDir(), 'missing', 'x.html')
     const result = await vui(['render', '--format', 'html', '--out', out], { stdin: CLEAN })
     expect(result.exit).toBe(5)
-    expect(result.stderr).toContain('ENOENT')
+    expect(result.stderr).toBe(`vui: cannot write ${out}: no such file\n`)
     const { exit, json } = await vuiJson(['render', '--format', 'html', '--out', out], {
       stdin: CLEAN,
     })
@@ -381,8 +390,27 @@ describe('output limit, in bytes', () => {
 })
 
 describe('validate', () => {
-  it('prints nothing for a clean document', async () => {
-    expect(await vui(['validate'], { stdin: CLEAN })).toEqual({ exit: 0, stdout: '', stderr: '' })
+  it('prints ok for a clean document', async () => {
+    expect(await vui(['validate'], { stdin: CLEAN })).toEqual({
+      exit: 0,
+      stdout: 'ok\n',
+      stderr: '',
+    })
+  })
+
+  it('prints ok with the warning count after the warnings', async () => {
+    const { exit, stdout } = await vui(['validate'], { stdin: WARN })
+    expect(exit).toBe(0)
+    const count = stdout.match(/^warn /gm)?.length ?? 0
+    const word = count === 1 ? 'warning' : 'warnings'
+    expect(stdout.endsWith(`\nok (${count} ${word})\n`)).toBe(true)
+  })
+
+  it('prints no ok when it fails, and keeps --json as it was', async () => {
+    expect((await vui(['validate'], { stdin: INVALID })).stdout).not.toContain('ok')
+    expect((await vui(['validate', '--strict'], { stdin: WARN })).stdout).not.toMatch(/^ok/m)
+    const { json } = await vuiJson(['validate'], { stdin: CLEAN })
+    expect(json).toEqual({ ok: true, diagnostics: [] })
   })
 
   it('reads a file', async () => {
@@ -407,7 +435,7 @@ describe('validate', () => {
   })
 
   it('shows info only with --strict, and it never fails', async () => {
-    expect((await vui(['validate'], { stdin: INFO })).stdout).toBe('')
+    expect((await vui(['validate'], { stdin: INFO })).stdout).toBe('ok\n')
     const strict = await vui(['validate', '--strict'], { stdin: INFO })
     expect(strict.exit).toBe(0)
     expect(strict.stdout).toContain('info  /body/0/nope:')
@@ -434,8 +462,9 @@ describe('validate', () => {
       })),
     })
     const lines = (await vui(['validate'], { stdin })).stdout.trimEnd().split('\n')
-    expect(lines).toHaveLength(21)
+    expect(lines).toHaveLength(22)
     expect(lines[20]).toBe('and 3970 more')
+    expect(lines[21]).toMatch(/^ok \(\d+ warnings\)$/)
   })
 
   it('shows an error found after the cap filled with warnings', async () => {
@@ -468,7 +497,7 @@ describe('validate', () => {
     const stdin = JSON.stringify({ body: [{ type: 'md', text: 'a', 'k\n\x1b[2J': 1 }] })
     const { stdout } = await vui(['validate', '--strict'], { stdin })
     // biome-ignore lint/suspicious/noControlCharactersInRegex: matching controls is the point.
-    expect(stdout.trimEnd()).not.toMatch(/[\x00-\x1f]/)
+    expect(stdout.split('\n')[0]).not.toMatch(/[\x00-\x1f]/)
     expect(stdout).toContain('k\\u000a\\u001b[2J')
   })
 
@@ -484,8 +513,9 @@ describe('catalog', () => {
   it('prints one line per component', async () => {
     const { stdout } = await vui(['catalog'])
     const lines = stdout.trimEnd().split('\n')
-    expect(lines).toHaveLength(24)
-    expect(lines.map((line) => line.split(' ')[0])).toEqual([...COMPONENT_TYPES])
+    expect(lines).toHaveLength(25)
+    expect(lines.slice(0, 24).map((line) => line.split(' ')[0])).toEqual([...COMPONENT_TYPES])
+    expect(lines[24]).toBe('more: vui catalog common | formats')
   })
 
   it.each(COMPONENT_TYPES.map((name) => [name]))('prints %s with an example', async (name) => {
@@ -514,6 +544,56 @@ describe('catalog', () => {
     expect(all.json.components).toHaveLength(24)
     const one = await vuiJson(['catalog', 'kv'])
     expect(one.json.component).toMatchObject({ name: 'kv' })
+  })
+
+  it('lists the common fields with their allowed values', async () => {
+    const { exit, stdout } = await vui(['catalog', 'common'])
+    expect(exit).toBe(0)
+    for (const name of COMMON_FIELDS) expect(stdout).toMatch(new RegExp(`^${name}: `, 'm'))
+    expect(stdout).toContain('\nfold: open|closed')
+    expect(stdout).toContain(`\ntone: ${TONES.join('|')}`)
+    expect(stdout).toContain('\nspan: integer 1–12')
+  })
+
+  it('lists every format with its argument syntax', async () => {
+    const { exit, stdout } = await vui(['catalog', 'formats'])
+    expect(exit).toBe(0)
+    for (const name of FORMAT_NAMES) expect(stdout).toMatch(new RegExp(`^${name}\\b`, 'm'))
+    expect(stdout).toContain('money:<ISO 4217 code>')
+    expect(stdout).toContain('delta[:<base>][:better:low|high]')
+    expect(stdout).toContain('bytes[:si|iec]')
+    expect(stdout).toContain('date[:short|long|time|datetime]')
+  })
+
+  it('answers common and formats in JSON', async () => {
+    const common = await vuiJson(['catalog', 'common'])
+    expect(common.json.common).toContainEqual(
+      expect.objectContaining({ name: 'fold', values: ['open', 'closed'] }),
+    )
+    const formats = await vuiJson(['catalog', 'formats'])
+    const money = (formats.json.formats as { name: string }[]).find(({ name }) => name === 'money')
+    expect(money).toMatchObject({ syntax: 'money:<ISO 4217 code>', example: 'money:USD' })
+    expect(formats.json.formats).toHaveLength(FORMAT_NAMES.length)
+  })
+
+  it.each(['common', 'formats'])('keeps catalog %s within the §14.2 300 tokens', async (name) => {
+    const { stdout } = await vui(['catalog', name])
+    const counter = await offlineCounter()
+    expect(counter.estimate(stdout).estimate).toBeLessThanOrEqual(300)
+  })
+
+  it.each([
+    ['comon', 'common'],
+    ['format', 'formats'],
+  ])('suggests %s → %s', async (typo, near) => {
+    const { exit, stderr } = await vui(['catalog', typo])
+    expect(exit).toBe(2)
+    expect(stderr).toContain(`(did you mean "${near}"?)`)
+  })
+
+  it('names common and formats in the list', async () => {
+    const { stdout } = await vui(['catalog'])
+    expect(stdout).toContain('vui catalog common')
   })
 
   it('suggests a near name', async () => {

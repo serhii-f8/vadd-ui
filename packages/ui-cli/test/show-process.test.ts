@@ -191,6 +191,22 @@ describe('dist/bin.js show', () => {
     expect(log.match(/^tab create/gm)).toHaveLength(1)
     expect(log.match(/^goto --page page-1 /gm)).toHaveLength(1)
   })
+
+  it('moves the pane after a graceful vui viewer stop, and status reads stopped (B1)', async () => {
+    const { stub, calls } = orcaStub()
+    const place = workspace({ ORCA_CLI_COMMAND: stub })
+    expect(await json(place)).toMatchObject({ pane: 'opened', browserPageId: 'page-1' })
+    expect((await vui(place, ['viewer', 'stop'])).exit).toBe(0)
+    expect(info(place)).toMatchObject({ browserPageId: 'page-1' })
+    expect(info(place).pid).toBeUndefined()
+    expect((await vui(place, ['viewer', 'status'])).stdout).toBe('vui: no viewer running\n')
+    expect((await vui(place, ['viewer', 'stop'])).stdout).toBe('vui: no viewer running\n')
+    expect(await json(place)).toMatchObject({ pane: 'moved', browserPageId: 'page-1' })
+    expect(await json(place)).toMatchObject({ pane: 'kept', browserPageId: 'page-1' })
+    const log = readFileSync(calls, 'utf8')
+    expect(log.match(/^tab create/gm)).toHaveLength(1)
+    expect(log.match(/^goto --page page-1 /gm)).toHaveLength(1)
+  })
 })
 
 /** `vui show --json`'s object. */

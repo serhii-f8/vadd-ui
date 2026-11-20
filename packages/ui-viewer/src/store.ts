@@ -29,11 +29,14 @@ const OWNER_ONLY_FILE = 0o600
 const OWNER_ONLY_DIR = 0o700
 const TEMPORARY_SUFFIX = '.tmp'
 const STORED_NAME = /^(\d+)-(.*)\.vui\.json$/
+/** Beside a document stored with `--name`, so `--replace` finds it after a restart. */
+const NAME_SUFFIX = '.name'
 
 interface Entry {
   header: DocHeader
   file: string
   bytes: number
+  name?: string
 }
 
 export interface DocStoreOptions {
@@ -76,6 +79,32 @@ function headerOf(document: VuiDocument, seq: number, id: string, createdAt: str
   }
 }
 
+/** Temporary file, then rename. `time` becomes the file time, which `createdAt` is read from. */
+function writeAtomic(file: string, text: string, time: Date): void {
+  const temporary = `${file}${TEMPORARY_SUFFIX}`
+  try {
+    writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
+    utimesSync(temporary, time, time)
+    renameSync(temporary, file)
+  } catch (error) {
+    // A full disk answers 507 (VD-160) and the Viewer goes on: the partial file must not stay.
+    try {
+      rmSync(temporary, { force: true })
+    } catch {
+      // Best effort: the next start removes it (`#load`).
+    }
+    throw error
+  }
+}
+
+function readName(path: string): string | undefined {
+  try {
+    return readFileSync(path, 'utf8')
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * The documents on disk and an index of them. Synchronous on purpose: at ≤ 20 writes/s of
  * ≤ 256 KiB, one tick makes "number, write, index, evict" atomic with no queue. A caller's
@@ -104,32 +133,50 @@ export class DocStore {
     return this.#entries.length
   }
 
-  add(document: VuiDocument): DocHeader {
+  /** `name`, from `vui show --name`, is what a later `replace` finds the entry by. */
+  add(document: VuiDocument, name?: string): DocHeader {
     const seq = this.#lastSeq + 1
     const id = `${seq}-${slugify(stringOr(document.title) ?? '')}`
     const file = join(this.#dir, `${id}${FILE_EXTENSION}`)
-    const temporary = `${file}${TEMPORARY_SUFFIX}`
     const text = JSON.stringify(document)
     const created = new Date(this.#now())
-    try {
-      writeFileSync(temporary, text, { mode: OWNER_ONLY_FILE })
-      // The file time is `createdAt` after a restart, so it must be this value exactly.
-      utimesSync(temporary, created, created)
-      renameSync(temporary, file)
-    } catch (error) {
-      // A full disk answers 507 (VD-160) and the Viewer goes on: the partial file must not stay.
+    writeAtomic(file, text, created)
+    if (name !== undefined) {
       try {
-        rmSync(temporary, { force: true })
-      } catch {
-        // Best effort: the next start removes it (`#load`).
+        writeAtomic(`${join(this.#dir, id)}${NAME_SUFFIX}`, name, created)
+      } catch (error) {
+        rmSync(file, { force: true })
+        throw error
       }
-      throw error
     }
     this.#lastSeq = seq
     const header = headerOf(document, seq, id, created.toISOString())
-    this.#index({ header, file, bytes: Buffer.byteLength(text) })
+    this.#index({
+      header,
+      file,
+      bytes: Buffer.byteLength(text),
+      ...(name === undefined ? {} : { name }),
+    })
     this.#evict()
     return header
+  }
+
+  /**
+   * `--replace`: the newest entry named `name` takes `document` in place, keeping its seq and
+   * id, with the time of this write. `undefined` when no entry has that name.
+   */
+  replace(name: string, document: VuiDocument): DocHeader | undefined {
+    const entry = this.#entries.findLast((candidate) => candidate.name === name)
+    if (entry === undefined) return undefined
+    const text = JSON.stringify(document)
+    const created = new Date(this.#now())
+    writeAtomic(entry.file, text, created)
+    const { seq, id } = entry.header
+    entry.header = headerOf(document, seq, id, created.toISOString())
+    this.#bytes += Buffer.byteLength(text) - entry.bytes
+    entry.bytes = Buffer.byteLength(text)
+    this.#evict(entry)
+    return entry.header
   }
 
   /** Headers with a higher seq, oldest first. */
@@ -186,15 +233,23 @@ export class DocStore {
     const { mtime, size } = statSync(file)
     const id = name.slice(0, -FILE_EXTENSION.length)
     const document = value as unknown as VuiDocument
-    this.#index({ header: headerOf(document, seq, id, mtime.toISOString()), file, bytes: size })
+    const header = headerOf(document, seq, id, mtime.toISOString())
+    const named = readName(`${join(this.#dir, id)}${NAME_SUFFIX}`)
+    this.#index({ header, file, bytes: size, ...(named === undefined ? {} : { name: named }) })
   }
 
-  #evict(): void {
+  /** Oldest first, sparing `keep`: a replaced entry is the one the caller is about to name. */
+  #evict(keep?: Entry): void {
     while (this.#entries.length > MAX_DOCS || this.#bytes > MAX_BYTES) {
-      const oldest = this.#entries.shift() as Entry
+      const index = this.#entries[0] === keep ? 1 : 0
+      if (index >= this.#entries.length) return
+      const [oldest] = this.#entries.splice(index, 1) as [Entry]
       this.#byId.delete(oldest.header.id)
       this.#bytes -= oldest.bytes
       rmSync(oldest.file, { force: true })
+      if (oldest.name !== undefined) {
+        rmSync(`${join(this.#dir, oldest.header.id)}${NAME_SUFFIX}`, { force: true })
+      }
     }
   }
 }

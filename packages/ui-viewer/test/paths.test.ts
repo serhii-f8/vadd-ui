@@ -68,3 +68,13 @@ describe('stateDirOf', () => {
     expect(stateDirOf('abc', {}, 'win32')).toBe(expected)
   })
 })
+
+describe('the test state root (B14)', () => {
+  it('is never the real one, whatever a test forgets to set', () => {
+    const real = join(homedir(), '.local', 'state')
+    expect(process.env.XDG_STATE_HOME).toBeTruthy()
+    expect(process.env.LOCALAPPDATA).toBe(process.env.XDG_STATE_HOME)
+    expect(stateDirOf('abc', process.env).startsWith(real)).toBe(false)
+    expect(stateDirOf('abc', process.env, 'win32').startsWith(homedir())).toBe(false)
+  })
+})

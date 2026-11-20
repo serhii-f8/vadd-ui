@@ -96,14 +96,13 @@ describe('readInput', () => {
     const error = await failure(() => readInput('/nonexistent/x', stdin([]), 100))
     expect(error.exit).toBe(5)
     expect(error.code).toBe('io')
-    expect(error.message).toContain('ENOENT')
-    expect(error.message).toContain('/nonexistent/x')
+    expect(error.message).toBe('cannot read /nonexistent/x: no such file')
   })
 
   it('reports a directory as I/O', async () => {
     const error = await failure(() => readInput(tempDir(), stdin([]), 100))
     expect(error.exit).toBe(5)
-    expect(error.message).toContain('EISDIR')
+    expect(error.message).toMatch(/: is a directory$/)
   })
 
   it('reports a failing stdin as I/O', async () => {
