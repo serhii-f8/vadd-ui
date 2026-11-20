@@ -22,7 +22,8 @@ const THEME_LABEL: Record<ThemeName, string> = { dark: 'Light theme', light: 'Da
 /** Builds the page and connects it. Everything is relative, so the token prefix just works. */
 export function startFeed(win: Window): void {
   const { document: page } = win
-  const theme = createTheme(win.matchMedia('(prefers-color-scheme: dark)'), page.documentElement)
+  const media = win.matchMedia('(prefers-color-scheme: dark)')
+  const theme = createTheme(media, page.documentElement, () => win.localStorage)
   const follow = createFollow(win)
 
   const status = el('p', { class: 'feed-status', role: 'status' })

@@ -6,6 +6,39 @@ export interface MediaLike {
   addEventListener(type: 'change', listener: () => void): void
 }
 
+/** The part of `Storage` this uses. */
+export interface StorageLike {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+}
+
+/** A getter, since reading `window.localStorage` itself throws where storage is blocked. */
+export type StorageSource = () => StorageLike | undefined
+
+const STORAGE_KEY = 'vui-viewer-theme'
+
+function isTheme(value: unknown): value is ThemeName {
+  return value === 'dark' || value === 'light'
+}
+
+/** Every access may throw (blocked storage, private mode): then there is no stored choice. */
+function readChoice(storage: StorageSource | undefined): ThemeName | undefined {
+  try {
+    const value = storage?.()?.getItem(STORAGE_KEY)
+    return isTheme(value) ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function writeChoice(storage: StorageSource | undefined, name: ThemeName): void {
+  try {
+    storage?.()?.setItem(STORAGE_KEY, name)
+  } catch {
+    // Kept in memory for this page, as before (B9).
+  }
+}
+
 export interface Theme {
   readonly current: ThemeName
   /** Keeps `data-vui-theme` on `root` current. Every `.vui-root` needs this (VD-007). */
@@ -16,13 +49,14 @@ export interface Theme {
 
 /**
  * `:root` cannot match in a shadow stylesheet, so the OS rule never reaches a document and
- * the scheme has to be written on each root. The choice lives in a variable, so a reload
- * goes back to the OS (§4.1). Only attributes change: no re-render (§8.2).
+ * the scheme has to be written on each root. A manual choice is kept in `storage` when it
+ * works, so a reload keeps it, and falls back to the OS otherwise (B9, VD-211; §9.3's rule is
+ * the renderer's, and this is Viewer chrome). Only attributes change: no re-render (§8.2).
  */
-export function createTheme(media: MediaLike, html: HTMLElement): Theme {
+export function createTheme(media: MediaLike, html: HTMLElement, storage?: StorageSource): Theme {
   const roots: HTMLElement[] = []
   const listeners: ((current: ThemeName) => void)[] = []
-  let manual: ThemeName | undefined
+  let manual: ThemeName | undefined = readChoice(storage)
 
   const current = (): ThemeName => manual ?? (media.matches ? 'dark' : 'light')
 
@@ -48,6 +82,7 @@ export function createTheme(media: MediaLike, html: HTMLElement): Theme {
     },
     toggle() {
       manual = current() === 'dark' ? 'light' : 'dark'
+      writeChoice(storage, manual)
       apply()
     },
     onChange(listener) {
