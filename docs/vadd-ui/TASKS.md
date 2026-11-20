@@ -266,6 +266,40 @@ Slug `ci-green`. Depends on: 24. Spec: §16, §16.1, §17.4. Added by the coordi
   - Nothing changes in the §9.5 bundle budgets (the core bundle has about 2 B of headroom); renderer packages keep their rules.
   - `pnpm gate` is green locally (WSL). The worker cannot run Windows or macOS, and must not push: it reports the commits, and the coordinator verifies on GitHub after the user pushes.
 
+### 26 — Stability fixes: Viewer, CLI and skill
+Slug `stability-cli`. Depends on: 25. Spec: §4.1, §11.1, §11.3, §11.4, §12.1, §16. Added by the coordinator from the 2026-11-20 stability assessment (VD-209). The full findings, with repro steps, are in `/var/www/html/vui-testbed/FINDINGS.md` (a test project with the 1.0.0 tarballs installed; reuse it for checks). Packages: `ui-cli`, `ui-viewer`, `skills/vadd-ui`, `docs/`. Do not touch `ui-spec`, `ui-render`, `ui-text` or `ui`: task 27 runs in parallel there.
+- Acceptance:
+  - **B1.** After a graceful `vui viewer stop`, the next `vui show` reuses the Orca pane: it moves the remembered tab to the new URL (`"pane":"moved"`) instead of opening a second one. Cause: `ui-viewer/src/server.ts:274` deletes `viewer.json`, which holds `browserPageId`, so `previousPane()` finds nothing. Keep the pane id across a graceful stop without making a stopped Viewer look alive to `status` or liveness checks. Covered by a test of the stop → show sequence. The crash path stays `moved`.
+  - **B9.** The Viewer's theme toggle is remembered across reloads in `localStorage`, with every access in try/catch; with storage blocked, it falls back to the OS scheme. This is Viewer chrome, not the renderer, so §9.3's no-storage rule does not apply (log it).
+  - **B10.** `vui show --host file --dir D` creates `D` (recursively) when it is missing. I/O errors print a sentence, not a bare code: `vui: cannot read nope.vui: no such file` rather than `ENOENT`. Same exit codes (5).
+  - **B11.** Viewer routes that answer GET also answer HEAD, with the same status and headers and no body.
+  - **B14.** Find why `~/.local/state/vadd-ui` collects empty workspace folders (104 on this machine, dated like test runs), and fix the leak at its source: tests must never write to the real state root. The Viewer or CLI must also not leave an empty workspace folder behind for a workspace that never stored a document. Do not delete the user's existing folders; report the count.
+  - **Catalog.** `vui catalog common` lists the common node fields with their allowed values (`fold: open|closed`, …), and `vui catalog formats` lists every format with its argument syntax (`money:USD`, `delta:pct`, …), both with `--json`. `vui catalog <unknown>` suggests the closest name. The skill cheat-sheet points to both.
+  - **`--name`.** `--name` is documented in `docs/` and the CLI README. New `--replace` (requires `--name`): on the Viewer host it updates the existing feed entry with that name in place (same entry, new content, live in the open feed) instead of adding a new one; with no such entry, it adds one. On the file and orca-chat hosts it is accepted and does nothing extra (state that in help). DEVIATION from §11.1; log it.
+  - **Doctor.** `vui doctor` prints each check as it finishes (stderr in human mode, unchanged `--json`), so the about 20 s Windows reachability probe is not silent, and `--quick` skips that probe (reported as `skipped`).
+  - **Validate.** A successful `vui validate` prints `ok` (with the warning count when there are warnings) in human mode; `--json` is unchanged.
+  - **Skill and docs (B2 text).** The skill and `docs/embedding.md` say plainly that `vui-ext.min.js` replaces `vui.min.js` and must not be loaded alongside it. The skill notes that the CDN template works only after the npm release (pending the user).
+  - Token budgets for the skill (§14.2) still pass. `pnpm gate` is green. Verify B1, B9 and `--replace` in the real Orca pane from `/var/www/html/vui-testbed`, after reinstalling the tarballs there.
+
+### 27 — Stability fixes: renderer, formats and validator
+Slug `stability-render`. Depends on: 25. Spec: §5.4, §5.5, §6.3, §6.4, §6.5, §7, §8.4, §9.2, §9.3, §9.5, §13.1, §16. Added by the coordinator from the 2026-11-20 stability assessment (VD-209). The findings, with repro documents (`docs/report.vui`, `docs/kitchen.vui`, `web/index.html`), are in `/var/www/html/vui-testbed/FINDINGS.md`. Packages: `ui-spec`, `ui-render`, `ui-text`, `ui`. Do not touch `ui-cli`, `ui-viewer` or `skills/`: task 26 runs in parallel there.
+- Acceptance:
+  - **Budget first.** `vui.min.js` is at 38.0 KiB gzip against the §9.5 limit of 38 KiB. Every byte added below must be paid for by savings in the core bundle (measure with `scripts/check-bundle-size.mjs` at each step). If an item cannot fit after a real effort, it may live only in `vui-ext.min.js` with the core degrading gracefully, logged as a decision. The budget never moves.
+  - **B2.** Loading `vui.min.js` and `vui-ext.min.js` on one page renders ext components (`compare`, `flow`, `scatter`), whichever order the two scripts load in: the ext bundle wins, and each document renders once. With only the core bundle, an ext-only node shows a card naming the cause, such as "`scatter` charts need vui-ext.min.js", not "Unknown component: chart".
+  - **B3.** Stat items take `better: 'high'|'low'` (object form; default `high`, as now), which flips the delta's tone. The positional form stays as it is. Validator, schema, catalog and text/md renderers know the field. DEVIATION; log it.
+  - **B4.** Charts take `tones: {seriesKey: tone}`, which colors a series with a tone's color, as table columns already do. Validator, schema and catalog know it. DEVIATION; log it.
+  - **B5.** Scatter: the scales pad their domain, so no point is clipped at an edge, and the label (third tuple element) is visible (on the point or in its tooltip and accessible table).
+  - **B6.** In narrow frames (360–420 px), formatted short values (`date`, `rel`, `num`, `int`, `pct`, `ms`, `bytes`, `money`, `sha`, `status`) do not wrap, and `path`/`code` cells break at `/`, `.`, `_` or `-` boundaries, not mid-word. Rows keep one line where the content allows.
+  - **B7.** A document yields one diagnostic per problem: the render-time per-value `money` warning (and any similar per-value repeat) is merged with the validator's, so the Viewer and the CLI report the same count.
+  - **B8.** A callout whose text starts with a status token does not show the tone icon as well; the same applies in text and md output (no `✗ ✗ fail`).
+  - **B12.** The check output toggle's accessible name is "Output, Playwright" (no space before the comma); `ui-render/src/components/dev.ts:66`.
+  - **B13.** A flow edge with a label is long enough for the label, which no longer covers the arrow.
+  - **Hints.** An unknown field gets a "did you mean" hint where one exists, and `items` on `kv` says "kv takes pairs". The `fold` type error lists `open|closed`, and every enum type error lists its allowed values. The browser error card for an unknown type shows the same "did you mean" hint as the CLI.
+  - **Text output.** Text and md renderings of charts keep the data in a compact form (per series: last, min and max, or the values when there are ≤ 8 points), not just "Line chart: p50, p95 over Mon–Fri".
+  - **Progress.** With `segments` and no `max`, `max` defaults to the sum of the segment values.
+  - **Inline.** `_italic_` renders as italic at word boundaries (CommonMark flanking rules), while `snake_case_names` and `a_b` stay literal. DEVIATION from §5.5; log it.
+  - Visual baselines updated only where the change is intended, each inspected. Renderer rules hold (no `innerHTML`, `eval` or `new Function`; no new dependencies). `pnpm gate` green, `pnpm fuzz` clean, §9.5 timings within limits. Check the repro documents in the real Orca pane after reinstalling the tarballs in `/var/www/html/vui-testbed`.
+
 ## Coverage (spec requirement → one task)
 
 | Spec | Requirement | Task |
