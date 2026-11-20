@@ -16,6 +16,7 @@ import { CliError, EXIT, type Outcome, usageError } from './outcome.js'
 import { FORMATS, OUTPUT_LIMIT, type OutputFormat, renderOutput, writeOutput } from './output.js'
 import { exitCodeOf, inputTooLarge, prepare } from './pipeline.js'
 import { formatDiagnostics, safe, safeJson } from './print.js'
+import { COMMON_REFERENCE, commonText, FORMAT_REFERENCE, formatsText } from './reference.js'
 
 const USAGE = `vui: show a VUI document, or render it without a host
 
@@ -24,7 +25,7 @@ vui viewer start|stop|status|open|url [--bind A]
 vui doctor
 vui render [file|-] --format html|md|text [--out F] [--cdn]
 vui validate [file|-] [--strict]
-vui catalog [component]
+vui catalog [component|common|formats]
 vui schema
 vui extract [file.html|-]
 vui bench [dir]
@@ -39,6 +40,9 @@ const STDOUT = '-'
 const LISTED_DOCUMENTS = 5
 
 const COMPONENT_NAMES: readonly string[] = CATALOG.map(({ name }) => name)
+/** Not components: §5.4's fields and §7's formats (VD-213). No component has either name. */
+const REFERENCES = ['common', 'formats']
+const CATALOG_NAMES: readonly string[] = [...COMPONENT_NAMES, ...REFERENCES]
 
 async function readDocument(parsed: ParsedArgs, io: Io): Promise<Input> {
   return readInput(parsed.positional[0], io.stdin, LIMITS.inputBytes)
@@ -134,7 +138,7 @@ function entryText(entry: CatalogEntry): string {
 }
 
 function unknownComponent(name: string): CliError {
-  const near = suggest(name.slice(0, 40), COMPONENT_NAMES)
+  const near = suggest(name.slice(0, 40), CATALOG_NAMES)
   const hint = near === undefined ? '' : ` (did you mean "${near}"?)`
   return usageError(`unknown component ${JSON.stringify(name.slice(0, 60))}${hint}`)
 }
@@ -147,7 +151,14 @@ export function catalog(parsed: ParsedArgs): Outcome {
     const components = CATALOG.map(({ name: item, group, summary }) => {
       return { name: item, group, summary }
     })
-    return { exit: EXIT.ok, stdout: lines.join(''), json: { components } }
+    const more = 'more: vui catalog common | formats\n'
+    return { exit: EXIT.ok, stdout: `${lines.join('')}${more}`, json: { components } }
+  }
+  if (name === 'common') {
+    return { exit: EXIT.ok, stdout: commonText(), json: { common: COMMON_REFERENCE } }
+  }
+  if (name === 'formats') {
+    return { exit: EXIT.ok, stdout: formatsText(), json: { formats: FORMAT_REFERENCE } }
   }
   const entry = findComponent(name)
   if (entry === undefined) throw unknownComponent(name)
