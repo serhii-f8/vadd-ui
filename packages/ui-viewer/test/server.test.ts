@@ -471,20 +471,29 @@ describe('retireViewerInfo', () => {
     expect(readViewerInfo(dir)?.browserPageId).toBe('p')
   })
 
-  it('removes a file with no pane, and the folder once empty', () => {
+  it('removes a file with no pane, and with prune the folder once empty', () => {
     const root = tempDir()
     const dir = join(root, 'ws')
-    mkdirSync(dir)
+    mkdirSync(join(dir, 'docs'), { recursive: true })
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7 }))
+    retireViewerInfo(dir, 7, { prune: true })
+    expect(existsSync(dir)).toBe(false)
+  })
+
+  it('leaves the folders alone without prune, for a Viewer starting there', () => {
+    const dir = tempDir()
+    mkdirSync(join(dir, 'docs'))
     writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7 }))
     retireViewerInfo(dir, 7)
-    expect(existsSync(dir)).toBe(false)
+    expect(existsSync(join(dir, 'viewer.json'))).toBe(false)
+    expect(existsSync(join(dir, 'docs'))).toBe(true)
   })
 
   it('keeps a folder that holds anything else', () => {
     const dir = tempDir()
     writeFileSync(join(dir, 'viewer.log'), 'x')
     writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7 }))
-    retireViewerInfo(dir, 7)
+    retireViewerInfo(dir, 7, { prune: true })
     expect(existsSync(join(dir, 'viewer.json'))).toBe(false)
     expect(existsSync(join(dir, 'viewer.log'))).toBe(true)
   })

@@ -145,7 +145,11 @@ export function updateViewerInfo(
  * A pane id stays, in a record that cannot read as live (B1); with none the file goes. Then a
  * folder with nothing left in it goes too (B14): a workspace that stored nothing leaves nothing.
  */
-export function retireViewerInfo(stateDir: string, pid?: number): void {
+export function retireViewerInfo(
+  stateDir: string,
+  pid?: number,
+  options: { prune?: boolean } = {},
+): void {
   const info = readViewerInfo(stateDir)
   if (pid !== undefined && info?.pid !== pid) return
   try {
@@ -164,6 +168,9 @@ export function retireViewerInfo(stateDir: string, pid?: number): void {
     // Not ours to change: the next start overwrites the file anyway.
     return
   }
+  // Only the Viewer itself, as it stops: from another process a Viewer starting in this folder
+  // could have its new, empty `docs/` taken away (VD-215).
+  if (options.prune !== true) return
   // `docs/` first: the store makes it on open, and it is empty if nothing was stored.
   removeIfEmpty(join(stateDir, DOCS_DIR))
   removeIfEmpty(stateDir)
@@ -318,7 +325,7 @@ export async function startViewer(options: StartOptions): Promise<RunningViewer>
       server.close(() => resolve())
       server.closeAllConnections()
       // A newer Viewer may own the file by now, which `retireViewerInfo` leaves alone.
-      retireViewerInfo(stateDir, pid)
+      retireViewerInfo(stateDir, pid, { prune: true })
     })
     return closing
   }

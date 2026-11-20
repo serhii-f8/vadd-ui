@@ -1707,7 +1707,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Alternatives: the reference inside `@vadd/ui-spec/catalog` (out of this task's packages; task 27 runs there).
 
 ## VD-214 — `vui doctor` reports each check as it finishes, and takes `--quick`
-- Date: 2026-11-20 · Task: 26
+- Date: 2026-11-20 · Task: 26 · DEVIATION from §11.1 for `validate` ("Print diagnostics only": a clean run now also prints `ok`)
 - Decision: in human mode each check line goes to stderr as soon as it is known, so the Windows reachability probe (about 20 s here) is no longer silent; stdout ends with one summary line, `vui: doctor: N checks, M failures`. `--json` is unchanged: the whole list at the end. `--quick` skips the probe and reports `{name: 'windows', status: 'skipped', detail: 'skipped by --quick'}` (a new status; it never fails). A successful `vui validate` prints `ok`, or `ok (N warnings)` after the warnings; `--json` is unchanged.
 - Alternatives: stream the lines to stdout (a pipe would get them interleaved with nothing to tell progress from result); a spinner (no TTY in agent shells).
 
@@ -1722,3 +1722,8 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Context: the skill was at 1,705 of its 1,710-token gate (§14.2's 1,800 less VD-136's margin), and every procedure and rule sentence is a pinned §12 clause.
 - Decision: step 7 keeps its clause and adds "Also `vui catalog common` and `vui catalog formats`." The CDN note now reads "`compare`, `flow` and `scatter` need `vui-ext.min.js` instead, never both. Needs the npm release." The room came from the cheat-sheet example: the `plan` line moved to "Other types", and two sample strings got shorter. Result: 1,708 estimated. `docs/embedding.md` states the same about the bundles in full.
 - Alternatives: raise the local gate (VD-136's margin exists because the estimate is not a count); drop the format list for a pointer (the skill test pins every list).
+
+## VD-217 — Task 26 review: findings handled
+- Date: 2026-11-20 · Task: 26
+- Context: a fresh-subagent review of the branch found nothing critical, three important and six minor findings.
+- Decision: fixed: (1) a replaced feed entry kept its rendered document alive, since `theme.track` held every root: `track` now returns an untrack, and an entry's `dispose` untracks and destroys its render handle before the swap; (3) `retireViewerInfo` from the CLI could remove the empty `docs/` of a Viewer starting at that moment: only the Viewer's own `close()` prunes empty folders now (`{prune: true}`); `doctor` removes its probe folder in its own try, so a show writing there at the same moment is no failure; `store.replace` never evicts the entry it replaced; VD-214 marks `validate`'s `ok` as a DEVIATION. Accepted: (2) the blind `goto` when Orca gives no tab list can move a pane the reader took elsewhere, written down in VD-210 (it is what turned a real second tab into a moved pane, and the alternative is a stale tab per restart). Not changed: the no-pid `retireViewerInfo` in `stopViewer` can race a new Viewer's first write, as the old `rmSync` there could (pre-existing, needs the start lock to close, out of scope); an update missed while disconnected stays until reload (VD-212 notes it); HEAD on the event stream sends no `Content-Length`, which a stream never has.

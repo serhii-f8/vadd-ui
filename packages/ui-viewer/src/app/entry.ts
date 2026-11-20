@@ -17,7 +17,8 @@ export interface EntryOptions {
   load: (id: string) => Promise<string>
   /** Called once a document has made the entry taller. */
   onGrow: () => void
-  track: (root: HTMLElement) => void
+  /** Gives back the untrack, which `dispose` calls. */
+  track: (root: HTMLElement) => () => void
   openLink: (url: string) => void
 }
 
@@ -55,7 +56,10 @@ function jumpWithin(shadow: ShadowRoot): void {
   })
 }
 
-export function createEntry(header: DocHeader, options: EntryOptions): HTMLElement {
+/** A feed entry. `dispose` lets go of its rendered document, for `--replace` (VD-212). */
+export type Entry = HTMLElement & { dispose: () => void }
+
+export function createEntry(header: DocHeader, options: EntryOptions): Entry {
   const { open, load, onGrow, track, openLink } = options
   const { seq, id, title, createdAt, cwd, branch } = header
   const headingId = `entry-${seq}`
@@ -94,6 +98,7 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
 
   let text: Promise<string> | undefined
   let drawn = false
+  let release: () => void = () => undefined
   let note: HTMLElement | undefined
   /** Only what arrives by itself moves a following page: a reader's click must not. */
   let pins = open
@@ -121,10 +126,14 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
       const document = await read()
       const shadow = body.attachShadow({ mode: 'open' })
       const root = el('div')
-      track(root)
+      const untrack = track(root)
       jumpWithin(shadow)
       shadow.append(el('style', {}, stylesheet + DOCUMENT_CSS), root)
-      render(document, root, { linkHandler: openLink })
+      const handle = render(document, root, { linkHandler: openLink })
+      release = () => {
+        untrack()
+        handle.destroy()
+      }
     } catch {
       drawn = false
       note = el('p', { class: 'feed-note', role: 'alert' }, LOAD_FAILED)
@@ -158,5 +167,10 @@ export function createEntry(header: DocHeader, options: EntryOptions): HTMLEleme
   })
 
   show()
-  return entry
+  return Object.assign(entry, {
+    dispose: () => {
+      clearTimeout(copyTimer)
+      release()
+    },
+  })
 }

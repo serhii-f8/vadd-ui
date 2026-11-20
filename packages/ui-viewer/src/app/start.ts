@@ -1,7 +1,7 @@
 import { stylesheet } from '@vadd/ui'
 import type { DocHeader } from '../doc-header.js'
 import { el } from './dom.js'
-import { createEntry } from './entry.js'
+import { createEntry, type Entry } from './entry.js'
 import { createFollow } from './follow.js'
 import { type SourceLike, type Status, startStream } from './stream.js'
 import { feedCss } from './styles.js'
@@ -68,8 +68,8 @@ export function startFeed(win: Window): void {
   }
 
   /** By seq, so an update finds the entry it replaces. */
-  const shown = new Map<number, HTMLElement>()
-  const entryOf = (header: DocHeader, open: boolean): HTMLElement => {
+  const shown = new Map<number, Entry>()
+  const entryOf = (header: DocHeader, open: boolean): Entry => {
     const onGrow = () => follow.pin()
     const entry = createEntry(header, { open, load, onGrow, track: theme.track, openLink })
     shown.set(header.seq, entry)
@@ -87,7 +87,11 @@ export function startFeed(win: Window): void {
 
   /** `--replace`: the same place in the feed, open, with what the agent sent last. */
   const update = (header: DocHeader): void => {
-    shown.get(header.seq)?.replaceWith(entryOf(header, true))
+    const old = shown.get(header.seq)
+    if (old === undefined) return
+    // Untracked and destroyed, or every update would keep a rendered document alive.
+    old.dispose()
+    old.replaceWith(entryOf(header, true))
   }
 
   startStream({

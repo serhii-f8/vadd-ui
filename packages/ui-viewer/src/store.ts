@@ -175,7 +175,7 @@ export class DocStore {
     entry.header = headerOf(document, seq, id, created.toISOString())
     this.#bytes += Buffer.byteLength(text) - entry.bytes
     entry.bytes = Buffer.byteLength(text)
-    this.#evict()
+    this.#evict(entry)
     return entry.header
   }
 
@@ -238,9 +238,12 @@ export class DocStore {
     this.#index({ header, file, bytes: size, ...(named === undefined ? {} : { name: named }) })
   }
 
-  #evict(): void {
+  /** Oldest first, sparing `keep`: a replaced entry is the one the caller is about to name. */
+  #evict(keep?: Entry): void {
     while (this.#entries.length > MAX_DOCS || this.#bytes > MAX_BYTES) {
-      const oldest = this.#entries.shift() as Entry
+      const index = this.#entries[0] === keep ? 1 : 0
+      if (index >= this.#entries.length) return
+      const [oldest] = this.#entries.splice(index, 1) as [Entry]
       this.#byId.delete(oldest.header.id)
       this.#bytes -= oldest.bytes
       rmSync(oldest.file, { force: true })

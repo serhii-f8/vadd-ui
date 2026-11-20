@@ -41,8 +41,8 @@ function writeChoice(storage: StorageSource | undefined, name: ThemeName): void 
 
 export interface Theme {
   readonly current: ThemeName
-  /** Keeps `data-vui-theme` on `root` current. Every `.vui-root` needs this (VD-007). */
-  track(root: HTMLElement): void
+  /** Keeps `data-vui-theme` on `root` current (VD-007), until the returned untrack is called. */
+  track(root: HTMLElement): () => void
   toggle(): void
   onChange(listener: (current: ThemeName) => void): void
 }
@@ -54,7 +54,7 @@ export interface Theme {
  * the renderer's, and this is Viewer chrome). Only attributes change: no re-render (§8.2).
  */
 export function createTheme(media: MediaLike, html: HTMLElement, storage?: StorageSource): Theme {
-  const roots: HTMLElement[] = []
+  const roots = new Set<HTMLElement>()
   const listeners: ((current: ThemeName) => void)[] = []
   let manual: ThemeName | undefined = readChoice(storage)
 
@@ -77,8 +77,11 @@ export function createTheme(media: MediaLike, html: HTMLElement, storage?: Stora
       return current()
     },
     track(root) {
-      roots.push(root)
+      roots.add(root)
       root.setAttribute('data-vui-theme', current())
+      return () => {
+        roots.delete(root)
+      }
     },
     toggle() {
       manual = current() === 'dark' ? 'light' : 'dark'

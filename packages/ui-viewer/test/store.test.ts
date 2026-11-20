@@ -344,6 +344,18 @@ describe('named entries (--replace)', () => {
     expect(total).toBeGreaterThan(1000)
   })
 
+  it('never evicts the entry it just replaced, even when it is the oldest', () => {
+    const dir = temp()
+    const store = new DocStore(dir)
+    const big = [{ type: 'code', text: 'x'.repeat(256 * 1024) }]
+    store.add(doc('a'), 'a')
+    for (let i = 0; i < 199; i += 1) store.add(doc('n', { body: big }))
+    const header = store.replace('a', doc('a', { body: big }))
+    expect(header?.seq).toBe(1)
+    expect(store.read(header?.id ?? '')).toBeDefined()
+    expect(store.header('2-n')).toBeUndefined()
+  })
+
   it('removes the name with an evicted document', () => {
     const dir = temp()
     const store = new DocStore(dir)

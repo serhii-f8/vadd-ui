@@ -71,6 +71,8 @@ function list(...seqs: number[]): void {
 
 beforeEach(() => {
   stub()
+  // B9: the feed keeps the theme choice here, so one test's toggle would leak into the next.
+  localStorage.clear()
   document.head.replaceChildren()
   document.body.replaceChildren()
   document.body.removeAttribute('class')
@@ -171,6 +173,20 @@ describe('startFeed', () => {
     ])
     const host = () => entries()[0]?.querySelector('.feed-body') as HTMLElement
     await vi.waitFor(() => expect(host().shadowRoot?.textContent).toContain('v2'))
+  })
+
+  it('lets go of a replaced entry: no theme updates, its render destroyed', async () => {
+    list(1)
+    startFeed(window)
+    FakeSource.last.emit('hello')
+    const host = () => entries()[0]?.querySelector('.feed-body') as HTMLElement
+    await vi.waitFor(() => expect(host().shadowRoot?.textContent).toContain('text 1'))
+    const oldRoot = host().shadowRoot?.querySelector('div') as HTMLElement
+    const theme = oldRoot.dataset.vuiTheme
+    FakeSource.last.emit('update', JSON.stringify(header(1)))
+    expect(oldRoot.childElementCount).toBe(0)
+    ;(document.querySelector('.feed-theme') as HTMLButtonElement).click()
+    expect(oldRoot.dataset.vuiTheme).toBe(theme)
   })
 
   it('opens only the last 10 of a batch', async () => {

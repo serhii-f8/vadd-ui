@@ -154,3 +154,15 @@ describe('a remembered choice (B9)', () => {
     expect(html.className).toBe('light')
   })
 })
+
+describe('untrack', () => {
+  it('stops updating a root it was told to let go of', () => {
+    const html = document.createElement('html')
+    const theme = createTheme(new FakeMedia(true), html)
+    const root = document.createElement('div')
+    const untrack = theme.track(root)
+    untrack()
+    theme.toggle()
+    expect(root.dataset.vuiTheme).toBe('dark')
+  })
+})

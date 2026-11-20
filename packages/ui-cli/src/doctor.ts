@@ -73,6 +73,14 @@ function orcaChatCheck({ env }: System): Check {
   return { name, status: 'fail', detail: `${dir} is not a writable directory`, fix }
 }
 
+function removeEmpty(dir: string): void {
+  try {
+    rmdirSync(dir)
+  } catch {
+    // Not empty: someone else is using it.
+  }
+}
+
 function stateCheck({ stateDir }: Place): Check {
   const name = 'state'
   const existed = existsSync(stateDir)
@@ -81,8 +89,9 @@ function stateCheck({ stateDir }: Place): Check {
     const probe = join(stateDir, `doctor.${process.pid}.tmp`)
     writeFileSync(probe, '')
     rmSync(probe)
-    // B14: a folder made only for this check would stay behind empty.
-    if (!existed) rmdirSync(stateDir)
+    // B14: a folder made only for this check would stay behind empty. A show starting at the
+    // same moment may have put something in it, which `rmdir` leaves, and that is no failure.
+    if (!existed) removeEmpty(stateDir)
     return { name, status: 'ok', detail: stateDir }
   } catch (error) {
     const fix = 'Make the directory writable, or set XDG_STATE_HOME to one that is.'
