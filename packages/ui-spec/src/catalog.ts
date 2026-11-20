@@ -43,11 +43,19 @@ export const COMMON_FIELDS: readonly string[] = ['id', 'title', 'note', 'tone', 
 const COMPUTED_DEFAULTS: Record<string, string> = {
   'GridNode.cols': 'auto by child count',
   'TableNode.sticky': 'true when rows > 15',
+  'ProgressNode.max': 'segment sum or 100',
 }
 
 /** Input forms no canonical rule holds: the normalizer's positional `stats` items (VD-164). */
 const INPUT_TYPES: Record<string, string> = {
   'StatsNode.items': '([label, value, format?, delta?, deltaFormat?, tone?] or StatItem)[]',
+  // The tone list is spelled out once, at `RefLine.tone`: the §14.2 budget per entry (VD-221).
+  ...Object.fromEntries(
+    ['CategoryChart', 'LineChart', 'SparkChart', 'ScatterChart'].map((shape) => [
+      `${shape}.tones`,
+      '{series: tone}',
+    ]),
+  ),
 }
 
 const HANDWRITTEN: Record<ComponentType, Handwritten> = {

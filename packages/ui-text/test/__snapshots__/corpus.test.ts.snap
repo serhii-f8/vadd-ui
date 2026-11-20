@@ -162,16 +162,22 @@ exports[`valid corpus snapshots (§16) > card valid 9: {"tone":"default"} > plai
 
 exports[`valid corpus snapshots (§16) > chart area valid 0: {} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 0: {} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 
 _caption with **bold**_
 "
@@ -179,6 +185,8 @@ _caption with **bold**_
 
 exports[`valid corpus snapshots (§16) > chart area valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 
 caption with bold
 "
@@ -188,6 +196,8 @@ exports[`valid corpus snapshots (§16) > chart area valid 2: {"title":"Node titl
 "#### Node title
 
 _Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
@@ -195,116 +205,162 @@ exports[`valid corpus snapshots (§16) > chart area valid 2: {"title":"Node titl
 "Node title
 
 Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 3: {"yFormat":"ms"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1 ms, 2 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 3: {"yFormat":"ms"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1 ms, 2 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 4: {"xFormat":"date:short"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 4: {"xFormat":"date:short"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 5: {"stackTotal":true} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 5: {"stackTotal":true} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 6: {"height":"sm"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 6: {"height":"sm"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 7: {"height":"md"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 7: {"height":"md"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 8: {"height":"lg"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 8: {"height":"lg"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 9: {"legend":"auto"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 9: {"legend":"auto"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 10: {"legend":"none"} > markdown 1`] = `
 "_Area chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 10: {"legend":"none"} > plain 1`] = `
 "Area chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
 "_Area chart: s over a–b; SLO 1._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
 "Area chart: s over a–b; SLO 1.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 12: {"x":[1,2]} > markdown 1`] = `
 "_Area chart: s over 1–2._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 12: {"x":[1,2]} > plain 1`] = `
 "Area chart: s over 1–2.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 13: {"x":["2026-11-04","2026-11-05"]} > markdown 1`] = `
 "_Area chart: s over 2026-11-04–2026-11-05._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart area valid 13: {"x":["2026-11-04","2026-11-05"]} > plain 1`] = `
 "Area chart: s over 2026-11-04–2026-11-05.
+
+- s: 1, 2
 "
 `;
 
@@ -320,16 +376,22 @@ exports[`valid corpus snapshots (§16) > chart area valid 14: {"x":[],"series":{
 
 exports[`valid corpus snapshots (§16) > chart bar valid 0: {} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 0: {} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 
 _caption with **bold**_
 "
@@ -337,6 +399,8 @@ _caption with **bold**_
 
 exports[`valid corpus snapshots (§16) > chart bar valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 
 caption with bold
 "
@@ -346,6 +410,8 @@ exports[`valid corpus snapshots (§16) > chart bar valid 2: {"title":"Node title
 "#### Node title
 
 _Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
@@ -353,96 +419,134 @@ exports[`valid corpus snapshots (§16) > chart bar valid 2: {"title":"Node title
 "Node title
 
 Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 3: {"yFormat":"ms"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 3: {"yFormat":"ms"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 4: {"xFormat":"date:short"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 4: {"xFormat":"date:short"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 5: {"stackTotal":true} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 5: {"stackTotal":true} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 6: {"height":"sm"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 6: {"height":"sm"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 7: {"height":"md"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 7: {"height":"md"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 8: {"height":"lg"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 8: {"height":"lg"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 9: {"legend":"auto"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 9: {"legend":"auto"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 10: {"legend":"none"} > markdown 1`] = `
 "_Bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 10: {"legend":"none"} > plain 1`] = `
 "Bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
 "_Bar chart: s over a; SLO 1._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
 "Bar chart: s over a; SLO 1.
+
+- s: a 1
 "
 `;
 
@@ -458,26 +562,38 @@ exports[`valid corpus snapshots (§16) > chart bar valid 12: {"x":[],"series":{}
 
 exports[`valid corpus snapshots (§16) > chart bar valid 13: {"series":{"a":[1],"b":[2]}} > markdown 1`] = `
 "_Bar chart: a, b over a._
+
+- **a:** a 1
+- **b:** a 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart bar valid 13: {"series":{"a":[1],"b":[2]}} > plain 1`] = `
 "Bar chart: a, b over a.
+
+- a: a 1
+- b: a 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart donut valid 0: {} > markdown 1`] = `
 "_Donut chart: s over a–b._
+
+- **s:** a 1, b 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart donut valid 0: {} > plain 1`] = `
 "Donut chart: s over a–b.
+
+- s: a 1, b 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart donut valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
 "_Donut chart: s over a–b._
+
+- **s:** a 1, b 2
 
 _caption with **bold**_
 "
@@ -485,6 +601,8 @@ _caption with **bold**_
 
 exports[`valid corpus snapshots (§16) > chart donut valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
 "Donut chart: s over a–b.
+
+- s: a 1, b 2
 
 caption with bold
 "
@@ -494,6 +612,8 @@ exports[`valid corpus snapshots (§16) > chart donut valid 2: {"title":"Node tit
 "#### Node title
 
 _Donut chart: s over a–b._
+
+- **s:** a 1, b 2
 "
 `;
 
@@ -501,6 +621,8 @@ exports[`valid corpus snapshots (§16) > chart donut valid 2: {"title":"Node tit
 "Node title
 
 Donut chart: s over a–b.
+
+- s: a 1, b 2
 "
 `;
 
@@ -508,6 +630,8 @@ exports[`valid corpus snapshots (§16) > chart donut valid 3: {"title":"Share"} 
 "#### Share
 
 _Donut chart: s over a–b._
+
+- **s:** a 1, b 2
 "
 `;
 
@@ -515,31 +639,43 @@ exports[`valid corpus snapshots (§16) > chart donut valid 3: {"title":"Share"} 
 "Share
 
 Donut chart: s over a–b.
+
+- s: a 1, b 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart donut valid 4: {"legend":"none"} > markdown 1`] = `
 "_Donut chart: s over a–b._
+
+- **s:** a 1, b 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart donut valid 4: {"legend":"none"} > plain 1`] = `
 "Donut chart: s over a–b.
+
+- s: a 1, b 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 0: {} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 0: {} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 
 _caption with **bold**_
 "
@@ -547,6 +683,8 @@ _caption with **bold**_
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 
 caption with bold
 "
@@ -556,6 +694,8 @@ exports[`valid corpus snapshots (§16) > chart hbar valid 2: {"title":"Node titl
 "#### Node title
 
 _Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
@@ -563,96 +703,134 @@ exports[`valid corpus snapshots (§16) > chart hbar valid 2: {"title":"Node titl
 "Node title
 
 Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 3: {"yFormat":"ms"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 3: {"yFormat":"ms"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 4: {"xFormat":"date:short"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 4: {"xFormat":"date:short"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 5: {"stackTotal":true} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 5: {"stackTotal":true} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 6: {"height":"sm"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 6: {"height":"sm"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 7: {"height":"md"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 7: {"height":"md"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 8: {"height":"lg"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 8: {"height":"lg"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 9: {"legend":"auto"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 9: {"legend":"auto"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 10: {"legend":"none"} > markdown 1`] = `
 "_Horizontal bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 10: {"legend":"none"} > plain 1`] = `
 "Horizontal bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
 "_Horizontal bar chart: s over a; SLO 1._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
 "Horizontal bar chart: s over a; SLO 1.
+
+- s: a 1
 "
 `;
 
@@ -668,26 +846,38 @@ exports[`valid corpus snapshots (§16) > chart hbar valid 12: {"x":[],"series":{
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 13: {"series":{"a":[1],"b":[2]}} > markdown 1`] = `
 "_Horizontal bar chart: a, b over a._
+
+- **a:** a 1
+- **b:** a 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart hbar valid 13: {"series":{"a":[1],"b":[2]}} > plain 1`] = `
 "Horizontal bar chart: a, b over a.
+
+- a: a 1
+- b: a 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 0: {} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 0: {} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 
 _caption with **bold**_
 "
@@ -695,6 +885,8 @@ _caption with **bold**_
 
 exports[`valid corpus snapshots (§16) > chart line valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 
 caption with bold
 "
@@ -704,6 +896,8 @@ exports[`valid corpus snapshots (§16) > chart line valid 2: {"title":"Node titl
 "#### Node title
 
 _Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
@@ -711,116 +905,162 @@ exports[`valid corpus snapshots (§16) > chart line valid 2: {"title":"Node titl
 "Node title
 
 Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 3: {"yFormat":"ms"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1 ms, 2 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 3: {"yFormat":"ms"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1 ms, 2 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 4: {"xFormat":"date:short"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 4: {"xFormat":"date:short"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 5: {"stackTotal":true} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 5: {"stackTotal":true} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 6: {"height":"sm"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 6: {"height":"sm"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 7: {"height":"md"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 7: {"height":"md"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 8: {"height":"lg"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 8: {"height":"lg"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 9: {"legend":"auto"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 9: {"legend":"auto"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 10: {"legend":"none"} > markdown 1`] = `
 "_Line chart: s over a–b._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 10: {"legend":"none"} > plain 1`] = `
 "Line chart: s over a–b.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
 "_Line chart: s over a–b; SLO 1._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
 "Line chart: s over a–b; SLO 1.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 12: {"x":[1,2]} > markdown 1`] = `
 "_Line chart: s over 1–2._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 12: {"x":[1,2]} > plain 1`] = `
 "Line chart: s over 1–2.
+
+- s: 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 13: {"x":["2026-11-04","2026-11-05"]} > markdown 1`] = `
 "_Line chart: s over 2026-11-04–2026-11-05._
+
+- **s:** 1, 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart line valid 13: {"x":["2026-11-04","2026-11-05"]} > plain 1`] = `
 "Line chart: s over 2026-11-04–2026-11-05.
+
+- s: 1, 2
 "
 `;
 
@@ -1122,16 +1362,22 @@ exports[`valid corpus snapshots (§16) > chart spark valid 12: {"values":[]} > p
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 0: {} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 0: {} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 
 _caption with **bold**_
 "
@@ -1139,6 +1385,8 @@ _caption with **bold**_
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 
 caption with bold
 "
@@ -1148,6 +1396,8 @@ exports[`valid corpus snapshots (§16) > chart stacked valid 2: {"title":"Node t
 "#### Node title
 
 _Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
@@ -1155,96 +1405,134 @@ exports[`valid corpus snapshots (§16) > chart stacked valid 2: {"title":"Node t
 "Node title
 
 Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 3: {"yFormat":"ms"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 3: {"yFormat":"ms"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1 ms
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 4: {"xFormat":"date:short"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 4: {"xFormat":"date:short"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 5: {"stackTotal":true} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 5: {"stackTotal":true} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 6: {"height":"sm"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 6: {"height":"sm"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 7: {"height":"md"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 7: {"height":"md"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 8: {"height":"lg"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 8: {"height":"lg"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 9: {"legend":"auto"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 9: {"legend":"auto"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 10: {"legend":"none"} > markdown 1`] = `
 "_Stacked bar chart: s over a._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 10: {"legend":"none"} > plain 1`] = `
 "Stacked bar chart: s over a.
+
+- s: a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > markdown 1`] = `
 "_Stacked bar chart: s over a; SLO 1._
+
+- **s:** a 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 11: {"refLines":[{"y":1,"label":"SLO","tone" > plain 1`] = `
 "Stacked bar chart: s over a; SLO 1.
+
+- s: a 1
 "
 `;
 
@@ -1260,11 +1548,17 @@ exports[`valid corpus snapshots (§16) > chart stacked valid 12: {"x":[],"series
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 13: {"series":{"a":[1],"b":[2]}} > markdown 1`] = `
 "_Stacked bar chart: a, b over a._
+
+- **a:** a 1
+- **b:** a 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > chart stacked valid 13: {"series":{"a":[1],"b":[2]}} > plain 1`] = `
 "Stacked bar chart: a, b over a.
+
+- a: a 1
+- b: a 2
 "
 `;
 
@@ -4323,21 +4617,21 @@ exports[`valid corpus snapshots (§16) > positional stats: relaxed text, as the 
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 0: {} > markdown 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 0: {} > plain 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 
@@ -4346,7 +4640,7 @@ _caption with **bold**_
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 
@@ -4357,7 +4651,7 @@ caption with bold
 exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"} > markdown 1`] = `
 "#### Node title
 
-1 of 100 (1%)
+1 of 1 (100%)
 
 - ✓ L: 1
 "
@@ -4366,7 +4660,7 @@ exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"
 exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"} > plain 1`] = `
 "Node title
 
-1 of 100 (1%)
+1 of 1 (100%)
 
 - ✓ L: 1
 "
@@ -4387,52 +4681,52 @@ exports[`valid corpus snapshots (§16) > progress valid 3: {"max":10} > plain 1`
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 4: {"label":"Done"} > markdown 1`] = `
-"**Done:** 1 of 100 (1%)
+"**Done:** 1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 4: {"label":"Done"} > plain 1`] = `
-"Done: 1 of 100 (1%)
+"Done: 1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
-exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[]} > markdown 1`] = `
+exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[],"max":100} > markdown 1`] = `
 "1 of 100 (1%)
 "
 `;
 
-exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[]} > plain 1`] = `
+exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[],"max":100} > plain 1`] = `
 "1 of 100 (1%)
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 6: {"value":0} > markdown 1`] = `
-"0 of 100 (0%)
+"0 of 1 (0%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 6: {"value":0} > plain 1`] = `
-"0 of 100 (0%)
+"0 of 1 (0%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > markdown 1`] = `
-"120.5 of 100 (121%)
+"120.5 of 1 (12,050%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > plain 1`] = `
-"120.5 of 100 (121%)
+"120.5 of 1 (12,050%)
 
 - ✓ L: 1
 "
@@ -4440,11 +4734,17 @@ exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > pla
 
 exports[`valid corpus snapshots (§16) > prototype-like names as data > markdown 1`] = `
 "_Line chart: \\_\\_proto\\_\\_, constructor over 1._
+
+- **\\_\\_proto\\_\\_:** 1
+- **constructor:** 2
 "
 `;
 
 exports[`valid corpus snapshots (§16) > prototype-like names as data > plain 1`] = `
 "Line chart: __proto__, constructor over 1.
+
+- __proto__: 1
+- constructor: 2
 "
 `;
 
@@ -5414,6 +5714,9 @@ exports[`valid corpus snapshots (§16) > §19.3 benchmark table with a chart > m
 | getVariant | 9,310 | 61 ms | 88.0% |
 
 _Line chart: p50, p95 over 10:00–10:20; SLO 100 ms._
+
+- **p50:** 42 ms, 40 ms, 45 ms, 41 ms, 39 ms
+- **p95:** 120 ms, 180 ms, 95 ms, 88 ms, 84 ms
 "
 `;
 
@@ -5427,5 +5730,8 @@ listProducts  18,420   84 ms     93.0%
 getVariant     9,310   61 ms     88.0%
 
 Line chart: p50, p95 over 10:00–10:20; SLO 100 ms.
+
+- p50: 42 ms, 40 ms, 45 ms, 41 ms, 39 ms
+- p95: 120 ms, 180 ms, 95 ms, 88 ms, 84 ms
 "
 `;

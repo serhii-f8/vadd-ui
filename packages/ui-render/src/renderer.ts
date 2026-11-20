@@ -88,7 +88,12 @@ function assemble(
       memory,
       watchdog: createWatchdog(clock),
       diagnostics,
-      told: new Set(diagnostics.map(({ code, path }) => `${code}\0${path}`)),
+      told: new Set(
+        diagnostics.flatMap(({ code, path, message }) => [
+          `${code}\0${path}`,
+          `${code}\0${message}`,
+        ]),
+      ),
       ids: new Set(),
       cleanups,
     }

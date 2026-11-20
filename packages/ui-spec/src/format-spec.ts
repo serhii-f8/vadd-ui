@@ -111,6 +111,18 @@ export function checkFormat(spec: FormatSpec): FormatIssue | undefined {
   return rule.accepts(arg) ? undefined : argIssue(`format ${name} takes ${rule.label}`)
 }
 
+/**
+ * The format of a stat's `delta`: `deltaFormat`, or `delta`, with `better: 'low'` turned into
+ * the `delta` format's own `better:low` (VD-220). A format that says `better` itself wins.
+ */
+export function statDeltaFormat(item: { deltaFormat?: unknown; better?: unknown }): string {
+  const format = typeof item.deltaFormat === 'string' ? item.deltaFormat : 'delta'
+  if (item.better !== 'low' || parseFormat(format).name !== 'delta' || BETTER.test(format)) {
+    return format
+  }
+  return `${format}:better:low`
+}
+
 /** The same format with a bad argument dropped: the §7 default, or `num` for `money`. */
 export function withoutBadArg(spec: FormatSpec): FormatSpec {
   if (spec.base !== undefined) {

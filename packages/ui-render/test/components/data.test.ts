@@ -77,6 +77,20 @@ describe('stats', () => {
     expect(box.querySelector('.vui-stat-delta')?.textContent).toBe('−1.0%')
   })
 
+  it('flips the tone of a falling delta for better low (VD-220)', () => {
+    const low = tiles({ delta: -14, deltaFormat: 'delta:ms', better: 'low' })
+    expect(low.querySelector('.vui-stat-delta')?.textContent).toBe('−14 ms')
+    expect(low.querySelector('.vui-stat-delta .vui-tone-ok')).not.toBeNull()
+    expect(tiles({ delta: -14 }).querySelector('.vui-stat-delta .vui-tone-err')).not.toBeNull()
+    expect(tiles({ delta: -14, better: 'high' }).querySelector('.vui-tone-err')).not.toBeNull()
+  })
+
+  it('gives a non-delta deltaFormat no tone, whatever better says', () => {
+    const box = tiles({ delta: -0.1, deltaFormat: 'pct', better: 'low' })
+    expect(box.querySelector('.vui-stat-delta')?.textContent).toBe('-10.0%')
+    expect(box.querySelector('.vui-stat-delta [class*="vui-tone-"]')).toBeNull()
+  })
+
   it('draws no delta when there is none', () => {
     expect(tiles({}).querySelector('.vui-stat-delta')).toBeNull()
   })
@@ -192,6 +206,20 @@ describe('progress', () => {
     )
   })
 
+  it('fills to the sum of segments when there is no max (VD-223)', () => {
+    const box = progress({
+      value: 6,
+      segments: [
+        { value: 6, tone: 'ok', label: 'Pass' },
+        { value: 3, tone: 'err', label: 'Fail' },
+        { value: 1, tone: 'muted', label: 'Skip' },
+      ],
+    })
+    expect(bar(box).getAttribute('aria-valuemax')).toBe('10')
+    const fills = [...box.querySelectorAll('.vui-track .vui-fill')]
+    expect(fills.map((fill) => fill.getAttribute('data-vui-fill'))).toEqual(['60', '30', '10'])
+  })
+
   it('is a progressbar with its range', () => {
     const element = bar(progress({ value: 3, max: 4, label: 'Done' }))
     expect(element.getAttribute('aria-valuenow')).toBe('3')
@@ -232,7 +260,7 @@ describe('progress', () => {
   ]
 
   it('draws one fill per segment, on its tone', () => {
-    const box = progress({ value: 70, segments })
+    const box = progress({ value: 70, max: 100, segments })
     expect(fills(box)).toEqual(['60', '10'])
     expect(all(bar(box), '.vui-fill.vui-tone-err')).toHaveLength(1)
   })
@@ -253,7 +281,7 @@ describe('progress', () => {
   })
 
   it('skips a segment that is not an object', () => {
-    expect(fills(progress({ value: 1, segments: [1, segments[0]] }))).toEqual(['60'])
+    expect(fills(progress({ value: 1, max: 100, segments: [1, segments[0]] }))).toEqual(['60'])
   })
 })
 

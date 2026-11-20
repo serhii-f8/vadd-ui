@@ -26,11 +26,14 @@ const document193 = () => {
 describe('§19.5', () => {
   // The spec is not in the public repository; this runs only where the file is.
   it.skipIf(!existsSync(specPath))(
-    'reproduces the markdown for the §19.3 document, byte for byte',
+    'reproduces the markdown for the §19.3 document, byte for byte, then the chart data',
     () => {
       const expected = section195()
       expect(expected).toContain('searchSku ⚠')
-      expect(renderMarkdown(document193())).toBe(expected)
+      // §19.5 is abridged: the chart's data follows its caption (VD-225).
+      expect(renderMarkdown(document193())).toBe(
+        `${expected}\n${DATA.replace(/(p\d+):/g, '**$1:**')}`,
+      )
     },
   )
 
@@ -38,6 +41,10 @@ describe('§19.5', () => {
     expect(renderPlain(document193())).toBe(PLAIN)
   })
 })
+
+const DATA = `- p50: 42 ms, 40 ms, 45 ms, 41 ms, 39 ms
+- p95: 120 ms, 180 ms, 95 ms, 88 ms, 84 ms
+`
 
 const PLAIN = `Catalog query latency
 
@@ -48,4 +55,5 @@ listProducts  18,420   84 ms     93.0%
 getVariant     9,310   61 ms     88.0%
 
 Line chart: p50, p95 over 10:00–10:20; SLO 100 ms.
-`
+
+${DATA}`

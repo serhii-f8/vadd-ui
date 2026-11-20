@@ -380,6 +380,22 @@ describe('component defaults (§6)', () => {
     [{ type: 'code', text: 'a' }, 'maxLines', 30],
     [{ type: 'log', text: 'a' }, 'maxLines', 40],
     [{ type: 'progress', value: 1 }, 'max', 100],
+    [{ type: 'progress', value: 6, segments: [] }, 'max', 100],
+    [
+      {
+        type: 'progress',
+        value: 6,
+        segments: [
+          { value: 6, tone: 'ok', label: 'a' },
+          { value: 3, tone: 'err', label: 'b' },
+          { value: 1, tone: 'muted', label: 'c' },
+        ],
+      },
+      'max',
+      10,
+    ],
+    [{ type: 'progress', value: 1, segments: [{ value: 'x' }, { value: 2.5 }, 3] }, 'max', 2.5],
+    [{ type: 'progress', value: 1, segments: [{ value: -4 }] }, 'max', 100],
     [{ type: 'table', columns: [], rows: [] }, 'pageSize', 25],
     [{ type: 'table', columns: [], rows: [] }, 'sticky', false],
   ])('fills %j', (input, key, expected) => {
@@ -391,6 +407,7 @@ describe('component defaults (§6)', () => {
     [{ type: 'code', text: 'a', maxLines: 5 }, 'maxLines', 5],
     [{ type: 'log', text: 'a', maxLines: 5 }, 'maxLines', 5],
     [{ type: 'progress', value: 1, max: 5 }, 'max', 5],
+    [{ type: 'progress', value: 1, max: 5, segments: [{ value: 9 }] }, 'max', 5],
     [{ type: 'table', rows: [], pageSize: 5 }, 'pageSize', 5],
     [{ type: 'table', rows: [], sticky: true }, 'sticky', true],
   ])('keeps %j', (input, key, expected) => {

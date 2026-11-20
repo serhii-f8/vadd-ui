@@ -42,6 +42,19 @@ describe('catalog', () => {
     },
   )
 
+  it('knows stat better and chart tones (VD-220, VD-221)', () => {
+    const stat = entry('stats').shapes.find((shape) => shape.name === 'StatItem')
+    expect(stat?.fields.find((item) => item.name === 'better')).toMatchObject({
+      required: false,
+      type: 'high|low',
+    })
+    expect(field('chart', 'tones')).toMatchObject({
+      required: false,
+      type: '{series: tone}',
+    })
+    expect(field('chart', 'tones').kinds).toBeUndefined()
+  })
+
   it('marks a required field', () => {
     expect(field('stack', 'children')).toMatchObject({ required: true, type: 'node[]' })
     expect(field('stack', 'gap')).toMatchObject({ required: false, type: 'sm|md|lg' })
@@ -51,13 +64,13 @@ describe('catalog', () => {
     expect(field('code', 'maxLines').default).toBe('30')
     expect(field('log', 'maxLines').default).toBe('40')
     expect(field('callout', 'tone').default).toBe('info')
-    expect(field('progress', 'max').default).toBe('100')
     expect(field('table', 'pageSize').default).toBe('25')
   })
 
   it('states computed defaults', () => {
     expect(field('grid', 'cols').default).toBe('auto by child count')
     expect(field('table', 'sticky').default).toBe('true when rows > 15')
+    expect(field('progress', 'max').default).toBe('segment sum or 100')
   })
 
   it('keeps a common field that a component redefines', () => {

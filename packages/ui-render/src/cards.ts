@@ -35,16 +35,25 @@ function toJson(node: JsonValue): string {
   return clip(JSON.stringify(node, null, 2), MAX_JSON)
 }
 
-/** §9.3: a muted card with the type name and the raw node as folded JSON. */
+/** The bundle that draws the §6 `ext` tier (VD-182), named where the core one cannot. */
+export const EXT_BUNDLE = 'vui-ext.min.js'
+
+/**
+ * §9.3: a muted card with the type name and the raw node as folded JSON. `title` says why it
+ * is not drawn: an unknown type, or an `ext` one in the core bundle (VD-219). `hint` is the
+ * validator's, so the browser says what the CLI says.
+ */
 export function placeholderCard(
-  type: string,
+  title: string,
   node: JsonValue,
   open: boolean,
   onToggle: (open: boolean) => void,
+  hint?: string,
 ): HTMLElement {
   const body = el('pre', { class: 'vui-pre' }, toJson(node))
   return el('div', { class: 'vui-card vui-card-placeholder' }, [
-    el('p', { class: 'vui-card-title' }, `Unknown component: ${clip(type, MAX_NAME)}`),
+    el('p', { class: 'vui-card-title' }, title),
+    hint === undefined ? null : el('p', { class: 'vui-card-detail' }, hint),
     ...foldable({ label: 'Raw node', body, open, onToggle }),
   ])
 }

@@ -1727,3 +1727,50 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 - Date: 2026-11-20 · Task: 26
 - Context: a fresh-subagent review of the branch found nothing critical, three important and six minor findings.
 - Decision: fixed: (1) a replaced feed entry kept its rendered document alive, since `theme.track` held every root: `track` now returns an untrack, and an entry's `dispose` untracks and destroys its render handle before the swap; (3) `retireViewerInfo` from the CLI could remove the empty `docs/` of a Viewer starting at that moment: only the Viewer's own `close()` prunes empty folders now (`{prune: true}`); `doctor` removes its probe folder in its own try, so a show writing there at the same moment is no failure; `store.replace` never evicts the entry it replaced; VD-214 marks `validate`'s `ok` as a DEVIATION. Accepted: (2) the blind `goto` when Orca gives no tab list can move a pane the reader took elsewhere, written down in VD-210 (it is what turned a real second tab into a moved pane, and the alternative is a stale tab per restart). Not changed: the no-pid `retireViewerInfo` in `stopViewer` can race a new Viewer's first write, as the old `rmSync` there could (pre-existing, needs the start lock to close, out of scope); an update missed while disconnected stays until reload (VD-212 notes it); HEAD on the event stream sends no `Content-Length`, which a stream never has.
+
+## VD-218 — A terser pass pays for task 27 inside the §9.5 budget
+- Date: 2026-11-20 · Task: 27
+- Context: `vui.min.js` was 38 910 B gzip against the 38 912 B limit (§9.5), and task 27 adds validator rules, boot logic and renderer code that all land in the core bundle. The budget never moves (VD-209).
+- Decision: `scripts/build-bundle.mjs` runs terser (`compress.passes: 2`, `mangle`, `ecma: 2020`) over `vui.min.js` and `vui-ext.min.js` after esbuild. That takes the baseline to 36.4 KiB gzip; with all of task 27 the core bundle is 37.3 KiB (111.2 KiB minified) and the ext one 41.7 KiB. `terser` is a root devDependency pinned to `^5.51.2` (5.51.3 was released the same day and is inside pnpm's minimum release age). `check-targets`, `check-forbidden-apis`, `check-bundle-size` and the whole e2e suite run on the terser output.
+- Alternatives: hand-shortening code, CSS and messages (churn across the renderer, and class names are tested API); moving validator work to ext (core validates every document, so it cannot).
+
+## VD-219 — With both bundles on a page, the ext bundle wins
+- Date: 2026-11-20 · Task: 27 (B2)
+- Context: loading `vui.min.js` and `vui-ext.min.js` together drew ext nodes as "Unknown component", because whichever booted first marked each script mounted. §9.2 fixes `window.VUI` as `{render, version}`.
+- Decision: each `@vadd/ui-render` entry exports `ext` (`false` from `core`, `true` from the root), so a bundle knows its tier from what it was built against. The ext bundle always takes `window.VUI`, the core one only an empty slot, and only the owner of `VUI` boots, decided at boot time (DOMContentLoaded), so two sync scripts in either order render once, by ext. A script keeps a `vuiMount` record (tier, root, handle) on its element; an ext boot over a core-mounted script destroys the core handle and redraws in the same root. The core bundle marks the stylesheet it injects (`data-vui-core`), and a late ext bundle replaces that sheet, keeping the page rules; a host's own `#vui-style` is never touched. With the core bundle alone, `compare`, `flow` and `scatter` draw the §9.3 placeholder titled "compare needs vui-ext.min.js" / "scatter charts need vui-ext.min.js" (`EXT_TYPES` is exported from ui-spec). A page with a 1.0 core bundle (no record) stays as that bundle drew it.
+- Alternatives: an `ext` flag on `window.VUI` (changes the §9.2 shape); the core bundle deferring to a later ext script it cannot know about.
+
+## VD-220 — Stat items take `better` (DEVIATION from §6.3)
+- Date: 2026-11-20 · Task: 27 (B3)
+- Context: a falling p95 drew red; `compare` had `better` but `stats` did not.
+- Decision: `StatItem.better?: 'high' | 'low'` (object form only; the positional form is unchanged). `statDeltaFormat(item)` in ui-spec turns `better: 'low'` into the `delta` format's own `better:low` (VD-042); a `deltaFormat` that names `better` itself wins, and a non-delta `deltaFormat` has no tone. The renderer and ui-text both use it; schema, walker and catalog follow from the type and rule.
+
+## VD-221 — Charts take `tones` per series (DEVIATION from §6.4)
+- Date: 2026-11-20 · Task: 27 (B4)
+- Context: a series named `fail` drew green; series colors were palette only.
+- Decision: `tones?: Record<string, Tone>` is a common chart field, as `refLines` is, and colors series of bar, hbar, stacked, line and area. Donut, spark and scatter accept and ignore it (a donut's slices are categories, not series). A common field keeps the catalog's `chart` entry inside its §14.2 budget of 300 tokens (296; a per-kind field printed a kinds list and cost 331), and the catalog prints its type as `{series: tone}`, the tone values being listed once at `RefLine.tone`. A toned series' marks, legend entry and tooltip row carry the tone class in place of `data-vui-series`, so `--vui-tone-line` comes from the tone. A key that names no series is a `bad-ref` warn with a did-you-mean hint.
+
+## VD-222 — Hints: enum values in type errors, and a list under the wrong name
+- Date: 2026-11-20 · Task: 27
+- Decision: a wrong-type error on an enum names its values (`expected a fold state (open|closed), got boolean`). When a required list field (`items`, `pairs`, `rows`, `points`, `values`, `files`, `nodes`) is missing, no near-miss key exists, and another of those names is present, both the missing-field error and the unknown-field info say `kv takes "pairs", not "items"`. A near-miss hint still wins. The browser card for an unknown type shows the validator's hint. No `items` alias for `kv`: one canonical form.
+
+## VD-223 — Progress with segments defaults `max` to their sum (DEVIATION from §6.3)
+- Date: 2026-11-20 · Task: 27
+- Decision: the normalizer sets `max` to the sum of positive finite segment values when `segments` is given and `max` is not; with no positive sum it stays 100. The catalog says "segment sum or 100" (the §14 token baseline allows +5 % per entry).
+
+## VD-224 — `_italic_` at word boundaries (DEVIATION from §5.5)
+- Date: 2026-11-20 · Task: 27
+- Decision: a single `_` opens italic after no letter or digit and before no space, and closes after no space and before no letter or digit (CommonMark's `_` flanking rules); runs of two or more underscores are text. `snake_case_names`, `a_b` and `__init__` stay literal. Code spans are masked as for `*`. The markdown writer already escaped flanking underscores, so text output is unchanged for literal ones.
+
+## VD-225 — Text output keeps chart data; §19.5 is abridged
+- Date: 2026-11-20 · Task: 27
+- Decision: after the §19.5 caption (unchanged byte for byte), text and markdown add one list entry per series: each value when a series has ≤ 8 points (by category for bar, hbar, stacked and donut), else `last, min, max`, all in `yFormat`. The §19.5 test reads the spec block and expects it followed by the data list.
+
+## VD-226 — Task 27 renderer details (B5, B6, B7, B8, B12, B13)
+- Date: 2026-11-20 · Task: 27
+- Decision: B5 scatter pads each domain by 5 % (or by 5 % of the value, or 1, for a single value) before nice ticks, never across zero for data on one side of it, and writes labels beside points when at most 24 labelled points are drawn. B6 table columns of `date`, `rel`, `sha`, `status` and the numeric formats are `nowrap`; `path` and `code` values, and any single word of 16+ characters in a text value, get `<wbr>` after `/ . _ -` (`wbr` joins `el`'s tag list); `.vui-time` is `nowrap`. Chromium breaks at `<wbr>` even under `white-space: nowrap`, so in tables the break points are `display: none` inside code and `nowrap` cells and come back only where a cell may wrap: the pinned first column under 480 px and `wrap: true` columns, whose `overflow-wrap` is now `break-word` (not `anywhere`), so they break at those points before splitting a word. An ordinary path column keeps one line and the table scrolls (§8.4). B7 render-time format issues about the format (not the value: `unknown-format`, `bad-format-arg`, and `rel` with no reference time) are told once per message, and the validator's diagnostics seed that key, so the Viewer counts what the CLI counts. B8 a callout whose text opens with a status token draws no tone mark (and no `vui-marked` padding); text and md likewise. B12 the check output toggle reads "Output" (`aria-hidden`) beside a visually hidden "Output, <name>". B13 the flow column gap fits the widest edge label plus 4 × the arrow size, at least the old 48 px.
+
+## VD-227 — Task 27 review: findings handled
+- Date: 2026-11-20 · Task: 27
+- Context: a fresh reviewer read the branch against the design and the spec. No critical findings.
+- Decision: fixed both important ones: ui-text chart data kept each value against its own category across a gap (it used the filtered index), and `<wbr>` break points had no effect in table code cells; the reviewer's fix (let code wrap) made every path column of a scrolling table wrap, so VD-226's CSS rule replaces it, with Playwright checks of line counts at 400 px. Fixed minor ones: the list-swap hint went to every missing field (now the first only); the B7 merge no longer covers `formatValue`'s per-value catch-all and keys on the clipped message; B8 also sees a status token after leading spaces; the core bundle takes a `window.VUI` slot that holds no `render`. Accepted: a `_` inside a link URL can close an italic, as `*` already can (rare; a fix needs link-aware masking for every delimiter); scatter point labels are not collision-checked (≤ 24, beside their points).

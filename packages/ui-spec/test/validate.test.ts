@@ -241,6 +241,38 @@ describe('cross-field rules', () => {
   })
 })
 
+describe('stat better and chart tones (VD-220, VD-221)', () => {
+  it('accepts better on a stat item and suggests a value', () => {
+    expect(node({ type: 'stats', items: [{ label: 'a', value: 1, better: 'low' }] })).toEqual([])
+    expect(
+      node({ type: 'stats', items: [{ label: 'a', value: 1, better: 'lo' }] })[0],
+    ).toMatchObject({
+      code: 'bad-enum',
+      path: '/body/0/items/0/better',
+      hint: 'did you mean "low"?',
+    })
+  })
+
+  it('accepts tones on series charts and warns on a key that names no series', () => {
+    const chart = { type: 'chart', kind: 'bar', x: ['a'], series: { ok: [1], fail: [2] } }
+    expect(node({ ...chart, tones: { ok: 'ok', fail: 'err' } })).toEqual([])
+    expect(node({ ...chart, kind: 'line', tones: { fail: 'err' } })).toEqual([])
+    expect(node({ ...chart, tones: { fial: 'err' } })).toEqual([
+      {
+        severity: 'warn',
+        path: '/body/0/tones/fial',
+        code: 'bad-ref',
+        message: 'tones names no series "fial"',
+        hint: 'did you mean "fail"?',
+      },
+    ])
+    expect(node({ ...chart, tones: { ok: 'green' } })[0]).toMatchObject({
+      code: 'bad-enum',
+      path: '/body/0/tones/ok',
+    })
+  })
+})
+
 describe('value checks', () => {
   const warn = { code: 'bad-value', severity: 'warn' }
 
@@ -386,6 +418,56 @@ describe('suggestions', () => {
   it('suggests an enum value', () => {
     expect(node({ type: 'callout', text: 'x', tone: 'wran' })[0]?.hint).toBe('did you mean "warn"?')
     expect(node({ type: 'chart', kind: 'bra' })[0]?.hint).toBe('did you mean "bar"?')
+  })
+
+  it('lists the values of an enum that got the wrong type', () => {
+    const [fold] = node({ type: 'section', title: 'x', fold: true, children: [] })
+    expect(fold).toMatchObject({
+      code: 'bad-type',
+      path: '/body/0/fold',
+      message: 'expected a fold state (open|closed), got boolean',
+    })
+    const [tone] = node({ type: 'callout', text: 'x', tone: 3 })
+    expect(tone?.message).toBe(
+      'expected a tone (ok|warn|err|info|muted|accent|default), got number',
+    )
+  })
+
+  it('tells kv that it takes pairs, not items', () => {
+    const diagnostics = node({ type: 'kv', items: [['a', 1]] })
+    expect(diagnostics).toContainEqual({
+      severity: 'error',
+      path: '/body/0',
+      code: 'missing-field',
+      message: 'missing required field "pairs"',
+      hint: 'kv takes "pairs", not "items"',
+    })
+    expect(diagnostics).toContainEqual({
+      severity: 'info',
+      path: '/body/0/items',
+      code: 'unknown-field',
+      message: 'unknown field "items" is ignored',
+      hint: 'kv takes "pairs", not "items"',
+    })
+  })
+
+  it('names the list a component takes for another list field', () => {
+    expect(node({ type: 'checks', rows: [] })[0]?.hint).toBe('checks takes "items", not "rows"')
+    expect(node({ type: 'table', columns: [], items: [] })[0]?.hint).toBe(
+      'table takes "rows", not "items"',
+    )
+  })
+
+  it('gives the list hint to one missing field only', () => {
+    const diagnostics = node({ type: 'flow', items: [] })
+    expect(diagnostics.filter((d) => d.code === 'missing-field').map((d) => d.hint)).toEqual([
+      'flow takes "nodes", not "items"',
+      undefined,
+    ])
+  })
+
+  it('keeps a near-miss hint over the list hint', () => {
+    expect(node({ type: 'kv', pair: [] })[0]?.hint).toBe('did you mean "pairs" instead of "pair"?')
   })
 
   it('stays silent when nothing is close', () => {

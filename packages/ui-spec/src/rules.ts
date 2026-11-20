@@ -87,6 +87,7 @@ const CHART_BASE: Record<string, Field> = {
   height: opt(size),
   legend: opt(oneIn('a legend mode', ['auto', 'none'])),
   refLines: opt(list(object('RefLine'))),
+  tones: opt(record(tone)),
 }
 
 const series = req(record(list(number)))
@@ -159,6 +160,7 @@ export const SHAPES: Record<string, Shape> = {
       format: opt(format),
       delta: opt(number),
       deltaFormat: opt(format),
+      better: opt(oneIn('a direction', ['high', 'low'])),
       tone: opt(tone),
       spark: opt(list(number)),
     },

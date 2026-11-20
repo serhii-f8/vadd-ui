@@ -1,7 +1,14 @@
-import { CHART_LABELS, hasOwn, inlineToPlain, type JsonObject, parseInline } from '@vadd/ui-spec'
-import { placeholderCard } from '../cards.js'
+import {
+  CHART_LABELS,
+  hasOwn,
+  inlineToPlain,
+  type JsonObject,
+  parseInline,
+  type Tone,
+} from '@vadd/ui-spec'
+import { EXT_BUNDLE, placeholderCard } from '../cards.js'
 import { type Drawing, draw, SPARK_HEIGHT, SPARK_WIDTH } from '../chart/draw.js'
-import { type Model, readModel } from '../chart/model.js'
+import { type Model, readModel, seriesPaint } from '../chart/model.js'
 import { watchWidth } from '../chart/resize.js'
 import type { Component, NodeContext } from '../context.js'
 import { el, svg } from '../el.js'
@@ -63,22 +70,26 @@ function dataTable(model: Model, caption: string, context: NodeContext): HTMLEle
 }
 
 function legendOf(model: Model): HTMLElement | null {
-  const names =
+  const entries =
     model.kind === 'donut'
-      ? Array.from({ length: model.size }, (_, index) => model.label(index))
-      : model.series.map(({ name }) => name)
-  if (names.length < 2) return null
-  const entries = names.map((name, index) =>
-    el('li', { 'data-vui-series': (index % 12) + 1 }, [
+      ? Array.from({ length: model.size }, (_, index) => ({
+          name: model.label(index),
+          tone: undefined as Tone | undefined,
+        }))
+      : model.series
+  if (entries.length < 2) return null
+  const items = entries.map(({ name, tone }, index) =>
+    el('li', seriesPaint('', index, tone), [
       swatch(),
       el('span', { class: 'vui-legend-label' }, name),
     ]),
   )
-  return el('ul', { class: 'vui-legend' }, entries)
+  return el('ul', { class: 'vui-legend' }, items)
 }
 
-function tipRow(name: string, value: string, series?: number): HTMLElement {
-  return el('div', { class: 'vui-chart-tip-row', 'data-vui-series': series }, [
+function tipRow(name: string, value: string, series?: number, tone?: Tone): HTMLElement {
+  const paint = series === undefined ? undefined : seriesPaint('vui-chart-tip-row', series, tone)
+  return el('div', paint ?? { class: 'vui-chart-tip-row' }, [
     series === undefined ? null : swatch(),
     el('span', {}, name),
     el('b', {}, value),
@@ -89,8 +100,8 @@ function fillTip(tip: HTMLElement, model: Model, index: number): void {
   const { series, totals } = model
   tip.replaceChildren(
     el('div', { class: 'vui-chart-tip-head' }, model.label(index)),
-    ...series.map(({ name, values }, order) =>
-      tipRow(name, model.value(values[index]), (model.kind === 'donut' ? index % 12 : order) + 1),
+    ...series.map(({ name, values, tone }, order) =>
+      tipRow(name, model.value(values[index]), model.kind === 'donut' ? index : order, tone),
     ),
     ...(totals === undefined ? [] : [tipRow('Total', model.value(totals[index]))]),
   )
@@ -99,7 +110,10 @@ function fillTip(tip: HTMLElement, model: Model, index: number): void {
 export const chart: Component = {
   render(node: JsonObject, context) {
     const kind = text(node, 'kind') as ChartKind
-    if (kind === 'scatter') return placeholderCard('chart', node, false, () => {})
+    // The core bundle: the ext one registers its own chart (VD-184, VD-219).
+    if (kind === 'scatter') {
+      return placeholderCard(`scatter charts need ${EXT_BUNDLE}`, node, false, () => {})
+    }
     const model = readModel(node, context)
     // An own key only: past VD-066's cap `kind` can be `__proto__` (VD-187).
     const label = hasOwn(CHART_LABELS, kind) ? CHART_LABELS[kind] : 'Chart'

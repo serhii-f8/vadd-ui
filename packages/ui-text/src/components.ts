@@ -13,6 +13,7 @@ import {
   type PlanItem,
   parseInline,
   planCounts,
+  statDeltaFormat,
   type TreeItem,
   tailLines,
   treeSource,
@@ -170,7 +171,10 @@ const RENDERERS: Renderers = {
   md: (node) => mdBlocks(node.text),
   callout: (node) => {
     const title = node.title === undefined ? [] : [para([bold(...parseInline(node.title))])]
-    const blocks = [...title, para(led(toneMark(node.tone), parseInline(node.text)))]
+    // B8: a leading status token is the icon already, so the tone's mark would double it.
+    const tokens = parseInline(node.text)
+    const mark = parseInline(node.text.trimStart())[0]?.type === 'status' ? '' : toneMark(node.tone)
+    const blocks = [...title, para(led(mark, tokens))]
     return [{ kind: 'quote', blocks }]
   },
   code: (node) => [codeBlock(codeLines(node), node.lang)],
@@ -192,7 +196,7 @@ const RENDERERS: Renderers = {
         const tokens = [bold(text(`${item.label}:`)), text(' '), ...value]
         const marked = trailed(tokens, toneMark(item.tone))
         if (item.delta !== undefined) {
-          const delta = format(item.delta, item.deltaFormat ?? 'delta', context).text
+          const delta = format(item.delta, statDeltaFormat(item), context).text
           marked.push(text(` (${delta})`))
         }
         if (item.spark !== undefined && item.spark.length > 0) {

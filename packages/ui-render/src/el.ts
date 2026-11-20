@@ -48,6 +48,7 @@ const TAGS = [
   'thead',
   'tr',
   'ul',
+  'wbr',
 ] as const
 
 export type Tag = (typeof TAGS)[number]

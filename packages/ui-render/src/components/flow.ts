@@ -41,11 +41,11 @@ interface Point {
 }
 
 /** Where each box sits: its layer's column, its row centered on the tallest layer. */
-function placeBoxes(boxes: FlowBox[], rows: number, pitch: number): Point[] {
+function placeBoxes(boxes: FlowBox[], rows: number, pitch: number, column: number): Point[] {
   const sizes = new Map<number, number>()
   for (const { layer } of boxes) sizes.set(layer, (sizes.get(layer) ?? 0) + 1)
   return boxes.map(({ layer, row }) => ({
-    x: PAD + layer * COL,
+    x: PAD + layer * column,
     y: TOP + (row + (rows - (sizes.get(layer) as number)) / 2) * pitch,
   }))
 }
@@ -105,9 +105,11 @@ function edgePath(link: FlowLink, from: Point, to: Point, lane: number) {
   return { d, head, mid: { x: (sx + tx) / 2, y: (sy + ty) / 2 } }
 }
 
+const labelWidth = (label: string) => round([...clip(label, MAX_EDGE_LABEL)].length * CHAR + 12)
+
 function edgeLabel(label: string, mid: Point): SVGElement {
   const shown = clip(label, MAX_EDGE_LABEL)
-  const width = round([...shown].length * CHAR + 12)
+  const width = labelWidth(label)
   return svg('g', { class: 'vui-flow-edge-label', transform: at(mid.x - width / 2, mid.y - 8) }, [
     shown === label ? null : svg('title', {}, label),
     svg('path', { d: rounded(width, 16, 8) }),
@@ -141,8 +143,14 @@ export const flow: Component = {
     // Rows close up past about 36, so 40 rows and every back-edge lane still fit the cap.
     const room = MAX_HEIGHT - TOP - BOX_H - LANE * (MAX_LANES + 1)
     const pitch = Math.min(ROW, Math.floor(room / Math.max(rows - 1, 1)))
-    const places = placeBoxes(boxes, rows, pitch)
-    const width = PAD * 2 + (layers - 1) * COL + BOX_W
+    // B13: a gap that fits the widest edge label with the arrowhead clear on both sides.
+    const widest = links.reduce(
+      (most, { label }) => Math.max(most, label === '' ? 0 : labelWidth(label)),
+      0,
+    )
+    const column = BOX_W + Math.max(COL - BOX_W, round(widest + 4 * ARROW))
+    const places = placeBoxes(boxes, rows, pitch, column)
+    const width = PAD * 2 + (layers - 1) * column + BOX_W
     // Back edges run below the boxes, one lane each.
     const floor = TOP + (rows - 1) * pitch + BOX_H + LANE
     const backs = links.filter((link) => link.back && link.from !== link.to).length

@@ -108,6 +108,14 @@ function normalizeItem(
 function applyDefaults(node: JsonObject, type: string, cp: string, ip: string, ctx: WalkContext) {
   const defaults = { ...COMPONENT_DEFAULTS[type] }
   if (type === 'table' && Array.isArray(node.rows)) defaults.sticky = node.rows.length > 15
+  // §6.3 says 100; segments with no `max` mean their own total (VD-223, DEVIATION).
+  if (type === 'progress' && Array.isArray(node.segments)) {
+    const sum = node.segments.reduce<number>((total, segment) => {
+      const value = isJsonObject(segment) ? segment.value : undefined
+      return typeof value === 'number' && value > 0 ? total + value : total
+    }, 0)
+    if (sum > 0 && Number.isFinite(sum)) defaults.max = sum
+  }
   for (const [field, value] of Object.entries(defaults)) {
     if (hasOwn(node, field)) continue
     node[field] = value

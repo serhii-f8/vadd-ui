@@ -122,6 +122,44 @@ describe('chart fields', () => {
     expect(q(box, '.vui-legend')).toBeNull()
   })
 
+  it('draws a toned series in its tone, marks, legend and tooltip alike (VD-221)', () => {
+    const { box, handle } = chart({
+      kind: 'stacked',
+      x: ['Q1', 'Q2'],
+      series: { ok: [10, 12], fail: [2, 1] },
+      tones: { fail: 'err' },
+    })
+    expect(handle.diagnostics).toEqual([])
+    const bars = all(box, 'path.vui-chart-bar')
+    expect(bars[0]?.getAttribute('data-vui-series')).toBe('1')
+    expect(bars[0]?.getAttribute('class')).toBe('vui-chart-bar')
+    expect(bars[1]?.getAttribute('class')).toBe('vui-chart-bar vui-tone-err')
+    expect(bars[1]?.hasAttribute('data-vui-series')).toBe(false)
+    const items = all(box, '.vui-legend li')
+    expect(items[1]?.getAttribute('class')).toBe('vui-tone-err')
+    expect(items[0]?.getAttribute('data-vui-series')).toBe('1')
+    hover(box, 100)
+    const rows = all(box, '.vui-chart-tip-row')
+    expect(rows[1]?.getAttribute('class')).toBe('vui-chart-tip-row vui-tone-err')
+    expect(rows[0]?.getAttribute('data-vui-series')).toBe('1')
+  })
+
+  it('tones lines and areas, and leaves a donut to its palette', () => {
+    const area = line({ kind: 'area', tones: { p95: 'warn', nope: 'ok' } }).box
+    expect(all(area, '.vui-chart .vui-tone-warn').map((n) => n.getAttribute('class'))).toEqual([
+      'vui-chart-area vui-tone-warn',
+      'vui-chart-line vui-tone-warn',
+      'vui-tone-warn',
+    ])
+    const donut = chart({
+      kind: 'donut',
+      x: ['a', 'b'],
+      series: { n: [1, 2] },
+      tones: { n: 'err' },
+    })
+    expect(q(donut.box, '.vui-tone-err')).toBeNull()
+  })
+
   it('honors legend none', () => {
     expect(q(line({ legend: 'none' }).box, '.vui-legend')).toBeNull()
   })

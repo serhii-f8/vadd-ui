@@ -1,4 +1,4 @@
-import type { VuiDocument } from '@vadd/ui-spec'
+import { type VuiDocument, validate } from '@vadd/ui-spec'
 import { describe, expect, it, vi } from 'vitest'
 import type { Registry } from '../src/context.js'
 import { render as coreRender, stylesheet as coreStylesheet } from '../src/core.js'
@@ -34,6 +34,33 @@ describe('§9.1 API', () => {
     const box = target()
     render(doc([{ type: 'gauge', value: 1 }]), box)
     expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('gauge')
+  })
+
+  it("shows the validator's hint on an unknown type's card, as the CLI does", () => {
+    const box = target()
+    render(doc([{ type: 'tabel', columns: [], rows: [] }]), box)
+    const card = box.querySelector('.vui-card-placeholder')
+    expect(card?.querySelector('.vui-card-title')?.textContent).toBe('Unknown component: tabel')
+    expect(card?.querySelector('.vui-card-detail')?.textContent).toBe('did you mean "table"?')
+  })
+
+  it('names the bundle an ext node needs in the core build (VD-219)', () => {
+    const core = target()
+    coreRender(
+      doc([
+        { type: 'compare', options: ['a'], criteria: [] },
+        { type: 'flow', nodes: ['a'], edges: [] },
+        { type: 'chart', kind: 'scatter', points: [[1, 2]] },
+      ]),
+      core,
+    )
+    const titles = [...core.querySelectorAll('.vui-card-placeholder .vui-card-title')]
+    expect(titles.map((title) => title.textContent)).toEqual([
+      'compare needs vui-ext.min.js',
+      'flow needs vui-ext.min.js',
+      'scatter charts need vui-ext.min.js',
+    ])
+    expect(core.querySelector('.vui-card-detail')).toBeNull()
   })
 
   it('draws the ext tier through the package root, and a placeholder through core (VD-182)', () => {
@@ -448,5 +475,49 @@ describe('fold title (§15.2)', () => {
     const toggle = box.querySelector('.vui-fold-toggle') as HTMLElement
     expect(toggle.querySelector('a')).toBeNull()
     expect(toggle.textContent).toContain('see x now')
+  })
+})
+
+describe('one diagnostic per problem (B7)', () => {
+  const kitchen = {
+    vui: 1,
+    body: [
+      {
+        type: 'compare',
+        options: ['MySQL', 'Postgres'],
+        criteria: [{ label: 'Cost', values: [0, 0], format: 'money' }],
+      },
+      {
+        type: 'table',
+        columns: ['A:money', 'B:money'],
+        rows: [
+          [1, 2],
+          [3, 4],
+        ],
+      },
+      {
+        type: 'table',
+        columns: ['When:rel', 'N:int'],
+        rows: [
+          ['2026-11-20', 'x'],
+          ['2026-11-19', 'y'],
+        ],
+      },
+    ],
+  }
+
+  it('reports what the validator reports, once per problem', () => {
+    const box = document.createElement('div')
+    const { diagnostics } = render(kitchen as never, box)
+    const validated = validate(kitchen as never).diagnostics
+    const key = ({ code, path }: { code: string; path: string }) => `${code} ${path}`
+    // The validator's own, plus one `rel` warning that only a renderer can know of.
+    expect(diagnostics.slice(0, validated.length).map(key)).toEqual(validated.map(key))
+    const extra = diagnostics.slice(validated.length)
+    expect(extra.map(({ code, message }) => `${code}: ${message}`)).toEqual([
+      'bad-value: format rel needs a reference time',
+    ])
+    expect(validated.filter(({ code }) => code === 'bad-format-arg')).toHaveLength(3)
+    expect(validated.filter(({ code }) => code === 'bad-value')).toHaveLength(2)
   })
 })

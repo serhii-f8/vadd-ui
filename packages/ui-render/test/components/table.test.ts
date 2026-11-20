@@ -119,6 +119,38 @@ describe('table structure', () => {
     expect(cells[1]?.className).not.toContain('vui-nowrap')
   })
 
+  it('keeps every short format on one line in a narrow frame (B6)', () => {
+    const names = ['date', 'rel', 'num', 'int', 'pct', 'ms', 'bytes', 'money:EUR', 'sha', 'status']
+    const values = ['2026-11-20', '2026-11-20', 1, 1, 0.5, 1, 1, 1, 'abcdef1234', 'ok']
+    const { box } = table({
+      columns: ['Name', ...names.map((name, index) => `C${index}:${name}`), 'Note', 'Route:path'],
+      rows: [['row', ...values, 'some prose', 'src/a.ts']],
+    })
+    const cells = all(box, 'tbody td')
+    expect(
+      cells.slice(0, names.length).map((cell) => cell.className.includes('vui-nowrap')),
+    ).toEqual(names.map(() => true))
+    expect(cells[names.length]?.className).not.toContain('vui-nowrap')
+    expect(cells[names.length + 1]?.className).not.toContain('vui-nowrap')
+  })
+
+  it('breaks paths and long words only after / . _ - (B6)', () => {
+    const { box } = table({
+      columns: ['Route', 'File:path', 'Cmd:code', 'Note'],
+      rows: [['/admin/studio/{c}/create', 'src/some_dir/a-b.ts', 'pnpm run x.y', 'a b/c d']],
+    })
+    const cells = all(box, 'tbody tr > *')
+    const pieces = (cell: Element | undefined) =>
+      [...(cell?.querySelectorAll('wbr') ?? [])].map((wbr) => wbr.previousSibling?.textContent)
+    expect(cells[0]?.textContent).toBe('/admin/studio/{c}/create')
+    expect(pieces(cells[0])).toEqual(['/', 'admin/', 'studio/', '{c}/'])
+    expect(cells[1]?.textContent).toBe('src/some_dir/a-b.ts')
+    expect(cells[1]?.querySelectorAll('wbr')).toHaveLength(4)
+    expect(cells[1]?.querySelector('.vui-path-base')?.textContent).toBe('a-b.ts')
+    expect(cells[2]?.querySelectorAll('code wbr')).toHaveLength(1)
+    expect(cells[3]?.querySelector('wbr')).toBeNull()
+  })
+
   it('lets wrap beat the rule for numbers', () => {
     const { box } = table({
       columns: [{ key: 'n', label: 'N', format: 'int', wrap: true }],
@@ -220,9 +252,9 @@ describe('table sort', () => {
       sort: [1, 'asc'],
     })
     expect(firstColumn(box)).toHaveLength(2)
+    // One `rel` warning for the column (B7), at the source row of the first cell drawn.
     const paths = handle.diagnostics.map(({ path }) => path)
-    expect(paths).toContain('/body/0/rows/1/0')
-    expect(paths).toContain('/body/0/rows/0/0')
+    expect(paths).toEqual(['/body/0/rows/1/0'])
   })
 })
 

@@ -153,6 +153,36 @@ describe('text', () => {
     both({ type: 'callout', text: 'Hello' }, '> ℹ Hello')
   })
 
+  it('callout leaves the mark to a leading status token (B8)', () => {
+    both(
+      { type: 'callout', tone: 'err', text: ':fail: `a.ts:88` fails' },
+      '> ✗ fail `a.ts:88` fails',
+      '> ✗ fail a.ts:88 fails',
+    )
+    both({ type: 'callout', tone: 'err', text: 'still :fail:' }, '> ✗ still ✗ fail')
+    both({ type: 'callout', tone: 'ok', text: ' :ok: done' }, '> ✓ ok done')
+  })
+
+  it('stats flip nothing in text but read better through the same format (VD-220)', () => {
+    both(
+      {
+        type: 'stats',
+        items: [
+          {
+            label: 'p95',
+            value: 182,
+            format: 'ms',
+            delta: -14,
+            deltaFormat: 'delta:ms',
+            better: 'low',
+          },
+        ],
+      },
+      '- **p95:** 182 ms (−14 ms)',
+      '- p95: 182 ms (−14 ms)',
+    )
+  })
+
   it('code is fenced with its label', () => {
     both({ type: 'code', text: 'a\nb', lang: 'ts' }, '```ts\na\nb\n```', '    a\n    b')
     both({ type: 'code', text: 'a' }, '```\na\n```', '    a')
@@ -583,12 +613,38 @@ describe('chart', () => {
     ['line', 'Line chart'],
     ['area', 'Area chart'],
     ['donut', 'Donut chart'],
-  ])('%s has a caption', (kind, label) => {
+  ])('%s has a caption, then its data (VD-225)', (kind, label) => {
+    const byCategory = kind !== 'line' && kind !== 'area'
+    const a = byCategory ? 'Q1 1, Q2 2' : '1, 2'
+    const b = byCategory ? 'Q1 3, Q2 4' : '3, 4'
     both(
       { type: 'chart', kind, x: ['Q1', 'Q2'], series },
-      `_${label}: a, b over Q1–Q2._`,
-      `${label}: a, b over Q1–Q2.`,
+      `_${label}: a, b over Q1–Q2._\n\n- **a:** ${a}\n- **b:** ${b}`,
+      `${label}: a, b over Q1–Q2.\n\n- a: ${a}\n- b: ${b}`,
     )
+  })
+
+  it('keeps each value against its own category across a gap', () => {
+    const document = {
+      vui: 1,
+      locale: 'en-US',
+      density: 'compact',
+      body: [{ type: 'chart', kind: 'bar', x: ['a', 'b', 'c'], series: { s: [1, null, 3] } }],
+    } as unknown as VuiDocument
+    expect(renderPlain(document)).toBe('Bar chart: s over a–c.\n\n- s: a 1, c 3\n')
+  })
+
+  it('keeps last, min and max of a series past 8 points, in yFormat', () => {
+    const values = [5, 1, 9, 3, 4, 6, 2, 8, 7]
+    expect(
+      plain({
+        type: 'chart',
+        kind: 'line',
+        yFormat: 'ms',
+        x: values.map(String),
+        series: { p95: values },
+      }),
+    ).toBe('Line chart: p95 over 5–7.\n\n- p95: last 7 ms, min 1 ms, max 9 ms\n')
   })
 
   it('formats x with xFormat and reference lines with yFormat', () => {
@@ -605,11 +661,16 @@ describe('chart', () => {
           { y: 0.9, label: 'Goal', tone: 'ok' },
         ],
       }),
-    ).toBe('Line chart: a over Jan 1, 2026–Feb 1, 2026; Half 50.0%, Goal 90.0%.\n')
+    ).toBe(
+      'Line chart: a over Jan 1, 2026–Feb 1, 2026; Half 50.0%, Goal 90.0%.\n\n- a: 100.0%, 200.0%\n',
+    )
   })
 
   it('leaves out parts with no data', () => {
     expect(plain({ type: 'chart', kind: 'bar', x: ['Q1'], series: { a: [1] } })).toBe(
+      'Bar chart: a over Q1.\n\n- a: Q1 1\n',
+    )
+    expect(plain({ type: 'chart', kind: 'bar', x: ['Q1'], series: { a: [] } })).toBe(
       'Bar chart: a over Q1.\n',
     )
     expect(plain({ type: 'chart', kind: 'bar', x: [], series: {} })).toBe('Bar chart.\n')

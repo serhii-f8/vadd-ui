@@ -20,7 +20,7 @@ export {
   type SchemaCode,
   type Severity,
 } from './diagnostics.js'
-export { compareBest, compareWinner, usesExt } from './ext.js'
+export { compareBest, compareWinner, EXT_TYPES, usesExt } from './ext.js'
 export { type FormatContext, type Formatted, formatValue, isLocale } from './format.js'
 export {
   checkFormat,
@@ -29,6 +29,7 @@ export {
   type FormatSpec,
   parseFormat,
   rawText,
+  statDeltaFormat,
 } from './format-spec.js'
 export {
   type InlineToken,

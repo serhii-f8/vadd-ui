@@ -118,18 +118,42 @@ export function renderInline(tokens: InlineToken[], handler?: LinkHandler): Node
   return tokens.map((token) => renderToken(token, handler))
 }
 
+/** §8.4, B6: a line may break after `/ . _ -`, so a narrow cell never splits a word. */
+function breakable(text: string): Node[] {
+  const parts = text.match(/[^/._-]*[/._-]?/g) as string[]
+  return parts.flatMap((part, index) =>
+    part === ''
+      ? []
+      : index > 0
+        ? [el('wbr'), document.createTextNode(part)]
+        : [document.createTextNode(part)],
+  )
+}
+
 function pathNodes(text: string, base: string): Node[] {
   const head = text.slice(0, text.length - base.length)
-  return [document.createTextNode(head), el('span', { class: 'vui-path-base' }, base)]
+  return [...breakable(head), el('span', { class: 'vui-path-base' }, breakable(base))]
 }
 
 function valueContent(formatted: Formatted, handler: LinkHandler | undefined): Node[] {
   const { text, status, inline, href, mono, base } = formatted
   if (status !== undefined) return [statusBadge(status)]
-  if (inline !== undefined) return renderInline(inline, handler)
+  if (inline !== undefined) {
+    // One long word, as a route in a text column, breaks like a path.
+    const [only] = inline
+    return inline.length === 1 && only?.type === 'text' && /^\S{16,}$/.test(text)
+      ? breakable(text)
+      : renderInline(inline, handler)
+  }
   if (href !== undefined) return [link(href, [document.createTextNode(text)], handler)]
   if (mono === true) {
-    return [el('code', { class: 'vui-code' }, base === undefined ? text : pathNodes(text, base))]
+    return [
+      el(
+        'code',
+        { class: 'vui-code' },
+        base === undefined ? breakable(text) : pathNodes(text, base),
+      ),
+    ]
   }
   return [document.createTextNode(text)]
 }

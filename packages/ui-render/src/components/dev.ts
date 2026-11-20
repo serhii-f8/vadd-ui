@@ -63,7 +63,11 @@ function checkOutput(item: JsonObject, context: NodeContext): HTMLElement[] {
           pre(earlier.join('\n')),
           false,
         )
-  const label = ['Output', el('span', { class: 'vui-sr-only' }, `, ${name}`)]
+  // B12: one name, "Output, lint". A hidden span apart from the word would add a space.
+  const label = [
+    el('span', { 'aria-hidden': 'true' }, 'Output'),
+    el('span', { class: 'vui-sr-only' }, `Output, ${name}`),
+  ]
   return context.fold(`output ${name}`, label, [...before, pre(last.join('\n'))], false)
 }
 

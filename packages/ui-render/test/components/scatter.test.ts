@@ -49,8 +49,50 @@ describe('scatter (§6.4, §9.4)', () => {
     const { box } = scatter()
     const y = texts(box, '.vui-chart-tick')
     const x = texts(box, '.vui-chart-label')
-    expect(y).toEqual(['2', '4', '6', '8'])
+    expect(y).toEqual(['0', '2', '4', '6', '8', '10'])
     expect(x).toEqual(['0', '2', '4', '6', '8', '10'])
+  })
+
+  it('pads both domains, so no point sits on an edge of the plot (B5)', () => {
+    for (const points of [
+      [
+        [0, 0],
+        [10, 10],
+      ],
+      [[3, 3]],
+      [
+        [-5, 100],
+        [5, 200],
+      ],
+    ]) {
+      const { box } = scatter({ points })
+      const y = texts(box, '.vui-chart-tick').map(Number)
+      const x = texts(box, '.vui-chart-label').map(Number)
+      for (const [px, py] of points as [number, number][]) {
+        expect(px).toBeGreaterThan(Math.min(...x))
+        expect(px).toBeLessThan(Math.max(...x))
+        expect(py).toBeGreaterThan(Math.min(...y))
+        expect(py).toBeLessThan(Math.max(...y))
+      }
+    }
+  })
+
+  it('never pads positive data below zero', () => {
+    const { box } = scatter({
+      points: [
+        [2, 4],
+        [60, 30],
+      ],
+    })
+    expect(texts(box, '.vui-chart-label')[0]).toBe('0')
+    expect(texts(box, '.vui-chart-tick')[0]).toBe('0')
+  })
+
+  it('writes each label beside its point (B5)', () => {
+    const { box } = scatter()
+    expect(texts(box, 'text.vui-chart-point-label')).toEqual(['alpha', 'beta'])
+    const many = Array.from({ length: 30 }, (_, index) => [index, index, `p${index}`])
+    expect(all(scatter({ points: many }).box, '.vui-chart-point-label')).toHaveLength(0)
   })
 
   it('formats the axes and the hidden table with xFormat and yFormat', () => {

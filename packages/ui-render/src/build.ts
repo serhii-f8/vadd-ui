@@ -2,6 +2,7 @@ import {
   clip,
   type Diagnostic,
   type DiagnosticCode,
+  EXT_TYPES,
   type FormatContext,
   type Formatted,
   formatValue,
@@ -14,7 +15,7 @@ import {
   parseInline,
   type Tone,
 } from '@vadd/ui-spec'
-import { errorCard, placeholderCard } from './cards.js'
+import { EXT_BUNDLE, errorCard, placeholderCard } from './cards.js'
 import type { NodeContext, Registry } from './context.js'
 import { type Child, el } from './el.js'
 import { foldable } from './fold.js'
@@ -33,6 +34,8 @@ const FIRST_LEVEL = 3
 const LAST_LEVEL = 6
 const FOLD = 'fold'
 const PLACEHOLDER_FOLD = 'raw'
+/** `formatValue`'s catch-all, which names no format problem but this value's. */
+const FAILED_ON_VALUE = 'the format failed on this value'
 
 /** What every node of one build shares. */
 export interface Build {
@@ -45,7 +48,7 @@ export interface Build {
   memory: Map<string, Map<string, unknown>>
   watchdog: Watchdog
   diagnostics: Diagnostic[]
-  /** `code` and path of each diagnostic, so a problem is told once. */
+  /** `code` and path, or message, of each diagnostic, so a problem is told once (B7). */
   told: Set<string>
   /** Document ids written so far. A repeat gets neither a DOM id nor shared state. */
   ids: Set<string>
@@ -59,9 +62,10 @@ function report(
   code: DiagnosticCode,
   message: string,
   hint?: string,
+  once?: boolean,
 ): void {
   const path = build.paths.toInput(pointer)
-  const key = `${code}\0${path}`
+  const key = `${code}\0${once ? clip(message, 120) : path}`
   if (build.told.has(key)) return
   build.told.add(key)
   const diagnostic: Diagnostic = { severity, path, code, message: clip(message, 120) }
@@ -107,8 +111,12 @@ function createContext(
   const { linkHandler, watchdog } = build
   const format = (value: JsonValue | undefined, name: string | undefined, at: string) => {
     const formatted: Formatted = formatValue(value, name, build.format)
-    for (const issue of formatted.issues ?? []) {
-      report(build, 'warn', at, issue.code, issue.message, issue.hint)
+    for (const { code, message, hint } of formatted.issues ?? []) {
+      // B7: a problem with the format, not with this value, is one problem for every cell. A
+      // value's own problem names the value and has no hint; `rel` with no time has one.
+      // The catch-all failure is about this value, so it keeps its own path.
+      const once = (code !== 'bad-value' || hint !== undefined) && message !== FAILED_ON_VALUE
+      report(build, 'warn', at, code, message, hint, once)
     }
     return formatted
   }
@@ -155,12 +163,20 @@ function frame(
   fallbackTone?: Tone,
 ): HTMLElement {
   const tone = toneOf(stringField(node, 'tone')) ?? fallbackTone
-  const mark = tone === undefined ? null : toneMark(tone)
-  const span = spanOf(node)
   const type = stringField(node, 'type')
+  // B8: a callout that opens with a status token has its icon already.
+  const lead =
+    type === 'callout' &&
+    parseInline((stringField(node, 'text') ?? '').trimStart())[0]?.type === 'status'
+  const mark = tone === undefined || lead ? null : toneMark(tone)
+  const span = spanOf(node)
+  const toned = tone === undefined ? '' : tonedClass(tone)
   const attributes = {
     id,
-    class: tone === undefined ? 'vui-node' : `vui-node ${tonedClass(tone)}`,
+    class:
+      tone === undefined
+        ? 'vui-node'
+        : `vui-node ${lead ? toned.replace(' vui-marked', '') : toned}`,
     'data-vui-span': span,
     'data-vui-type': type,
   }
@@ -229,7 +245,12 @@ function buildComponent(
   if (component === undefined) {
     const open = memory.get(PLACEHOLDER_FOLD) === true
     const onToggle = (opened: boolean) => memory.set(PLACEHOLDER_FOLD, opened)
-    return frame(node, id, [placeholderCard(type, node, open, onToggle)])
+    const path = build.paths.toInput(pointer)
+    const told = build.diagnostics.find((d) => d.code === 'unknown-type' && d.path === path)
+    const card = EXT_TYPES.has(type)
+      ? placeholderCard(`${type} needs ${EXT_BUNDLE}`, node, open, onToggle)
+      : placeholderCard(`Unknown component: ${clip(type, 60)}`, node, open, onToggle, told?.hint)
+    return frame(node, id, [card])
   }
   const folds = hasOwn(node, 'fold') && stringField(node, 'title') !== undefined
   const inner = hasOwn(node, 'title') ? level + 1 : level

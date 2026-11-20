@@ -287,3 +287,72 @@ test("a code cell copies through Orca's sandbox chain", async ({ page }) => {
   await button.click()
   await expect(button).toHaveAttribute('aria-label', /Copied|Select text to copy/)
 })
+
+test.describe('narrow frames (B6)', () => {
+  /** Lines per cell, and text pieces between break points that a line split anyway. */
+  const measure = (frame: Awaited<ReturnType<typeof open>>['frame']) =>
+    frame.evaluate(() => {
+      const lineCount = (node: Node) => {
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        // Inline code sits a pixel or two off the text, so a new line is a jump of a line.
+        const tops = [...range.getClientRects()].map((rect) => rect.top).sort((a, b) => a - b)
+        return tops.filter((top, index) => index === 0 || top - (tops[index - 1] as number) > 8)
+          .length
+      }
+      return [...document.querySelectorAll('tbody tr > *')].map((cell) => {
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT)
+        let split = 0
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text
+          if (node.data !== '' && !/\s/.test(node.data) && lineCount(node) > 1) split += 1
+        }
+        return { lines: lineCount(cell), split }
+      })
+    })
+
+  test('keep short values and paths on one line; the table scrolls', async ({ page }) => {
+    const { frame } = await open(
+      page,
+      [
+        {
+          type: 'table',
+          columns: ['Name', 'File:path', 'Cmd:code', 'Updated:date', 'Hits:int'],
+          rows: [
+            ['a', 'packages/ui-render/src/table_view.ts', 'pnpm vitest run', '2026-11-20', 18420],
+          ],
+        },
+      ],
+      400,
+    )
+    const cells = await measure(frame)
+    expect(cells.map(({ lines }) => lines)).toEqual([1, 1, 1, 1, 1])
+  })
+
+  test('break a pinned first column only after / . _ -, never inside a word', async ({ page }) => {
+    const { frame } = await open(
+      page,
+      [
+        {
+          type: 'table',
+          columns: ['Route', 'Method', 'Hits:int', 'p95:ms', 'Errors:pct', 'Updated:date'],
+          rows: [
+            ['/admin/studio/{c}/create', 'POST', 2204, 410, 0.031, '2026-11-18T09:00:00Z'],
+            ['packages/ui-render/src/components/table_view.ts', 'GET', 1, 2, 0, '2026-11-18'],
+          ],
+        },
+        {
+          type: 'table',
+          columns: [{ key: 'p', label: 'Path', format: 'path', wrap: true }, 'Note'],
+          rows: [['packages/ui-render/src/components/table_view.ts', 'x']],
+        },
+      ],
+      400,
+    )
+    const cells = await measure(frame)
+    expect(cells[6]?.lines).toBeGreaterThan(1)
+    for (const cell of cells) expect(cell.split).toBe(0)
+    // Dates and numbers keep one line beside the pinned column.
+    expect(cells.slice(2, 6).map(({ lines }) => lines)).toEqual([1, 1, 1, 1])
+  })
+})
