@@ -12,7 +12,7 @@ Ordered steps for the user. Everything a machine could do here is done and recor
   - **§16 agent eval first-show validity 97.0%** against 98% (32 of 33; one run of 40 prompts; `AGENT_EVAL.md`).
   - **VD-129**: the first show in Orca exceeds §16.1's 1 s while Orca creates the pane (1.6–3.4 s here); warm delivery 67–78 ms.
   - **§17.4 Chromium 110** lacks `color-mix()`, which §8.1 requires; full fidelity needs Chromium 111 (VD-177, `RUNTIME_SUPPORT.md`).
-- Bundles: `vui.min.js` 37.9 KiB gzip of the 38 KiB budget (§9.5), unchanged by task 22; about 100 bytes of headroom. The §6 `ext` tier ships in `vui-ext.min.js` (core plus ext, 123.5 KiB min, 42.6 KiB gzip, budget 132/45 KiB), embedded only for documents that use `compare`, `flow` or a `scatter` chart (VD-182).
+- Bundles (after task 27, VD-218): `vui.min.js` 111.5 KiB min, 37.3 KiB gzip of the 120/38 KiB budget (§9.5). The §6 `ext` tier ships in `vui-ext.min.js` (core plus ext, 124.6 KiB min, 41.8 KiB gzip, budget 132/45 KiB), embedded only for documents that use `compare`, `flow` or a `scatter` chart (VD-182).
 
 ## 1. Repository and CI
 
@@ -44,8 +44,10 @@ Ordered steps for the user. Everything a machine could do here is done and recor
 
 ## 4. Known gaps carried into 1.0
 
+Fixed before the first release by tasks 26 and 27 (2026-11-20): the second pane after `vui viewer stop` or an idle exit (VD-125, now VD-210).
+
+
 - §10.2's hand-written CDN template has no `lang` or `<title>`; the CLI's `--cdn` file adds both (VD-168). An agent writing the template by hand still produces a page axe flags.
 - Firefox 115 prints four-digit `pl-PL` money without a group separator (VD-043, VD-177).
-- After `vui viewer stop` or an idle exit, the next show opens a new pane beside the dead one (VD-125).
 - A Windows `EACCES` port ends the Viewer's port search (VD-118).
-- A CDN-mode page written by hand that loads `vui.min.js` for a document with `compare`, `flow` or `scatter` shows §9.3 placeholders for those nodes; the skill and `vui render --cdn` use `vui-ext.min.js` instead (VD-182).
+- A CDN-mode page written by hand that loads only `vui.min.js` for a document with `compare`, `flow` or `scatter` shows a card naming `vui-ext.min.js` for those nodes; loading both bundles works, and the ext bundle wins (VD-182, VD-219).
