@@ -11,6 +11,9 @@ export type { Render, RenderHandle, RenderOptions } from './renderer.js'
 
 export const packageName = '@vadd/ui-render' as const
 
+/** The §6 tier this entry draws: a page with both bundles lets the `ext` one win (§9.2). */
+export const ext = true
+
 /** The whole stylesheet, `ext` rules included. Each host injects it once (§9.2). */
 export const stylesheet: string = coreCss + extCss
 

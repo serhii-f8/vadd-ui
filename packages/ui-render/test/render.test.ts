@@ -36,6 +36,33 @@ describe('§9.1 API', () => {
     expect(box.querySelector('.vui-card-placeholder')?.textContent).toContain('gauge')
   })
 
+  it("shows the validator's hint on an unknown type's card, as the CLI does", () => {
+    const box = target()
+    render(doc([{ type: 'tabel', columns: [], rows: [] }]), box)
+    const card = box.querySelector('.vui-card-placeholder')
+    expect(card?.querySelector('.vui-card-title')?.textContent).toBe('Unknown component: tabel')
+    expect(card?.querySelector('.vui-card-detail')?.textContent).toBe('did you mean "table"?')
+  })
+
+  it('names the bundle an ext node needs in the core build (VD-211)', () => {
+    const core = target()
+    coreRender(
+      doc([
+        { type: 'compare', options: ['a'], criteria: [] },
+        { type: 'flow', nodes: ['a'], edges: [] },
+        { type: 'chart', kind: 'scatter', points: [[1, 2]] },
+      ]),
+      core,
+    )
+    const titles = [...core.querySelectorAll('.vui-card-placeholder .vui-card-title')]
+    expect(titles.map((title) => title.textContent)).toEqual([
+      'compare needs vui-ext.min.js',
+      'flow needs vui-ext.min.js',
+      'scatter charts need vui-ext.min.js',
+    ])
+    expect(core.querySelector('.vui-card-detail')).toBeNull()
+  })
+
   it('draws the ext tier through the package root, and a placeholder through core (VD-182)', () => {
     const node = { type: 'compare', options: ['a'], criteria: [] }
     const full = target()

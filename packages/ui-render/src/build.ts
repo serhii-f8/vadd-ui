@@ -2,6 +2,7 @@ import {
   clip,
   type Diagnostic,
   type DiagnosticCode,
+  EXT_TYPES,
   type FormatContext,
   type Formatted,
   formatValue,
@@ -14,7 +15,7 @@ import {
   parseInline,
   type Tone,
 } from '@vadd/ui-spec'
-import { errorCard, placeholderCard } from './cards.js'
+import { EXT_BUNDLE, errorCard, placeholderCard } from './cards.js'
 import type { NodeContext, Registry } from './context.js'
 import { type Child, el } from './el.js'
 import { foldable } from './fold.js'
@@ -229,7 +230,12 @@ function buildComponent(
   if (component === undefined) {
     const open = memory.get(PLACEHOLDER_FOLD) === true
     const onToggle = (opened: boolean) => memory.set(PLACEHOLDER_FOLD, opened)
-    return frame(node, id, [placeholderCard(type, node, open, onToggle)])
+    const path = build.paths.toInput(pointer)
+    const told = build.diagnostics.find((d) => d.code === 'unknown-type' && d.path === path)
+    const card = EXT_TYPES.has(type)
+      ? placeholderCard(`${type} needs ${EXT_BUNDLE}`, node, open, onToggle)
+      : placeholderCard(`Unknown component: ${clip(type, 60)}`, node, open, onToggle, told?.hint)
+    return frame(node, id, [card])
   }
   const folds = hasOwn(node, 'fold') && stringField(node, 'title') !== undefined
   const inner = hasOwn(node, 'title') ? level + 1 : level

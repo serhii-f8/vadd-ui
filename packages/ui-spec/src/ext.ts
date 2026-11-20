@@ -3,7 +3,8 @@
 
 import { hasOwn } from './json.js'
 
-const EXT_TYPES = new Set(['compare', 'flow'])
+/** The component types of the `ext` tier; a `scatter` chart is the other ext node. */
+export const EXT_TYPES: ReadonlySet<string> = new Set(['compare', 'flow'])
 
 /** True when any object in `value` is an ext node: the writer must embed `vui-ext.min.js`. */
 export function usesExt(value: unknown): boolean {

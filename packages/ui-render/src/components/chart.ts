@@ -1,5 +1,5 @@
 import { CHART_LABELS, hasOwn, inlineToPlain, type JsonObject, parseInline } from '@vadd/ui-spec'
-import { placeholderCard } from '../cards.js'
+import { EXT_BUNDLE, placeholderCard } from '../cards.js'
 import { type Drawing, draw, SPARK_HEIGHT, SPARK_WIDTH } from '../chart/draw.js'
 import { type Model, readModel } from '../chart/model.js'
 import { watchWidth } from '../chart/resize.js'
@@ -99,7 +99,10 @@ function fillTip(tip: HTMLElement, model: Model, index: number): void {
 export const chart: Component = {
   render(node: JsonObject, context) {
     const kind = text(node, 'kind') as ChartKind
-    if (kind === 'scatter') return placeholderCard('chart', node, false, () => {})
+    // The core bundle: the ext one registers its own chart (VD-184, VD-211).
+    if (kind === 'scatter') {
+      return placeholderCard(`scatter charts need ${EXT_BUNDLE}`, node, false, () => {})
+    }
     const model = readModel(node, context)
     // An own key only: past VD-066's cap `kind` can be `__proto__` (VD-187).
     const label = hasOwn(CHART_LABELS, kind) ? CHART_LABELS[kind] : 'Chart'
