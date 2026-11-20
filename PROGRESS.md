@@ -53,7 +53,7 @@ Recorded 2026-11-04 during bootstrap.
 | 23 | Core chart robustness | §9.3, §9.4, §16 | 22 | done | removed | ctx_0c2b45843a7e | [design](docs/superpowers/specs/2026-11-15-chart-robustness-design.md) | [plan](docs/superpowers/plans/2026-11-15-chart-robustness.md) | 1c41615 | 2026-11-15 |
 | 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | done | removed | ctx_f4a8b6927eb4 | [design](docs/superpowers/specs/2026-11-16-design-polish-design.md) | [plan](docs/superpowers/plans/2026-11-16-design-polish.md) | 3dca1b9 | 2026-11-16 |
 | 25 | CI green on GitHub (Linux, macOS, Windows) | §16, §16.1, §17.4 | 24 | done | removed | ctx_952c4032742e | [design](docs/superpowers/specs/2026-11-17-ci-green-design.md) | [plan](docs/superpowers/plans/2026-11-17-ci-green.md) | f828f03 | 2026-11-17 |
-| 26 | Stability fixes: Viewer, CLI and skill | §4.1, §11.1, §11.3, §11.4, §12.1, §16 | 25 | in_progress | vui-26-stability-cli | ctx_4998d433957e | | | | | |
+| 26 | Stability fixes: Viewer, CLI and skill | §4.1, §11.1, §11.3, §11.4, §12.1, §16 | 25 | in_progress | vui-26-stability-cli | ctx_4998d433957e | | | | |
 | 27 | Stability fixes: renderer, formats and validator | §5.4, §5.5, §6.3–6.5, §7, §8.4, §9.2, §9.3, §9.5, §13.1, §16 | 25 | in_progress | vui-27-stability-render | ctx_36815b45f8d5 | | | | |
 
 ## Current task log
