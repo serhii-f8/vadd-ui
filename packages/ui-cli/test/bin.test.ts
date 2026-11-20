@@ -127,7 +127,7 @@ describe('stdin', () => {
   it.skipIf(process.platform === 'win32')('reports a directory on stdin as I/O', () => {
     const { status, stderr } = sh(`"${process.execPath}" "${BIN}" validate </`)
     expect(status).toBe(5)
-    expect(stderr).toContain('EISDIR')
+    expect(stderr).toBe('vui: cannot read stdin: is a directory\n')
   })
 
   it('reads CRLF', async () => {

@@ -8,6 +8,7 @@ import { detectEnvironment, type Environment, networkingMode } from './environme
 import { resolveOrca } from './host/orca.js'
 import { isWritableDirectory } from './host/select.js'
 import type { Io } from './io.js'
+import { ioReason } from './io-error.js'
 import { CliError, EXIT, type Outcome } from './outcome.js'
 import { safe } from './print.js'
 import type { ExecResult, System } from './system.js'
@@ -82,9 +83,8 @@ function stateCheck({ stateDir }: Place): Check {
     if (!existed) rmdirSync(stateDir)
     return { name, status: 'ok', detail: stateDir }
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code ?? 'error'
     const fix = 'Make the directory writable, or set XDG_STATE_HOME to one that is.'
-    return { name, status: 'fail', detail: `${stateDir}: ${code}`, fix }
+    return { name, status: 'fail', detail: `${stateDir}: ${ioReason(error)}`, fix }
   }
 }
 

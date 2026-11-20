@@ -13,6 +13,7 @@ import {
   workspaceHash,
   workspaceOf,
 } from '@vadd/ui-viewer'
+import { ioReason } from '../io-error.js'
 import { CliError, EXIT, noHost } from '../outcome.js'
 import { type System, viewerEntry } from '../system.js'
 
@@ -59,8 +60,7 @@ export interface EnsureOptions {
 }
 
 function ioError(what: string, error: unknown): CliError {
-  const reason = (error as NodeJS.ErrnoException).code ?? String(error)
-  return new CliError(EXIT.io, 'io', `cannot use ${what}: ${reason}`)
+  return new CliError(EXIT.io, 'io', `cannot use ${what}: ${ioReason(error)}`)
 }
 
 export function placeOf(system: System): Place {

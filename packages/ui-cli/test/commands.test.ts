@@ -213,7 +213,7 @@ describe('render', () => {
     const out = join(tempDir(), 'missing', 'x.html')
     const result = await vui(['render', '--format', 'html', '--out', out], { stdin: CLEAN })
     expect(result.exit).toBe(5)
-    expect(result.stderr).toContain('ENOENT')
+    expect(result.stderr).toBe(`vui: cannot write ${out}: no such file\n`)
     const { exit, json } = await vuiJson(['render', '--format', 'html', '--out', out], {
       stdin: CLEAN,
     })
