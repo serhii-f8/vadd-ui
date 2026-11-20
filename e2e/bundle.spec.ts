@@ -412,6 +412,47 @@ ${embedded(canonical(EXT_DOC))}
     const dir = write('core.html', page(`<script>${bundleText()}</script>`))
     await tab.goto(fileUrl(dir, 'core.html'))
     await expect(tab.locator('.vui-card-placeholder')).toHaveCount(3)
+    await expect(tab.locator('.vui-card-placeholder .vui-card-title')).toHaveText([
+      'compare needs vui-ext.min.js',
+      'scatter charts need vui-ext.min.js',
+      'flow needs vui-ext.min.js',
+    ])
     await expect(tab.locator('.vui-chart[data-vui-kind="bar"]')).toHaveCount(1)
+  })
+
+  test('with both bundles on a page, ext wins in either order and draws once (B2)', async ({
+    page: tab,
+  }) => {
+    const dir = write('x.html', '')
+    copyFileSync(EXT_BUNDLE, join(dir, 'vui-ext.min.js'))
+    const core = '<script src="vui.min.js"></script>'
+    const ext = '<script src="vui-ext.min.js"></script>'
+    writeFileSync(join(dir, 'core-first.html'), page(core + ext))
+    writeFileSync(join(dir, 'ext-first.html'), page(ext + core))
+    const seen = watch(tab)
+    for (const name of ['core-first.html', 'ext-first.html']) {
+      await tab.goto(fileUrl(dir, name))
+      await expect(tab.locator('.vui-root')).toHaveCount(1)
+      await expect(tab.locator('.vui-compare')).toHaveCount(1)
+      await expect(tab.locator('.vui-chart[data-vui-kind="scatter"] .vui-chart-dot')).toHaveCount(1)
+      await expect(tab.locator('.vui-flow')).toHaveCount(1)
+      await expect(tab.locator('.vui-card-placeholder, .vui-card-error')).toHaveCount(0)
+      await expect(tab.locator('style#vui-style')).toHaveCount(1)
+    }
+    // Core drew first and ext arrived late: the same root, redrawn by ext, with its styles.
+    writeFileSync(join(dir, 'late.html'), page(core))
+    await tab.goto(fileUrl(dir, 'late.html'))
+    await expect(tab.locator('.vui-card-placeholder')).toHaveCount(3)
+    await tab.evaluate(() => {
+      const script = document.createElement('script')
+      script.src = 'vui-ext.min.js'
+      document.head.append(script)
+    })
+    await expect(tab.locator('.vui-compare')).toHaveCount(1)
+    await expect(tab.locator('.vui-root')).toHaveCount(1)
+    await expect(tab.locator('.vui-card-placeholder')).toHaveCount(0)
+    const flow = tab.locator('.vui-flow')
+    expect(await flow.evaluate((node) => getComputedStyle(node).overflowX)).toBe('auto')
+    expect(seen.errors).toEqual([])
   })
 })

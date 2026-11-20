@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { render } from '@vadd/ui-render'
+import { pageCss, render, stylesheet } from '@vadd/ui-render'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { packageName, version } from '../src/index.js'
 
@@ -85,6 +85,21 @@ describe('both bundles on one page (VD-211)', () => {
     expect(script.nextElementSibling).toBe(first)
     expect(placeholder()).toBeNull()
     expect(document.querySelector('[data-vui-type="compare"]')).not.toBeNull()
+    // The core sheet gave way to the whole one, page rules kept.
+    const styles = document.querySelectorAll('style#vui-style')
+    expect(styles).toHaveLength(1)
+    expect(styles[0]?.textContent).toBe(stylesheet + pageCss)
+    expect(styles[0]?.hasAttribute('data-vui-core')).toBe(false)
+  })
+
+  it("leaves a host's own stylesheet to ext as well", async () => {
+    const own = document.createElement('style')
+    own.id = 'vui-style'
+    own.textContent = 'a{}'
+    document.head.append(own)
+    page()
+    await loadExt()
+    expect(own.textContent).toBe('a{}')
   })
 
   it('core loaded after ext leaves the page and VUI to ext', async () => {

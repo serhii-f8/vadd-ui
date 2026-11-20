@@ -5,6 +5,8 @@ const DOCUMENTS = 'script[type="application/vui+json"]'
 const ROOT_CLASS = 'vui-root'
 /** Lives on the script, so a second copy of the bundle sees it too. */
 const MOUNTED = 'data-vui-mounted'
+/** On the stylesheet the core bundle injected, which has no `ext` rules (VD-211). */
+const CORE_STYLE = 'data-vui-core'
 
 /** What a bundle drew for one script. On the element, so every copy on the page reads it. */
 interface Mount {
@@ -20,12 +22,17 @@ function unpainted(element: Element): boolean {
   return backgroundColor === 'rgba(0, 0, 0, 0)' && backgroundImage === 'none'
 }
 
+/** Once per page. A host's own sheet stays; the core bundle's gives way to the ext one's. */
 function injectStyle(doc: Document): void {
-  if (doc.getElementById(STYLE_ID)) return
-  const style = doc.createElement('style')
+  const old = doc.getElementById(STYLE_ID)
+  if (old && !(ext && old.hasAttribute(CORE_STYLE))) return
+  const style = old ?? doc.createElement('style')
   style.id = STYLE_ID
-  const bare = unpainted(doc.documentElement) && unpainted(doc.body)
+  const bare = old
+    ? (old.textContent ?? '').endsWith(pageCss)
+    : unpainted(doc.documentElement) && unpainted(doc.body)
   style.textContent = bare ? stylesheet + pageCss : stylesheet
+  style.toggleAttribute(CORE_STYLE, !ext)
   doc.head.append(style)
 }
 
