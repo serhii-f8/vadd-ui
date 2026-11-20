@@ -115,7 +115,10 @@ describe('vui doctor', () => {
   })
 
   it('fails an old Node', async () => {
-    const system = { ...fakeSystem({ cwd: tempDir() }), nodeVersion: '18.19.0' }
+    const system = {
+      ...fakeSystem({ cwd: tempDir(), env: { ...stateHome() } }),
+      nodeVersion: '18.19.0',
+    }
     const { exit, of } = await checks(system)
     expect(exit).toBe(4)
     expect(of('node').status).toBe('fail')

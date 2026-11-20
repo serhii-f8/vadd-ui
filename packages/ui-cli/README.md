@@ -17,15 +17,15 @@ EOF
 
 | Command | Does |
 | --- | --- |
-| `vui show [file\|-]` | Validate and show a document. `--title`, `--host auto\|viewer\|orca-chat\|file`, `--no-open`. |
+| `vui show [file\|-]` | Validate and show a document. `--title`, `--host auto\|viewer\|orca-chat\|file`, `--dir` (made if missing), `--no-open`. `--name N` names the Viewer entry, or the file on the file hosts; `--replace` (with `--name`) updates the Viewer entry with that name in place instead of adding one. |
 | `vui viewer start\|stop\|status\|open\|url` | Manage the local Viewer. |
 | `vui render [file\|-] --format html\|md\|text` | Render to a self-contained HTML file, markdown or plain text. `--out`, `--cdn`. |
-| `vui validate [file\|-]` | Report diagnostics with JSON Pointer paths and hints. `--strict` fails on warnings. |
-| `vui catalog [component]` | Print the components, or the fields and an example of one. |
+| `vui validate [file\|-]` | Report diagnostics with JSON Pointer paths and hints, or `ok`. `--strict` fails on warnings. |
+| `vui catalog [component\|common\|formats]` | Print the components, the fields and an example of one, the common node fields with their values, or every format with its argument (`money:USD`, `delta:pct`). |
 | `vui schema` | Print the JSON Schema. |
 | `vui extract [file.html\|-]` | Get the document back out of a rendered file. |
 | `vui bench [dir]` | Measure token cost against markdown and hand-written HTML. |
-| `vui doctor` | Explain the detected environment. |
+| `vui doctor` | Explain the detected environment, one check at a time. `--quick` skips the slow Windows reachability probe in WSL. |
 
 Stdin is read when the file is `-` or omitted. `--json` works on every command.
 
