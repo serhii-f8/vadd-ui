@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { type AddressInfo, createServer as createNetServer, type Socket } from 'node:net'
 import { join, posix } from 'node:path'
@@ -68,6 +68,23 @@ describe('vui doctor', () => {
     expect(stdout).toMatch(/^ok {3}node: /m)
     expect(stdout).toMatch(/^fail {1}state: .*\n {5}fix: /m)
     expect(stdout).toMatch(/^info {1}orca-cli: /m)
+  })
+
+  it('leaves no workspace folder behind for its write check (B14)', async () => {
+    const workspace = tempDir()
+    const env = { ...stateHome() }
+    const { of } = await checks(fakeSystem({ cwd: workspace, env }))
+    expect(of('state').status).toBe('ok')
+    expect(existsSync(stateDirOf(workspaceHash(workspace), env))).toBe(false)
+  })
+
+  it('keeps a workspace folder that was there before', async () => {
+    const workspace = tempDir()
+    const env = { ...stateHome() }
+    const dir = stateDirOf(workspaceHash(workspace), env)
+    mkdirSync(dir, { recursive: true })
+    await checks(fakeSystem({ cwd: workspace, env }))
+    expect(existsSync(dir)).toBe(true)
   })
 
   it('fails an old Node', async () => {

@@ -5,6 +5,7 @@ import {
   isAlive,
   liveViewer,
   readViewerInfo,
+  retireViewerInfo,
   stateDirOf,
   type ViewerInfo,
   viewerState,
@@ -15,7 +16,6 @@ import {
 import { CliError, EXIT, noHost } from '../outcome.js'
 import { type System, viewerEntry } from '../system.js'
 
-const INFO_FILE = 'viewer.json'
 const START_LOCK = 'viewer.lock'
 export const PANE_LOCK = 'pane.lock'
 const LOG_FILE = 'viewer.log'
@@ -283,16 +283,16 @@ export async function stopViewer(
   options: { timeoutMs?: number } = {},
 ): Promise<Stopped> {
   const place = placeOf(system)
-  const file = join(place.stateDir, INFO_FILE)
   const { state, info } = await viewerState(place.stateDir, place.hash)
+  // B1: a stale file becomes a retired record, so its pane id survives for the next start.
   if (info === undefined) {
-    rmSync(file, { force: true })
+    retireViewerInfo(place.stateDir)
     return { stopped: false }
   }
   const { pid } = info
   if (state === 'stalled') {
     if (isStranger(system, pid)) {
-      rmSync(file, { force: true })
+      retireViewerInfo(place.stateDir, pid)
       return { stopped: false }
     }
     send(system, pid, 'SIGKILL')
@@ -302,6 +302,6 @@ export async function stopViewer(
     if (!(await gone(system, place, pid, timeoutMs))) send(system, pid, 'SIGKILL')
   }
   // Windows has no SIGTERM handler, and SIGKILL runs none, so the file can remain.
-  if (readViewerInfo(place.stateDir)?.pid === pid) rmSync(file, { force: true })
+  retireViewerInfo(place.stateDir, pid)
   return { stopped: true, pid }
 }

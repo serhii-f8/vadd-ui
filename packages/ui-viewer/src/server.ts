@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
@@ -19,10 +19,15 @@ const TOKEN_BYTES = 16
 const OWNER_ONLY_FILE = 0o600
 const OWNER_ONLY_DIR = 0o700
 const INFO_FILE = 'viewer.json'
+const DOCS_DIR = 'docs'
 const HEALTH_TIMEOUT_MS = 1000
 const MAX_PORT = 65535
 
-/** `viewer.json` (§4.1). */
+/**
+ * `viewer.json` (§4.1). A stopped Viewer leaves a retired record (B1, VD-210): only `port`,
+ * `readToken`, `browserPageId` and `stoppedAt`, so the next start can move its Orca pane. With
+ * no `pid` it never reads as alive.
+ */
 export interface ViewerInfo {
   pid: number
   port: number
@@ -32,7 +37,12 @@ export interface ViewerInfo {
   version: string
   /** The Orca pane showing this feed, written by the CLI (§4.1). */
   browserPageId?: string
+  /** Only on a retired record. */
+  stoppedAt?: string
 }
+
+/** What a retired record keeps. */
+export type RetiredInfo = Pick<ViewerInfo, 'port' | 'readToken' | 'browserPageId' | 'stoppedAt'>
 
 export interface StartOptions {
   /** The absolute workspace path (`workspaceOf`). */
@@ -111,7 +121,7 @@ export function readViewerInfo(stateDir: string): Partial<ViewerInfo> | undefine
 }
 
 /** Rename, because a write would keep the mode of a file already there. */
-function writeViewerInfo(stateDir: string, info: ViewerInfo): void {
+function writeViewerInfo(stateDir: string, info: ViewerInfo | RetiredInfo): void {
   const file = join(stateDir, INFO_FILE)
   const temporary = `${file}.${process.pid}.tmp`
   writeFileSync(temporary, JSON.stringify(info), { mode: OWNER_ONLY_FILE })
@@ -128,6 +138,43 @@ export function updateViewerInfo(
   if (info?.pid !== pid) return false
   writeViewerInfo(stateDir, { ...(info as ViewerInfo), ...patch })
   return true
+}
+
+/**
+ * The end of a Viewer's file, by whoever sees it stop. Given `pid`, only that Viewer's file.
+ * A pane id stays, in a record that cannot read as live (B1); with none the file goes. Then a
+ * folder with nothing left in it goes too (B14): a workspace that stored nothing leaves nothing.
+ */
+export function retireViewerInfo(stateDir: string, pid?: number): void {
+  const info = readViewerInfo(stateDir)
+  if (pid !== undefined && info?.pid !== pid) return
+  try {
+    const { port, readToken, browserPageId } = info ?? {}
+    if (
+      typeof browserPageId === 'string' &&
+      typeof port === 'number' &&
+      typeof readToken === 'string'
+    ) {
+      const stoppedAt = info?.stoppedAt ?? new Date().toISOString()
+      writeViewerInfo(stateDir, { port, readToken, browserPageId, stoppedAt })
+      return
+    }
+    rmSync(join(stateDir, INFO_FILE), { force: true })
+  } catch {
+    // Not ours to change: the next start overwrites the file anyway.
+    return
+  }
+  // `docs/` first: the store makes it on open, and it is empty if nothing was stored.
+  removeIfEmpty(join(stateDir, DOCS_DIR))
+  removeIfEmpty(stateDir)
+}
+
+function removeIfEmpty(dir: string): void {
+  try {
+    rmdirSync(dir)
+  } catch {
+    // Not empty, or already gone.
+  }
 }
 
 export function isAlive(pid: number): boolean {
@@ -270,8 +317,8 @@ export async function startViewer(options: StartOptions): Promise<RunningViewer>
       idle.stop()
       server.close(() => resolve())
       server.closeAllConnections()
-      // A newer Viewer may own the file by now.
-      if (readViewerInfo(stateDir)?.pid === pid) rmSync(join(stateDir, INFO_FILE), { force: true })
+      // A newer Viewer may own the file by now, which `retireViewerInfo` leaves alone.
+      retireViewerInfo(stateDir, pid)
     })
     return closing
   }

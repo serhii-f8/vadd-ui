@@ -13,6 +13,7 @@ import {
   liveViewer,
   type RunningViewer,
   readViewerInfo,
+  retireViewerInfo,
   type StartOptions,
   startViewer,
   updateViewerInfo,
@@ -78,6 +79,7 @@ describe('startViewer', () => {
   it.skipIf(NO_POSIX_MODES)('keeps mode 0600 over an old, wider file', async () => {
     const options = fixture()
     await (await start(options)).close()
+    mkdirSync(options.dir, { recursive: true })
     const file = join(options.dir, 'viewer.json')
     writeFileSync(file, '{"pid":0}')
     chmodSync(file, 0o644)
@@ -243,6 +245,7 @@ describe('one Viewer per workspace', () => {
   it('replaces a file whose process is gone', async () => {
     const options = fixture()
     await (await start(options)).close()
+    mkdirSync(options.dir, { recursive: true })
     writeFileSync(join(options.dir, 'viewer.json'), '{"pid":2147483646,"port":1}')
     await expect(start(options)).resolves.toBeDefined()
   })
@@ -260,6 +263,7 @@ describe('one Viewer per workspace', () => {
   it('replaces a file whose live pid is something else', async () => {
     const options = fixture()
     await (await start(options)).close()
+    mkdirSync(options.dir, { recursive: true })
     const port = await occupy()
     writeFileSync(join(options.dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port }))
     await expect(start(options)).resolves.toBeDefined()
@@ -268,6 +272,7 @@ describe('one Viewer per workspace', () => {
   it('replaces an unreadable file', async () => {
     const options = fixture()
     await (await start(options)).close()
+    mkdirSync(options.dir, { recursive: true })
     writeFileSync(join(options.dir, 'viewer.json'), 'garbage')
     await expect(start(options)).resolves.toBeDefined()
   })
@@ -290,6 +295,29 @@ describe('close', () => {
     await viewer.close()
     expect(existsSync(join(options.dir, 'viewer.json'))).toBe(false)
     await expect(request(viewer.port, '/health')).rejects.toThrow()
+  })
+
+  it('leaves no workspace folder behind when nothing was stored (B14)', async () => {
+    const options = fixture()
+    const viewer = await start(options)
+    await viewer.close()
+    expect(existsSync(options.dir)).toBe(false)
+  })
+
+  it('keeps the pane of a graceful stop, and reads as stopped (B1)', async () => {
+    const options = fixture()
+    const viewer = await start(options)
+    const pid = process.pid
+    updateViewerInfo(options.dir, pid, { browserPageId: 'page-1' })
+    await viewer.close()
+    const info = readViewerInfo(options.dir)
+    expect(info).toMatchObject({ port: viewer.port, readToken: viewer.readToken })
+    expect(info?.browserPageId).toBe('page-1')
+    expect(typeof info?.stoppedAt).toBe('string')
+    expect(info?.pid).toBeUndefined()
+    expect(info?.writeToken).toBeUndefined()
+    const hash = workspaceHash(options.workspace)
+    await expect(viewerState(options.dir, hash)).resolves.toEqual({ state: 'none' })
   })
 
   it('leaves a viewer.json that a newer Viewer owns', async () => {
@@ -415,6 +443,61 @@ describe('viewerState', () => {
     const dir = tempDir()
     writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ pid: process.pid, port: 9 }))
     expect((await viewerState(dir, 'hash')).state).toBe('none')
+  })
+})
+
+describe('retireViewerInfo', () => {
+  const base = { port: 1, readToken: 'r', writeToken: 'w', startedAt: 't', version: 'v' }
+
+  it('keeps only what brings the pane back', () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7, browserPageId: 'p' }))
+    retireViewerInfo(dir, 7)
+    const info = readViewerInfo(dir)
+    expect(Object.keys(info ?? {}).sort()).toEqual([
+      'browserPageId',
+      'port',
+      'readToken',
+      'stoppedAt',
+    ])
+    if (!NO_POSIX_MODES) expect(statSync(join(dir, 'viewer.json')).mode & 0o777).toBe(0o600)
+  })
+
+  it('keeps a retired record when called again', () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7, browserPageId: 'p' }))
+    retireViewerInfo(dir, 7)
+    retireViewerInfo(dir)
+    expect(readViewerInfo(dir)?.browserPageId).toBe('p')
+  })
+
+  it('removes a file with no pane, and the folder once empty', () => {
+    const root = tempDir()
+    const dir = join(root, 'ws')
+    mkdirSync(dir)
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7 }))
+    retireViewerInfo(dir, 7)
+    expect(existsSync(dir)).toBe(false)
+  })
+
+  it('keeps a folder that holds anything else', () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.log'), 'x')
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 7 }))
+    retireViewerInfo(dir, 7)
+    expect(existsSync(join(dir, 'viewer.json'))).toBe(false)
+    expect(existsSync(join(dir, 'viewer.log'))).toBe(true)
+  })
+
+  it('leaves the file of another Viewer alone', () => {
+    const dir = tempDir()
+    writeFileSync(join(dir, 'viewer.json'), JSON.stringify({ ...base, pid: 8 }))
+    retireViewerInfo(dir, 7)
+    expect(readViewerInfo(dir)?.pid).toBe(8)
+  })
+
+  it('does nothing where there is no folder', () => {
+    expect(() => retireViewerInfo(join(tempDir(), 'missing'))).not.toThrow()
   })
 })
 

@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
@@ -72,11 +72,14 @@ function orcaChatCheck({ env }: System): Check {
 
 function stateCheck({ stateDir }: Place): Check {
   const name = 'state'
+  const existed = existsSync(stateDir)
   try {
     mkdirSync(stateDir, { recursive: true, mode: 0o700 })
     const probe = join(stateDir, `doctor.${process.pid}.tmp`)
     writeFileSync(probe, '')
     rmSync(probe)
+    // B14: a folder made only for this check would stay behind empty.
+    if (!existed) rmdirSync(stateDir)
     return { name, status: 'ok', detail: stateDir }
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code ?? 'error'
