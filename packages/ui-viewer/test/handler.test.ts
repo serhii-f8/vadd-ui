@@ -111,16 +111,58 @@ describe('every response', () => {
 
 describe('methods', () => {
   it.each([
-    ['DELETE', '/', 'GET'],
-    ['POST', '/app.js', 'GET'],
-    ['PUT', '/api/docs', 'GET, POST'],
-    ['POST', '/api/events', 'GET'],
-    ['OPTIONS', '/api/docs', 'GET, POST'],
+    ['DELETE', '/', 'GET, HEAD'],
+    ['POST', '/app.js', 'GET, HEAD'],
+    ['PUT', '/api/docs', 'GET, HEAD, POST'],
+    ['POST', '/api/events', 'GET, HEAD'],
+    ['OPTIONS', '/api/docs', 'GET, HEAD, POST'],
   ])('%s %s is 405', async (method, path, allow) => {
     const { get } = await start()
     const reply = await get(path, { method })
     expect(reply.status).toBe(405)
     expect(reply.headers.allow).toBe(allow)
+  })
+})
+
+describe('HEAD (B11)', () => {
+  const same = ['content-type', 'content-length', 'content-security-policy', 'cache-control']
+
+  it.each(['/', '/app.js', '/api/docs', '/api/docs/{id}', '/docs/{id}.html', '/api/docs/nope'])(
+    'answers HEAD %s as GET does, with no body',
+    async (template) => {
+      const { get, post } = await start()
+      const { id } = (await post(DOC)).json()
+      const path = template.replace('{id}', id)
+      const full = await get(path)
+      const head = await get(path, { method: 'HEAD' })
+      expect(head.status).toBe(full.status)
+      for (const name of same) expect(head.headers[name]).toBe(full.headers[name])
+      expect(head.text).toBe('')
+    },
+  )
+
+  it.each(['/health', '/favicon.ico'])('answers HEAD %s at the origin', async (path) => {
+    const { port } = await start()
+    const full = await request(port, path)
+    const head = await request(port, path, { method: 'HEAD' })
+    expect(head.status).toBe(full.status)
+    expect(head.headers['content-length']).toBe(full.headers['content-length'])
+    expect(head.text).toBe('')
+  })
+
+  it('answers HEAD on the event stream without holding a client', async () => {
+    const { get, handler } = await start()
+    const head = await get('/api/events', { method: 'HEAD' })
+    expect(head.status).toBe(200)
+    expect(head.headers['content-type']).toBe('text/event-stream')
+    expect(head.text).toBe('')
+    expect(handler.clients()).toBe(0)
+  })
+
+  it('is 404 where GET is, with a wrong token', async () => {
+    const { port } = await start()
+    const head = await request(port, `/v/${'x'.repeat(32)}/`, { method: 'HEAD' })
+    expect(head.status).toBe(404)
   })
 })
 

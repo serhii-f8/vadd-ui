@@ -78,7 +78,9 @@ function send(
   body: string,
   headers: Record<string, string> = {},
 ): void {
-  res.writeHead(status, { 'Content-Type': type, ...headers })
+  // Set here, so a HEAD (whose body Node drops) carries the same headers as its GET (B11).
+  const length = String(Buffer.byteLength(body))
+  res.writeHead(status, { 'Content-Type': type, 'Content-Length': length, ...headers })
   res.end(body)
 }
 
@@ -161,6 +163,11 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
   }
 
   const events: Action = ({ req, res }) => {
+    if (req.method === 'HEAD') {
+      // The headers of a stream, and no client: a HEAD would never read one.
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' }).end()
+      return
+    }
     const last = req.headers['last-event-id']
     const replay = typeof last === 'string' && DIGITS.test(last) ? Number(last) : undefined
     const headers = replay === undefined ? [] : store.after(replay, MAX_PAGE)
@@ -282,11 +289,13 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
     const target = req.url ?? '/'
     const mark = target.indexOf('?')
     const path = mark < 0 ? target : target.slice(0, mark)
-    if (req.method === 'GET' && path === '/favicon.ico') {
+    // B11: HEAD runs the GET action, and Node sends no body for it.
+    const method = req.method === 'HEAD' ? 'GET' : (req.method ?? '')
+    if (method === 'GET' && path === '/favicon.ico') {
       res.writeHead(204).end()
       return
     }
-    if (req.method === 'GET' && path === '/health') {
+    if (method === 'GET' && path === '/health') {
       sendJson(res, 200, { ok: true, version: packageVersion, workspaceHash })
       return
     }
@@ -300,9 +309,12 @@ export function createViewerHandler(options: ViewerHandlerOptions): ViewerHandle
       notFound(res)
       return
     }
-    const action = Object.hasOwn(route, req.method ?? '') ? route[req.method as string] : undefined
+    const action = Object.hasOwn(route, method) ? route[method] : undefined
     if (action === undefined) {
-      res.setHeader('Allow', Object.keys(route).join(', '))
+      const allowed = Object.keys(route).flatMap((name) =>
+        name === 'GET' ? ['GET', 'HEAD'] : [name],
+      )
+      res.setHeader('Allow', allowed.join(', '))
       refuse(res, 405, 'method-not-allowed')
       return
     }
