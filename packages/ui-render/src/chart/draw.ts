@@ -1,7 +1,7 @@
-import { clip } from '@vadd/ui-spec'
+import { clip, type Tone } from '@vadd/ui-spec'
 import { svg } from '../el.js'
 import { toneClass } from '../inline.js'
-import { MAX_SLICES, type Model } from './model.js'
+import { MAX_SLICES, type Model, seriesPaint } from './model.js'
 import { lttb, nearest } from './scale.js'
 
 // The marks of a chart at one width. Text is 11 px in a constant rule, and its width is
@@ -35,8 +35,8 @@ export interface Drawing {
 const textMark = (x: number, y: number, anchor: string, name: string, content: string) =>
   svg('text', { x: round(x), y: round(y), 'text-anchor': anchor, class: name }, content)
 
-const seriesMark = (name: string, d: string, index: number) =>
-  svg('path', { class: name, d, 'data-vui-series': index + 1 })
+const seriesMark = (name: string, d: string, index: number, tone?: Tone) =>
+  svg('path', { ...seriesPaint(name, index, tone), d })
 
 const linePath = (points: string[]) =>
   points.length === 0 ? '' : `M${points.join('L')}${points.length === 1 ? 'h0' : ''}`
@@ -167,7 +167,7 @@ function cartesian(model: Model, width: number): Drawing {
   const up = new Array<number>(size).fill(0)
   const down = new Array<number>(size).fill(0)
   const zero = across(0)
-  series.forEach(({ values, keep }, order) => {
+  series.forEach(({ values, keep, tone }, order) => {
     if (bars) {
       let d = ''
       for (const index of keep) {
@@ -181,16 +181,16 @@ function cartesian(model: Model, width: number): Drawing {
         const to = across(base + value)
         d += `M${pt(a, from)}L${pt(a, to)}L${pt(a + inner, to)}L${pt(a + inner, from)}Z`
       }
-      nodes.push(seriesMark('vui-chart-bar', d, order))
+      nodes.push(seriesMark('vui-chart-bar', d, order, tone))
       return
     }
     const run = keep.map((index) => pt(along(index), across(values[index] as number)))
     if (kind === 'area' && keep.length > 0) {
       const head = pt(along(keep[0] as number), zero)
       const tail = pt(along(keep[keep.length - 1] as number), zero)
-      nodes.push(seriesMark('vui-chart-area', `M${[head, ...run, tail].join('L')}Z`, order))
+      nodes.push(seriesMark('vui-chart-area', `M${[head, ...run, tail].join('L')}Z`, order, tone))
     }
-    nodes.push(seriesMark('vui-chart-line', linePath(run), order))
+    nodes.push(seriesMark('vui-chart-line', linePath(run), order, tone))
   })
 
   for (const { y, label, tone } of refLines) {

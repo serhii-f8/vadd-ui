@@ -1,4 +1,4 @@
-import type { VuiDocument } from '@vadd/ui-spec'
+import { type VuiDocument, validate } from '@vadd/ui-spec'
 import { describe, expect, it, vi } from 'vitest'
 import type { Registry } from '../src/context.js'
 import { render as coreRender, stylesheet as coreStylesheet } from '../src/core.js'
@@ -475,5 +475,49 @@ describe('fold title (§15.2)', () => {
     const toggle = box.querySelector('.vui-fold-toggle') as HTMLElement
     expect(toggle.querySelector('a')).toBeNull()
     expect(toggle.textContent).toContain('see x now')
+  })
+})
+
+describe('one diagnostic per problem (B7)', () => {
+  const kitchen = {
+    vui: 1,
+    body: [
+      {
+        type: 'compare',
+        options: ['MySQL', 'Postgres'],
+        criteria: [{ label: 'Cost', values: [0, 0], format: 'money' }],
+      },
+      {
+        type: 'table',
+        columns: ['A:money', 'B:money'],
+        rows: [
+          [1, 2],
+          [3, 4],
+        ],
+      },
+      {
+        type: 'table',
+        columns: ['When:rel', 'N:int'],
+        rows: [
+          ['2026-11-20', 'x'],
+          ['2026-11-19', 'y'],
+        ],
+      },
+    ],
+  }
+
+  it('reports what the validator reports, once per problem', () => {
+    const box = document.createElement('div')
+    const { diagnostics } = render(kitchen as never, box)
+    const validated = validate(kitchen as never).diagnostics
+    const key = ({ code, path }: { code: string; path: string }) => `${code} ${path}`
+    // The validator's own, plus one `rel` warning that only a renderer can know of.
+    expect(diagnostics.slice(0, validated.length).map(key)).toEqual(validated.map(key))
+    const extra = diagnostics.slice(validated.length)
+    expect(extra.map(({ code, message }) => `${code}: ${message}`)).toEqual([
+      'bad-value: format rel needs a reference time',
+    ])
+    expect(validated.filter(({ code }) => code === 'bad-format-arg')).toHaveLength(3)
+    expect(validated.filter(({ code }) => code === 'bad-value')).toHaveLength(2)
   })
 })

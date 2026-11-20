@@ -1,7 +1,7 @@
 import { hasOwn, isJsonObject, type JsonObject, type JsonValue, type Tone } from '@vadd/ui-spec'
 import { field, finite, nodeList, text } from '../components/fields.js'
 import type { NodeContext } from '../context.js'
-import { toneOf } from '../inline.js'
+import { toneClass, toneOf } from '../inline.js'
 import { lttb, niceTicks } from './scale.js'
 
 // One reading of a chart node for every kind, so `draw` has one input.
@@ -26,6 +26,8 @@ export interface Series {
   values: Value[]
   /** The indices drawn (§9.4), in order. */
   keep: number[]
+  /** From `tones`: drawn in this tone's color, not the palette's (VD-213). */
+  tone?: Tone
 }
 
 export interface RefLine {
@@ -99,6 +101,13 @@ function positionsOf(bars: boolean, x: JsonValue[], size: number): number[] {
     : order.map((index) => (size > 1 ? index / (size - 1) : 0.5))
 }
 
+/** A series' color: its tone (VD-213), or its place in the palette. `base` is its class. */
+export function seriesPaint(base: string, index: number, tone?: Tone) {
+  return tone === undefined
+    ? { class: base || undefined, 'data-vui-series': (index % MAX_SLICES) + 1 }
+    : { class: `${base} ${toneClass(tone)}`.trim() }
+}
+
 export function readModel(node: JsonObject, context: NodeContext): Model {
   const kind = node.kind as string
   const stacked = kind === 'stacked'
@@ -158,6 +167,9 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
         MAX_DRAWN,
       )
     : []
+  const tones = field(node, 'tones')
+  const toneFor = (name: string) =>
+    kind !== 'donut' && isJsonObject(tones) && hasOwn(tones, name) ? toneOf(tones[name]) : undefined
   const yFormat = field(node, 'yFormat')
   const xFormat = field(node, 'xFormat')
   const step = (ticks[1] as number) - (ticks[0] as number)
@@ -176,6 +188,7 @@ export function readModel(node: JsonObject, context: NodeContext): Model {
       name,
       values,
       keep: bars ? shared : lttb(positions, values, MAX_DRAWN),
+      tone: toneFor(name),
     })),
     totals:
       stacked && node.stackTotal === true

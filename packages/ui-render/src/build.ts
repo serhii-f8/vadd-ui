@@ -46,7 +46,7 @@ export interface Build {
   memory: Map<string, Map<string, unknown>>
   watchdog: Watchdog
   diagnostics: Diagnostic[]
-  /** `code` and path of each diagnostic, so a problem is told once. */
+  /** `code` and path, or message, of each diagnostic, so a problem is told once (B7). */
   told: Set<string>
   /** Document ids written so far. A repeat gets neither a DOM id nor shared state. */
   ids: Set<string>
@@ -60,9 +60,10 @@ function report(
   code: DiagnosticCode,
   message: string,
   hint?: string,
+  once?: boolean,
 ): void {
   const path = build.paths.toInput(pointer)
-  const key = `${code}\0${path}`
+  const key = `${code}\0${once ? message : path}`
   if (build.told.has(key)) return
   build.told.add(key)
   const diagnostic: Diagnostic = { severity, path, code, message: clip(message, 120) }
@@ -108,8 +109,10 @@ function createContext(
   const { linkHandler, watchdog } = build
   const format = (value: JsonValue | undefined, name: string | undefined, at: string) => {
     const formatted: Formatted = formatValue(value, name, build.format)
-    for (const issue of formatted.issues ?? []) {
-      report(build, 'warn', at, issue.code, issue.message, issue.hint)
+    for (const { code, message, hint } of formatted.issues ?? []) {
+      // B7: a problem with the format, not with this value, is one problem for every cell. A
+      // value's own problem names the value and has no hint; `rel` with no time has one.
+      report(build, 'warn', at, code, message, hint, code !== 'bad-value' || hint !== undefined)
     }
     return formatted
   }
@@ -156,12 +159,19 @@ function frame(
   fallbackTone?: Tone,
 ): HTMLElement {
   const tone = toneOf(stringField(node, 'tone')) ?? fallbackTone
-  const mark = tone === undefined ? null : toneMark(tone)
-  const span = spanOf(node)
   const type = stringField(node, 'type')
+  // B8: a callout that opens with a status token has its icon already.
+  const lead =
+    type === 'callout' && parseInline(stringField(node, 'text') ?? '')[0]?.type === 'status'
+  const mark = tone === undefined || lead ? null : toneMark(tone)
+  const span = spanOf(node)
+  const toned = tone === undefined ? '' : tonedClass(tone)
   const attributes = {
     id,
-    class: tone === undefined ? 'vui-node' : `vui-node ${tonedClass(tone)}`,
+    class:
+      tone === undefined
+        ? 'vui-node'
+        : `vui-node ${lead ? toned.replace(' vui-marked', '') : toned}`,
     'data-vui-span': span,
     'data-vui-type': type,
   }

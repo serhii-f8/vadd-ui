@@ -63,7 +63,8 @@ test.describe('folds', () => {
     const { frame } = await open(page, [
       { type: 'checks', items: [{ name: 'a', status: 'ok', output }] },
     ])
-    const toggle = frame.locator('button', { hasText: 'Output' })
+    // B12: the accessible name has no space before its comma.
+    const toggle = frame.getByRole('button', { name: 'Output, a', exact: true })
     await toggle.focus()
     await page.keyboard.press('Enter')
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')

@@ -159,6 +159,17 @@ describe('callout', () => {
     expect(typed(box, 'callout').classList.contains('vui-tone-err')).toBe(true)
   })
 
+  it('leaves the icon to a leading status token (B8)', () => {
+    const { box } = show([{ type: 'callout', tone: 'err', text: ':fail: `a.ts:88` fails' }])
+    const callout = typed(box, 'callout')
+    expect(callout.querySelector('.vui-node-mark')).toBeNull()
+    expect(callout.className).toBe('vui-node vui-tone-err vui-toned')
+    expect(callout.querySelectorAll('.vui-status')).toHaveLength(1)
+    const later = typed(show([{ type: 'callout', tone: 'err', text: 'x :fail:' }]).box, 'callout')
+    expect(later.querySelector('.vui-node-mark')).not.toBeNull()
+    expect(later.className).toContain('vui-marked')
+  })
+
   it('renders inline text and a title', () => {
     const { box } = show([{ type: 'callout', title: 'T', text: '**x**' }])
     const callout = typed(box, 'callout')

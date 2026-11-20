@@ -72,12 +72,14 @@ describe('checks', () => {
     ]
     const { box } = show([{ type: 'checks', items }])
     const toggles = all(box, 'button')
-    expect(toggles.map((item) => item.textContent?.replace('▸', ''))).toEqual([
+    // B12: one sr-only name with no space before the comma; the visible word is hidden from it.
+    expect(toggles.map((item) => item.querySelector('.vui-sr-only')?.textContent)).toEqual([
       'Output, E2E',
       'Output, Lint',
     ])
     for (const toggle of toggles) {
-      expect(toggle.querySelector('.vui-sr-only')?.textContent).toMatch(/^, (E2E|Lint)$/)
+      const shown = [...toggle.querySelectorAll('[aria-hidden="true"]')].map((n) => n.textContent)
+      expect(shown).toEqual(['▸', 'Output'])
     }
   })
 

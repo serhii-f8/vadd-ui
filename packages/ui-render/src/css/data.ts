@@ -135,7 +135,7 @@ ul>.vui-list-status{margin-inline-start:-1.5em;list-style:none}
 .vui-tree{font-family:var(--vui-mono),monospace;font-size:.86em}
 .vui-tree .vui-rows{border-inline-start:1px solid var(--vui-border);margin-inline-start:.4em}
 .vui-timeline{gap:var(--vui-space-2);padding-inline-start:var(--vui-space-3);border-inline-start:2px solid var(--vui-border)}
-.vui-time{color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums}
+.vui-time{color:var(--vui-muted-fg);font-size:.86em;font-variant-numeric:tabular-nums;white-space:nowrap}
 `
   .trim()
   .replace(/\n/g, '')

@@ -42,8 +42,14 @@ interface View {
   context: NodeContext
 }
 
+const nameOf = (column: Column) =>
+  typeof column.format === 'string' ? parseFormat(column.format).name : 'text'
+
+/** §8.4, B6: what stays on one line in a narrow frame, a date or a number. */
+const SHORT = /^(date|rel|sha|status|num|int|compact|pct|pct100|delta|ms|dur|bytes|money)$/
+
 function barScale(column: Column, index: number, rows: ParsedRow[]): number {
-  const name = typeof column.format === 'string' ? parseFormat(column.format).name : 'text'
+  const name = nameOf(column)
   if (name === 'pct') return 1
   if (name === 'pct100') return 100
   let max = 0
@@ -213,9 +219,9 @@ function footer(totals: JsonValue[], view: View): HTMLElement {
 function classOf(column: Column, index: number, rows: ParsedRow[]): string {
   const { width, wrap } = column
   const align = alignOf(column, index, rows)
-  const numbers = column.align === undefined && align === 'right'
+  const short = SHORT.test(nameOf(column)) || (column.align === undefined && align === 'right')
   const sized = width === 'narrow' || width === 'wide' ? ` vui-width-${width}` : ''
-  const wrapped = wrap === true ? ' vui-wrap' : wrap === false || numbers ? ' vui-nowrap' : ''
+  const wrapped = wrap === true ? ' vui-wrap' : wrap === false || short ? ' vui-nowrap' : ''
   return `vui-align-${align}${sized}${wrapped}`
 }
 

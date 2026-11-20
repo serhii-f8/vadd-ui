@@ -7,6 +7,7 @@ import {
   rawText,
   STATUS_TONES,
   type Status,
+  statDeltaFormat,
 } from '@vadd/ui-spec'
 import { SPARK_HEIGHT, SPARK_WIDTH, sparkPath } from '../chart/draw.js'
 import type { Component, NodeContext } from '../context.js'
@@ -88,7 +89,6 @@ function spark(values: JsonValue[], context: NodeContext): HTMLElement | null {
 
 function statTile(item: JsonObject, at: string, context: NodeContext): HTMLElement {
   const format = field(item, 'format')
-  const deltaFormat = field(item, 'deltaFormat')
   const delta = finite(item, 'delta')
   const tone = toneOf(field(item, 'tone'))
   const line = spark(nodeList(item, 'spark'), context)
@@ -107,7 +107,7 @@ function statTile(item: JsonObject, at: string, context: NodeContext): HTMLEleme
       : el(
           'dd',
           { class: 'vui-stat-delta' },
-          context.value(delta, (deltaFormat as string | undefined) ?? 'delta', `${at}/delta`),
+          context.value(delta, statDeltaFormat(item), `${at}/delta`),
         ),
     line === null ? null : el('dd', { class: 'vui-stat-spark' }, line),
   ]
