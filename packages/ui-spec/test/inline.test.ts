@@ -97,6 +97,51 @@ describe('parseInline', () => {
     expect(parseInline(input)).toEqual([text(input)])
   })
 
+  describe('underscore italic at word boundaries (VD-216, DEVIATION from §5.5)', () => {
+    const em = (value: string) => ({ type: 'italic', children: [text(value)] })
+    it.each([
+      ['_em_', [em('em')]],
+      ['a _b c_ d', [text('a '), em('b c'), text(' d')]],
+      ['(_x_).', [text('('), em('x'), text(').')]],
+      ['_a_ and _b_', [em('a'), text(' and '), em('b')]],
+      ['**_x_**', [{ type: 'bold', children: [em('x')] }]],
+      ['_snake_case_ ok', [em('snake_case'), text(' ok')]],
+    ])('parses %j', (input, expected) => {
+      expect(parseInline(input)).toEqual(expected)
+    })
+
+    it.each([
+      'snake_case_names',
+      'a_b',
+      '__init__',
+      '_ x_',
+      '_x _',
+      'x_y_',
+      '_x_y',
+      '_',
+      '__',
+      'a _b',
+    ])('keeps %j as text', (input) => {
+      expect(parseInline(input)).toEqual([text(input)])
+    })
+
+    it('leaves code spans and URLs alone', () => {
+      expect(parseInline('`_a_`')).toEqual([{ type: 'code', text: '_a_' }])
+      expect(parseInline('[l](https://x.dev/_a_)')).toEqual([
+        { type: 'link', href: 'https://x.dev/_a_', children: [text('l')] },
+      ])
+      expect(parseInline('_`a_`')).toEqual([text('_'), { type: 'code', text: 'a_' }])
+    })
+
+    it('stays linear on hostile input', () => {
+      for (const input of ['_a'.repeat(50_000), `_${'a_'.repeat(50_000)}`, '_ '.repeat(50_000)]) {
+        const start = performance.now()
+        expect(inlineToPlain(parseInline(input)).length).toBeGreaterThan(0)
+        expect(performance.now() - start).toBeLessThan(1000)
+      }
+    })
+  })
+
   it('has no backslash escapes', () => {
     expect(parseInline('\\*a\\*')).toEqual([
       text('\\'),

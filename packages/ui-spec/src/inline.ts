@@ -84,6 +84,7 @@ class Scanner {
       const character = text[this.index]
       if (character === '`') this.code()
       else if (character === '*') this.star()
+      else if (character === '_') this.under()
       else if (character === '~') this.strike()
       else if (character === '[') this.link()
       else if (character === ':') this.status()
@@ -156,6 +157,39 @@ class Scanner {
     }
     const children = parseInline(text.slice(from, closer))
     this.emit({ type: size === 1 ? 'italic' : 'bold', children }, closer + size)
+  }
+
+  /**
+   * `_italic_` with CommonMark's flanking rules for `_` (VD-216): it opens after no letter or
+   * digit and before no space, and closes after no space and before no letter or digit. So
+   * `snake_case_names` and `a_b` stay text, and a run of two or more is always text.
+   */
+  private under(): void {
+    const { index, mask, text } = this
+    const from = index + 1
+    const opens =
+      text[from] !== '_' &&
+      text[index - 1] !== '_' &&
+      this.opensAt(from) &&
+      !WORD.test(text[index - 1] ?? '')
+    const closer = opens
+      ? this.cached('_', from, () => {
+          let at = mask.indexOf('_', from)
+          while (at !== -1) {
+            const before = mask[at - 1] as string
+            const after = mask[at + 1] ?? ''
+            if (before !== '_' && !SPACE.test(before) && after !== '_' && !WORD.test(after))
+              return at
+            at = mask.indexOf('_', at + 1)
+          }
+          return -1
+        })
+      : -1
+    if (closer === -1) {
+      this.index = from
+      return
+    }
+    this.emit({ type: 'italic', children: parseInline(text.slice(from, closer)) }, closer + 1)
   }
 
   private strike(): void {

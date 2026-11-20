@@ -144,7 +144,10 @@ export const flow: Component = {
     const room = MAX_HEIGHT - TOP - BOX_H - LANE * (MAX_LANES + 1)
     const pitch = Math.min(ROW, Math.floor(room / Math.max(rows - 1, 1)))
     // B13: a gap that fits the widest edge label with the arrowhead clear on both sides.
-    const widest = links.reduce((most, { label }) => Math.max(most, label && labelWidth(label)), 0)
+    const widest = links.reduce(
+      (most, { label }) => Math.max(most, label === '' ? 0 : labelWidth(label)),
+      0,
+    )
     const column = BOX_W + Math.max(COL - BOX_W, round(widest + 4 * ARROW))
     const places = placeBoxes(boxes, rows, pitch, column)
     const width = PAD * 2 + (layers - 1) * column + BOX_W

@@ -4323,21 +4323,21 @@ exports[`valid corpus snapshots (§16) > positional stats: relaxed text, as the 
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 0: {} > markdown 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 0: {} > plain 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 1: {"id":"n1","note":"caption with **bold** > markdown 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 
@@ -4346,7 +4346,7 @@ _caption with **bold**_
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 1: {"id":"n1","note":"caption with **bold** > plain 1`] = `
-"1 of 100 (1%)
+"1 of 1 (100%)
 
 - ✓ L: 1
 
@@ -4357,7 +4357,7 @@ caption with bold
 exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"} > markdown 1`] = `
 "#### Node title
 
-1 of 100 (1%)
+1 of 1 (100%)
 
 - ✓ L: 1
 "
@@ -4366,7 +4366,7 @@ exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"
 exports[`valid corpus snapshots (§16) > progress valid 2: {"title":"Node title"} > plain 1`] = `
 "Node title
 
-1 of 100 (1%)
+1 of 1 (100%)
 
 - ✓ L: 1
 "
@@ -4387,52 +4387,52 @@ exports[`valid corpus snapshots (§16) > progress valid 3: {"max":10} > plain 1`
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 4: {"label":"Done"} > markdown 1`] = `
-"**Done:** 1 of 100 (1%)
+"**Done:** 1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 4: {"label":"Done"} > plain 1`] = `
-"Done: 1 of 100 (1%)
+"Done: 1 of 1 (100%)
 
 - ✓ L: 1
 "
 `;
 
-exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[]} > markdown 1`] = `
+exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[],"max":100} > markdown 1`] = `
 "1 of 100 (1%)
 "
 `;
 
-exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[]} > plain 1`] = `
+exports[`valid corpus snapshots (§16) > progress valid 5: {"segments":[],"max":100} > plain 1`] = `
 "1 of 100 (1%)
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 6: {"value":0} > markdown 1`] = `
-"0 of 100 (0%)
+"0 of 1 (0%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 6: {"value":0} > plain 1`] = `
-"0 of 100 (0%)
+"0 of 1 (0%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > markdown 1`] = `
-"120.5 of 100 (121%)
+"120.5 of 1 (12,050%)
 
 - ✓ L: 1
 "
 `;
 
 exports[`valid corpus snapshots (§16) > progress valid 7: {"value":120.5} > plain 1`] = `
-"120.5 of 100 (121%)
+"120.5 of 1 (12,050%)
 
 - ✓ L: 1
 "
