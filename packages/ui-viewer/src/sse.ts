@@ -7,7 +7,7 @@ export const MAX_CLIENTS = 50
 /** Past this much unread output a client is dropped, and `EventSource` reconnects. */
 export const MAX_BUFFERED_BYTES = 1024 * 1024
 
-// A comment: §4.1 names only `doc` and `hello`, and clients skip it (VD-113).
+// A comment: §4.1 names only `doc` and `hello` (and VD-212 `update`), and clients skip it (VD-113).
 const HEARTBEAT = ': heartbeat\n\n'
 
 export interface SseHubOptions {
@@ -51,6 +51,14 @@ export class SseHub {
 
   broadcast(header: DocHeader): void {
     this.#send(docFrame(header))
+  }
+
+  /**
+   * An entry replaced in place (`--replace`, VD-212). No event id: `Last-Event-ID` counts new
+   * documents, and an update is not one. A client that does not know `update` skips it.
+   */
+  broadcastUpdate(header: DocHeader): void {
+    this.#send(`event: update\ndata: ${JSON.stringify(header)}\n\n`)
   }
 
   close(): void {

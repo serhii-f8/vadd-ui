@@ -5,7 +5,7 @@ import { deliverToChat, deliverToDirectory, fileOverrides } from './host/file.js
 import { type HostName, selectHost } from './host/select.js'
 import { readInput } from './input.js'
 import type { Io } from './io.js'
-import type { Outcome } from './outcome.js'
+import { type Outcome, usageError } from './outcome.js'
 import { inputTooLarge, type Overrides, prepare } from './pipeline.js'
 import type { System } from './system.js'
 import { type Delivery, deliverToViewer, viewerOverrides } from './viewer/deliver.js'
@@ -25,6 +25,8 @@ const ADAPTERS: Record<HostName, Adapter> = {
 /** Validate, then deliver. Exits 1 to 3 therefore touch no host. */
 export async function show(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   const { system } = io
+  const replace = parsed.flags.replace === true
+  if (replace && parsed.flags.name === undefined) throw usageError('--replace needs --name')
   const adapter = ADAPTERS[selectHost(parsed, system).name]
   const input = await readInput(parsed.positional[0], io.stdin, LIMITS.inputBytes)
   if (input.tooLarge) return refused([inputTooLarge()], 'stderr')
@@ -39,6 +41,7 @@ export async function show(parsed: ParsedArgs, io: Io): Promise<Outcome> {
     document,
     diagnostics,
     noOpen: parsed.flags['no-open'] === true,
+    replace,
     system,
     readBundle: io.readBundle,
     ...(typeof name === 'string' ? { name } : {}),

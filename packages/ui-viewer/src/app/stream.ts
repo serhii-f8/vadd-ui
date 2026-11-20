@@ -29,6 +29,8 @@ export interface StreamOptions {
   open: (url: string) => SourceLike
   fetch: (url: string) => Promise<ReplyLike>
   onDocs: (headers: DocHeader[]) => void
+  /** An entry already shown was replaced in place (`--replace`, VD-212). */
+  onUpdate?: (header: DocHeader) => void
   onStatus: (status: Status) => void
 }
 
@@ -64,7 +66,7 @@ function timed<T>(work: Promise<T>): Promise<T> {
  * client in one tick, so whatever a fill's read misses reaches the stream (VD-118). A fill
  * alone moves `lastSeq` past a gap, and only in order, so a failure leaves no hole.
  */
-export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
+export function startStream({ open, fetch, onDocs, onUpdate, onStatus }: StreamOptions): {
   close: () => void
 } {
   let lastSeq = 0
@@ -170,6 +172,12 @@ export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
     else deliver([header])
   }
 
+  /** One past `lastSeq` is not shown yet, and the fill reads it with its new content. */
+  const onUpdated = (data: string): void => {
+    const header = parseHeader(data)
+    if (header !== undefined && header.seq <= lastSeq) onUpdate?.(header)
+  }
+
   function connect(): void {
     generation += 1
     const opened = generation
@@ -180,6 +188,9 @@ export function startStream({ open, fetch, onDocs, onStatus }: StreamOptions): {
     })
     stream.addEventListener('doc', ({ data }) => {
       if (opened === generation) onDoc(data)
+    })
+    stream.addEventListener('update', ({ data }) => {
+      if (opened === generation) onUpdated(data)
     })
     // `EventSource` retries by itself with no backoff, and not at all after a non-200.
     stream.addEventListener('error', () => {

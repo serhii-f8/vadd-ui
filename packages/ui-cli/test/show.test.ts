@@ -103,6 +103,47 @@ function connect(fixture: Fixture): Promise<() => void> {
   return fetch(url, { signal: abort.signal }).then(() => () => abort.abort())
 }
 
+describe('--name and --replace', () => {
+  it('updates the named entry in place on the Viewer', async () => {
+    const fixture = setup()
+    await show(fixture, ['--name', 'build'])
+    await show(fixture)
+    const { json } = await showJson(
+      fixture,
+      ['--name', 'build', '--replace'],
+      '{"title":"v2","body":["x"]}',
+    )
+    expect(json).toMatchObject({ ok: true, seq: 1, replaced: true, title: 'v2' })
+    const { stdout } = await show(fixture, ['--name', 'build', '--replace'])
+    expect(stdout.split('\n')[0]).toBe('vui: shown "Test run" (#1) in viewer')
+  })
+
+  it('adds an entry when no entry has the name', async () => {
+    const fixture = setup()
+    await show(fixture)
+    const { json } = await showJson(fixture, ['--name', 'build', '--replace'])
+    expect(json).toMatchObject({ seq: 2 })
+    expect(json).not.toHaveProperty('replaced')
+  })
+
+  it('refuses --replace without --name, before touching a host', async () => {
+    const fixture = setup()
+    const { exit, stderr } = await show(fixture, ['--replace'])
+    expect(exit).toBe(2)
+    expect(stderr).toBe('vui: --replace needs --name\n')
+    expect(fixture.farm.spawns).toBe(0)
+  })
+
+  it('is accepted by the file host, which only names the file', async () => {
+    const dir = tempDir()
+    const fixture = setup()
+    const argv = ['--host', 'file', '--dir', dir, '--name', 'build', '--replace']
+    const { exit, json } = await showJson(fixture, argv)
+    expect(exit).toBe(0)
+    expect(json.file).toMatch(/^build-[0-9a-f]{4}\.html$/)
+  })
+})
+
 describe('vui show, without Orca', () => {
   it('prints the one line, then the URL line, on the first show', async () => {
     const fixture = setup()

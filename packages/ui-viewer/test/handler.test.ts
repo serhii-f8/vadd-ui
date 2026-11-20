@@ -260,6 +260,45 @@ describe('POST /api/docs', () => {
     stream.close()
   })
 
+  it('replaces a named entry in place and announces it as an update (--replace)', async () => {
+    const { post, get, port } = await start()
+    const first = await post(DOC, BEARER, '?name=build')
+    expect(first.json()).toMatchObject({ seq: 1 })
+    await post({ ...DOC, title: 'Other' })
+    const stream = await openStream(port, `/v/${READ}/api/events`)
+    await stream.until('event: hello')
+    const reply = await post({ ...DOC, title: 'Build 2' }, BEARER, '?name=build&replace=1')
+    expect(reply.status).toBe(201)
+    expect(reply.json()).toMatchObject({ seq: 1, id: '1-report', replaced: true, clients: 1 })
+    await stream.until('event: update')
+    expect(stream.text()).toContain('"title":"Build 2"')
+    stream.close()
+    expect(JSON.parse((await get('/api/docs/1-report')).text).title).toBe('Build 2')
+    expect((await get('/api/docs')).json().docs).toHaveLength(2)
+  })
+
+  it('adds a named entry when there is none to replace', async () => {
+    const { post } = await start()
+    const reply = await post(DOC, BEARER, '?name=build&replace=1')
+    expect(reply.json()).toMatchObject({ seq: 1 })
+    expect(reply.json()).not.toHaveProperty('replaced')
+    expect((await post(DOC, BEARER, '?name=build&replace=1')).json()).toMatchObject({
+      seq: 1,
+      replaced: true,
+    })
+  })
+
+  it.each([
+    ['?replace=1', 'replace without a name'],
+    [`?name=${'n'.repeat(201)}`, 'a name over 200 characters'],
+    ['?name=', 'an empty name'],
+  ])('refuses %s (%s) with 400', async (query) => {
+    const { post } = await start()
+    const reply = await post(DOC, BEARER, query)
+    expect(reply.status).toBe(400)
+    expect(reply.json()).toEqual({ ok: false, error: 'bad-query' })
+  })
+
   it('reports activity on each document', async () => {
     const onActivity = vi.fn()
     const { post } = await start({ onActivity })

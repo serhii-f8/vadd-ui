@@ -67,21 +67,34 @@ export function startFeed(win: Window): void {
     win.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  /** By seq, so an update finds the entry it replaces. */
+  const shown = new Map<number, HTMLElement>()
+  const entryOf = (header: DocHeader, open: boolean): HTMLElement => {
+    const onGrow = () => follow.pin()
+    const entry = createEntry(header, { open, load, onGrow, track: theme.track, openLink })
+    shown.set(header.seq, entry)
+    return entry
+  }
+
   const addAll = (headers: DocHeader[]): void => {
     empty.hidden = true
     const firstOpen = headers.length - OPEN_IN_BATCH
     headers.forEach((header, index) => {
-      const open = index >= firstOpen
-      const onGrow = () => follow.pin()
-      list.append(createEntry(header, { open, load, onGrow, track: theme.track, openLink }))
+      list.append(entryOf(header, index >= firstOpen))
     })
     follow.pin()
+  }
+
+  /** `--replace`: the same place in the feed, open, with what the agent sent last. */
+  const update = (header: DocHeader): void => {
+    shown.get(header.seq)?.replaceWith(entryOf(header, true))
   }
 
   startStream({
     open: (url) => new EventSource(url) as unknown as SourceLike,
     fetch: (url) => win.fetch(url),
     onDocs: addAll,
+    onUpdate: update,
     onStatus: (state) => {
       // A live region reads every write, and retries repeat `reconnecting`.
       if (status.dataset.state === state) return

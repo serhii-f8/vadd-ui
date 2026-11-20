@@ -32,6 +32,7 @@ function setup() {
   const sources: FakeSource[] = []
   const urls: string[] = []
   const delivered: DocHeader[][] = []
+  const updated: DocHeader[] = []
   const statuses: Status[] = []
   const replies: (Reply | Promise<Reply>)[] = []
   const fetcher = async (url: string) => {
@@ -52,11 +53,12 @@ function setup() {
     },
     fetch: fetcher,
     onDocs: (docs) => delivered.push(docs),
+    onUpdate: (doc) => updated.push(doc),
     onStatus: (status) => statuses.push(status),
   })
   const last = () => sources[sources.length - 1] as FakeSource
   const seqs = () => delivered.flat().map(({ seq }) => seq)
-  return { sources, urls, delivered, statuses, replies, stream, last, seqs }
+  return { sources, urls, delivered, updated, statuses, replies, stream, last, seqs }
 }
 
 const docs = (...seqs: number[]) => ({ status: 200, body: { docs: seqs.map(header) } })
@@ -69,6 +71,28 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+})
+
+describe('updates (--replace)', () => {
+  it('passes an update of a shown entry on, and moves no seq', async () => {
+    const { last, updated, seqs, replies } = setup()
+    replies.push(docs(1, 2))
+    last().emit('hello')
+    await settle()
+    last().emit('update', JSON.stringify({ ...header(1), title: 'New' }))
+    expect(updated.map(({ title }) => title)).toEqual(['New'])
+    last().emit('doc', JSON.stringify(header(3)))
+    expect(seqs()).toEqual([1, 2, 3])
+  })
+
+  it('leaves an update of an entry not yet shown to the fill, and skips a bad one', async () => {
+    const { last, updated } = setup()
+    last().emit('hello')
+    await settle()
+    last().emit('update', JSON.stringify(header(5)))
+    last().emit('update', 'not json')
+    expect(updated).toEqual([])
+  })
 })
 
 describe('first connection', () => {

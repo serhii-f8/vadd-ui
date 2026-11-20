@@ -158,6 +158,21 @@ describe('startFeed', () => {
     ])
   })
 
+  it('replaces an updated entry in place, open, with the new content (--replace)', async () => {
+    list(1, 2)
+    startFeed(window)
+    FakeSource.last.emit('hello')
+    await settle()
+    replies.set('api/docs/1-doc', { status: 200, text: JSON.stringify({ vui: 1, body: ['v2'] }) })
+    FakeSource.last.emit('update', JSON.stringify({ ...header(1), title: 'Doc 1 v2' }))
+    expect(entries().map((entry) => entry.querySelector('h2')?.textContent)).toEqual([
+      'Doc 1 v2',
+      'Doc 2',
+    ])
+    const host = () => entries()[0]?.querySelector('.feed-body') as HTMLElement
+    await vi.waitFor(() => expect(host().shadowRoot?.textContent).toContain('v2'))
+  })
+
   it('opens only the last 10 of a batch', async () => {
     list(...Array.from({ length: 12 }, (_, index) => index + 1))
     startFeed(window)

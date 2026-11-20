@@ -134,7 +134,11 @@ export interface Served {
   handler: ViewerHandler
   /** Under the token prefix. */
   get: (path: string, options?: RequestOptions) => Promise<Reply>
-  post: (body: string | Buffer | object, headers?: Record<string, string>) => Promise<Reply>
+  post: (
+    body: string | Buffer | object,
+    headers?: Record<string, string>,
+    query?: string,
+  ) => Promise<Reply>
   close: () => Promise<void>
 }
 
@@ -162,8 +166,8 @@ export async function serve(overrides: Overrides = {}): Promise<Served> {
     store,
     handler,
     get: (path, options) => request(port, `/v/${READ}${path}`, options),
-    post: (body, headers = BEARER) =>
-      request(port, `/v/${READ}/api/docs`, {
+    post: (body, headers = BEARER, query = '') =>
+      request(port, `/v/${READ}/api/docs${query}`, {
         method: 'POST',
         headers,
         body: typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body),

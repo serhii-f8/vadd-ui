@@ -66,6 +66,15 @@ describe('SseHub', () => {
     hub.close()
   })
 
+  it('sends a replaced entry as an update event, with no event id (--replace)', () => {
+    const hub = new SseHub({ version: '1' })
+    const { res } = client(hub)
+    hub.broadcastUpdate(header(4))
+    expect(res.text).toContain(`event: update\ndata: ${JSON.stringify(header(4))}\n\n`)
+    expect(res.text).not.toContain('id: 4')
+    hub.close()
+  })
+
   it('replays after hello, then goes live, each with its seq as the event id', () => {
     const hub = new SseHub({ version: '1' })
     const { res } = client(hub, [header(2)])

@@ -19,7 +19,7 @@ import { formatDiagnostics, safe, safeJson } from './print.js'
 
 const USAGE = `vui: show a VUI document, or render it without a host
 
-vui show [file|-] [--title T] [--name N] [--host auto|viewer|orca-chat|file] [--dir D] [--no-open]
+vui show [file|-] [--title T] [--name N [--replace]] [--host auto|viewer|orca-chat|file] [--dir D] [--no-open]
 vui viewer start|stop|status|open|url [--bind A]
 vui doctor
 vui render [file|-] --format html|md|text [--out F] [--cdn]
@@ -29,6 +29,8 @@ vui schema
 vui extract [file.html|-]
 vui bench [dir]
 
+--name names the file (file, orca-chat) or the feed entry (viewer). --replace updates the
+Viewer entry with that name in place, or adds one; the file hosts accept it and do nothing more.
 Stdin is read when the file is - or omitted. --json works on every command.
 Exit codes: 0 ok, 1 invalid, 2 parse or usage, 3 limit, 4 no host, 5 I/O.
 `

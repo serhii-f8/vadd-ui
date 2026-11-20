@@ -30,7 +30,7 @@ interface CommandSpec {
 const SPECS: Record<Exclude<Command, 'help' | 'version'>, CommandSpec> = {
   show: {
     values: ['title', 'name', 'host', 'dir'],
-    booleans: ['no-open'],
+    booleans: ['no-open', 'replace'],
     positional: 1,
   },
   viewer: { values: ['bind'], booleans: [], positional: 1 },

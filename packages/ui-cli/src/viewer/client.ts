@@ -21,7 +21,7 @@ export interface Target {
 }
 
 export type Posted =
-  | { kind: 'delivered'; seq: number; id: string; url: string; clients: number }
+  | { kind: 'delivered'; seq: number; id: string; url: string; clients: number; replaced?: true }
   | { kind: 'refused'; diagnostics: Diagnostic[] }
   | { kind: 'unreachable' }
 
@@ -59,12 +59,13 @@ export async function healthOf(target: Target): Promise<Health | undefined> {
   }
 }
 
-async function send(target: Target, body: string): Promise<Response | undefined> {
+async function send(target: Target, body: string, query: string): Promise<Response | undefined> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (target.token !== undefined) headers.Authorization = `Bearer ${target.token}`
   try {
     const signal = AbortSignal.timeout(POST_TIMEOUT_MS)
-    return await fetch(`${target.base}/api/docs`, { method: 'POST', headers, body, signal })
+    const url = `${target.base}/api/docs${query}`
+    return await fetch(url, { method: 'POST', headers, body, signal })
   } catch {
     return undefined
   }
@@ -80,7 +81,7 @@ async function bodyOf(reply: Response): Promise<Record<string, unknown>> {
 }
 
 function delivered(body: Record<string, unknown>, target: Target): Posted {
-  const { seq, id, url, clients } = body
+  const { seq, id, url, clients, replaced } = body
   if (typeof seq !== 'number' || typeof id !== 'string') {
     throw noHost('the Viewer gave a reply this CLI cannot read')
   }
@@ -90,6 +91,7 @@ function delivered(body: Record<string, unknown>, target: Target): Posted {
     id,
     url: typeof url === 'string' ? url : `${target.base}/`,
     clients: typeof clients === 'number' ? clients : 0,
+    ...(replaced === true ? { replaced: true as const } : {}),
   }
 }
 
@@ -98,10 +100,12 @@ export async function postDocument(
   target: Target,
   document: VuiDocument,
   system: System,
+  /** `namingQuery`'s, or none. */
+  query = '',
 ): Promise<Posted> {
   const body = JSON.stringify(document)
   for (let attempt = 0; ; attempt++) {
-    const reply = await send(target, body)
+    const reply = await send(target, body, query)
     if (reply === undefined) return { kind: 'unreachable' }
     if (reply.status === BUSY && attempt < RETRIES) {
       await system.sleep(RETRY_MS)
