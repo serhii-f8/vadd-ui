@@ -77,6 +77,17 @@ describe('scatter (§6.4, §9.4)', () => {
     }
   })
 
+  it('never pads positive data below zero', () => {
+    const { box } = scatter({
+      points: [
+        [2, 4],
+        [60, 30],
+      ],
+    })
+    expect(texts(box, '.vui-chart-label')[0]).toBe('0')
+    expect(texts(box, '.vui-chart-tick')[0]).toBe('0')
+  })
+
   it('writes each label beside its point (B5)', () => {
     const { box } = scatter()
     expect(texts(box, 'text.vui-chart-point-label')).toEqual(['alpha', 'beta'])

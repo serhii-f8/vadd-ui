@@ -92,6 +92,14 @@ describe('both bundles on one page (VD-211)', () => {
     expect(styles[0]?.hasAttribute('data-vui-core')).toBe(false)
   })
 
+  it('core takes a VUI slot that holds no bundle', async () => {
+    ;(window as unknown as { VUI: unknown }).VUI = { stale: true }
+    page()
+    await loadCore()
+    expect(typeof window.VUI.render).toBe('function')
+    expect(roots()).toHaveLength(1)
+  })
+
   it("leaves a host's own stylesheet to ext as well", async () => {
     const own = document.createElement('style')
     own.id = 'vui-style'

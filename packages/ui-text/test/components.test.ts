@@ -160,6 +160,7 @@ describe('text', () => {
       '> ✗ fail a.ts:88 fails',
     )
     both({ type: 'callout', tone: 'err', text: 'still :fail:' }, '> ✗ still ✗ fail')
+    both({ type: 'callout', tone: 'ok', text: ' :ok: done' }, '> ✓ ok done')
   })
 
   it('stats flip nothing in text but read better through the same format (VD-212)', () => {
@@ -621,6 +622,16 @@ describe('chart', () => {
       `_${label}: a, b over Q1–Q2._\n\n- **a:** ${a}\n- **b:** ${b}`,
       `${label}: a, b over Q1–Q2.\n\n- a: ${a}\n- b: ${b}`,
     )
+  })
+
+  it('keeps each value against its own category across a gap', () => {
+    const document = {
+      vui: 1,
+      locale: 'en-US',
+      density: 'compact',
+      body: [{ type: 'chart', kind: 'bar', x: ['a', 'b', 'c'], series: { s: [1, null, 3] } }],
+    } as unknown as VuiDocument
+    expect(renderPlain(document)).toBe('Bar chart: s over a–c.\n\n- s: a 1, c 3\n')
   })
 
   it('keeps last, min and max of a series past 8 points, in yFormat', () => {

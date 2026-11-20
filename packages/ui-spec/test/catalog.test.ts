@@ -70,7 +70,7 @@ describe('catalog', () => {
   it('states computed defaults', () => {
     expect(field('grid', 'cols').default).toBe('auto by child count')
     expect(field('table', 'sticky').default).toBe('true when rows > 15')
-    expect(field('progress', 'max').default).toBe('100, or the sum of segments')
+    expect(field('progress', 'max').default).toBe('segment sum or 100')
   })
 
   it('keeps a common field that a component redefines', () => {

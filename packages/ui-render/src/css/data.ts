@@ -36,7 +36,7 @@ ${seriesColors}
 .vui-table-pinned tr>:first-child{position:sticky;inset-inline-start:0;z-index:1;border-inline-end:1px solid var(--vui-border)}
 .vui-table-pinned thead th:first-child{z-index:2}
 .vui-table-pinned .vui-group>:first-child{position:static;border-inline-end:0}
-@container (max-width:479.98px){.vui-table-pinned tr:not(.vui-group)>:first-child{max-width:45cqi;overflow-wrap:break-word;white-space:normal}.vui-table-pinned tr:not(.vui-group)>:first-child .vui-code{white-space:normal}}
+@container (max-width:479.98px){.vui-table-pinned tr:not(.vui-group)>:first-child{max-width:45cqi;overflow-wrap:break-word;white-space:normal}.vui-table-pinned tr:not(.vui-group)>:first-child .vui-code{white-space:normal}.vui-table-pinned tr:not(.vui-group)>:first-child wbr{display:inline}}
 .vui-table .vui-group th{font-weight:600}
 .vui-group-label{position:sticky;inset-inline-start:var(--vui-space-2);display:inline-block}
 .vui-table tfoot th,.vui-table tfoot td{border-top:2px solid var(--vui-border);font-weight:600}
@@ -45,7 +45,9 @@ ${seriesColors}
 .vui-width-narrow{width:1%;white-space:nowrap}
 .vui-width-wide{min-width:24ch}
 .vui-table .vui-code{white-space:nowrap}
-.vui-table .vui-wrap,.vui-table .vui-wrap .vui-code{overflow-wrap:anywhere;white-space:normal}
+.vui-table .vui-code wbr,.vui-table .vui-nowrap wbr{display:none}
+.vui-table .vui-wrap,.vui-table .vui-wrap .vui-code{overflow-wrap:break-word;white-space:normal}
+.vui-table .vui-wrap wbr{display:inline}
 .vui-table .vui-nowrap{white-space:nowrap}
 .vui-table .vui-row-toned>:first-child{border-inline-start-color:var(--vui-tone-line)}
 .vui-mark{margin-inline-end:.3em}

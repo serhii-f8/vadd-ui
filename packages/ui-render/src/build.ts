@@ -34,6 +34,8 @@ const FIRST_LEVEL = 3
 const LAST_LEVEL = 6
 const FOLD = 'fold'
 const PLACEHOLDER_FOLD = 'raw'
+/** `formatValue`'s catch-all, which names no format problem but this value's. */
+const FAILED_ON_VALUE = 'the format failed on this value'
 
 /** What every node of one build shares. */
 export interface Build {
@@ -63,7 +65,7 @@ function report(
   once?: boolean,
 ): void {
   const path = build.paths.toInput(pointer)
-  const key = `${code}\0${once ? message : path}`
+  const key = `${code}\0${once ? clip(message, 120) : path}`
   if (build.told.has(key)) return
   build.told.add(key)
   const diagnostic: Diagnostic = { severity, path, code, message: clip(message, 120) }
@@ -112,7 +114,9 @@ function createContext(
     for (const { code, message, hint } of formatted.issues ?? []) {
       // B7: a problem with the format, not with this value, is one problem for every cell. A
       // value's own problem names the value and has no hint; `rel` with no time has one.
-      report(build, 'warn', at, code, message, hint, code !== 'bad-value' || hint !== undefined)
+      // The catch-all failure is about this value, so it keeps its own path.
+      const once = (code !== 'bad-value' || hint !== undefined) && message !== FAILED_ON_VALUE
+      report(build, 'warn', at, code, message, hint, once)
     }
     return formatted
   }
@@ -162,7 +166,8 @@ function frame(
   const type = stringField(node, 'type')
   // B8: a callout that opens with a status token has its icon already.
   const lead =
-    type === 'callout' && parseInline(stringField(node, 'text') ?? '')[0]?.type === 'status'
+    type === 'callout' &&
+    parseInline((stringField(node, 'text') ?? '').trimStart())[0]?.type === 'status'
   const mark = tone === undefined || lead ? null : toneMark(tone)
   const span = spanOf(node)
   const toned = tone === undefined ? '' : tonedClass(tone)

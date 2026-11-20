@@ -67,8 +67,9 @@ function axis(values: number[]) {
   const most = values.reduce((high, value) => Math.max(high, value))
   // Half the range past the ends of the number line would overflow, so the pad stops there.
   const pad = (most - least) * PAD || Math.abs(least) * PAD || 1
-  const low = Math.max(least - pad, -Number.MAX_VALUE)
-  const high = Math.min(most + pad, Number.MAX_VALUE)
+  // The pad stops at zero for data on one side of it, so sizes and counts never go negative.
+  const low = least > 0 ? Math.max(least - pad, 0) : Math.max(least - pad, -Number.MAX_VALUE)
+  const high = most < 0 ? Math.min(most + pad, 0) : Math.min(most + pad, Number.MAX_VALUE)
   const ticks = niceTicks(low, high)
   const step = (ticks[1] as number) - (ticks[0] as number)
   const decimals = Math.min(Math.max(-Math.floor(Math.log10(step)), 0), 20)

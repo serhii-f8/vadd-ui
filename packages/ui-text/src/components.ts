@@ -173,7 +173,7 @@ const RENDERERS: Renderers = {
     const title = node.title === undefined ? [] : [para([bold(...parseInline(node.title))])]
     // B8: a leading status token is the icon already, so the tone's mark would double it.
     const tokens = parseInline(node.text)
-    const mark = tokens[0]?.type === 'status' ? '' : toneMark(node.tone)
+    const mark = parseInline(node.text.trimStart())[0]?.type === 'status' ? '' : toneMark(node.tone)
     const blocks = [...title, para(led(mark, tokens))]
     return [{ kind: 'quote', blocks }]
   },

@@ -458,6 +458,14 @@ describe('suggestions', () => {
     )
   })
 
+  it('gives the list hint to one missing field only', () => {
+    const diagnostics = node({ type: 'flow', items: [] })
+    expect(diagnostics.filter((d) => d.code === 'missing-field').map((d) => d.hint)).toEqual([
+      'flow takes "nodes", not "items"',
+      undefined,
+    ])
+  })
+
   it('keeps a near-miss hint over the list hint', () => {
     expect(node({ type: 'kv', pair: [] })[0]?.hint).toBe('did you mean "pairs" instead of "pair"?')
   })

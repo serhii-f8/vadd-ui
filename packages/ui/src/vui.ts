@@ -12,5 +12,6 @@ declare global {
 // With both bundles on one page, the `ext` one wins whichever loads first (VD-211): it always
 // takes `VUI`, the core one only an empty slot, and only the owner of `VUI` boots.
 const own = { render, version }
-if (ext || !window.VUI) window.VUI = own
+// Anything without `render` in that slot is not a bundle's, so it gives way (§9.2).
+if (ext || typeof window.VUI?.render !== 'function') window.VUI = own
 start(document, () => window.VUI === own)

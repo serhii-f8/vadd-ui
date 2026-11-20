@@ -408,10 +408,14 @@ class Walker {
         this.check(rule, value[field] as JsonValue, joinPointer(pointer, field), required, depth)
       } else if (presence === 'required') {
         const near = suggest(field, unknown)
-        if (!near && swap && LISTS.includes(field)) {
-          takes = `${value.type} takes ${quote(field)}, not ${quote(swap)}`
-        }
-        const hint = near ? `did you mean ${quote(field)} instead of ${quote(near)}?` : takes
+        // Only the first missing list field: `swap` stands in for one of them, not for all.
+        const swapped = !near && swap && takes === undefined && LISTS.includes(field)
+        if (swapped) takes = `${value.type} takes ${quote(field)}, not ${quote(swap)}`
+        const hint = near
+          ? `did you mean ${quote(field)} instead of ${quote(near)}?`
+          : swapped
+            ? takes
+            : undefined
         const message = `missing required field ${quote(field)}`
         this.report('error', pointer, 'missing-field', message, hint)
       }

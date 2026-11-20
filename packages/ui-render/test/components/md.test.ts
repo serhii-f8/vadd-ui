@@ -165,6 +165,8 @@ describe('callout', () => {
     expect(callout.querySelector('.vui-node-mark')).toBeNull()
     expect(callout.className).toBe('vui-node vui-tone-err vui-toned')
     expect(callout.querySelectorAll('.vui-status')).toHaveLength(1)
+    const spaced = typed(show([{ type: 'callout', tone: 'ok', text: '  :ok: x' }]).box, 'callout')
+    expect(spaced.querySelector('.vui-node-mark')).toBeNull()
     const later = typed(show([{ type: 'callout', tone: 'err', text: 'x :fail:' }]).box, 'callout')
     expect(later.querySelector('.vui-node-mark')).not.toBeNull()
     expect(later.className).toContain('vui-marked')
