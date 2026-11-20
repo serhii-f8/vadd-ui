@@ -221,7 +221,8 @@ async function runChecks(system: System, options: DoctorOptions): Promise<Check[
 }
 
 function lineOf({ name, status, detail, fix }: Check): string {
-  const head = `${safe(`${status.padEnd(STATUS_WIDTH)}${name}: ${detail}`)}\n`
+  // One space always follows the status, so `skipped` (longer than the column) stays readable.
+  const head = `${safe(`${status.padEnd(STATUS_WIDTH - 1)} ${name}: ${detail}`)}\n`
   return fix === undefined ? head : `${head}${' '.repeat(STATUS_WIDTH)}fix: ${safe(fix)}\n`
 }
 

@@ -234,6 +234,14 @@ describe('--quick', () => {
     })
   })
 
+  it('keeps a space between a long status and the check name', async () => {
+    const { stderr } = await vui(['doctor', '--quick'], {
+      system: wsl('mirrored', { ok: true, stdout: '200\r\n' }),
+    })
+    expect(stderr).toMatch(/^skipped windows: skipped by --quick$/m)
+    expect(stderr).toMatch(/^ok {3}node: /m)
+  })
+
   it('changes nothing outside WSL', async () => {
     const system = fakeSystem({ cwd: tempDir(), env: { ...stateHome() } })
     const { json } = await vuiJson(['doctor', '--quick'], { system })
