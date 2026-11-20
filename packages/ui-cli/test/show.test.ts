@@ -512,6 +512,41 @@ describe('the Orca pane', () => {
     expect(readViewerInfo(fixture.dir)?.browserPageId).toBe('page-1')
   })
 
+  it('moves the pane after a graceful stop (B1)', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    const first = (await showJson(fixture)).json as { url: string }
+    orca.list = () => tabs({ browserPageId: 'page-1', url: first.url })
+    await vui(['viewer', 'stop'], { system: fixture.system })
+    const { json } = await showJson(fixture)
+    expect(json).toMatchObject({ pane: 'moved', browserPageId: 'page-1' })
+  })
+
+  it('still tries to move the old pane when Orca gives no tab list (B1)', async () => {
+    const orca: OrcaScript = {}
+    const fixture = setup({ orca })
+    await showJson(fixture)
+    orca.list = () => ({ ok: false, timedOut: true })
+    await vui(['viewer', 'stop'], { system: fixture.system })
+    fixture.calls.length = 0
+    const { json } = await showJson(fixture)
+    expect(json).toMatchObject({ pane: 'moved', browserPageId: 'page-1' })
+    expect(fixture.calls.map((call) => (call[0] === 'tab' ? call[1] : call[0]))).toEqual([
+      'list',
+      'goto',
+    ])
+  })
+
+  it('opens a pane when there is no list and the old pane is gone', async () => {
+    const orca: OrcaScript = { goto: () => ({ ok: false, stdout: '{"ok":false}' }) }
+    const fixture = setup({ orca })
+    await showJson(fixture)
+    orca.list = () => ({ ok: false, timedOut: true })
+    await vui(['viewer', 'stop'], { system: fixture.system })
+    const { json } = await showJson(fixture)
+    expect(json.pane).toBe('opened')
+  })
+
   it('prints no URL for a pane it moved', async () => {
     const orca: OrcaScript = {}
     const fixture = setup({ orca })
