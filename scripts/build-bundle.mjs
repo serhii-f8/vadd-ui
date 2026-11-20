@@ -11,9 +11,10 @@
 // The Viewer's `app.js` comes last, because it bundles that `index.js` through the package's
 // `exports`, the §3 edge. It is its own file because the §15.3 CSP blocks an inline script.
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
+import { minify } from 'terser'
 import { BROWSER_TARGET } from './lib/targets.mjs'
 
 const dir = fileURLToPath(new URL('../packages/ui/', import.meta.url))
@@ -75,6 +76,21 @@ await Promise.all([
     outfile: `${dir}dist/index.js`,
   }),
 ])
+
+// VD-210: a second pass over the two boot scripts. esbuild's minifier stops at one pass, and
+// terser's compressor and mangler take about 1.6 KiB gzip more off the §9.5 budget. Same
+// syntax level as the build target (`check-targets` reads the result).
+for (const file of ['vui.min.js', 'vui-ext.min.js']) {
+  const path = `${dir}dist/${file}`
+  const { code } = await minify(readFileSync(path, 'utf8'), {
+    ecma: 2020,
+    compress: { passes: 2 },
+    mangle: true,
+    format: { comments: false, ecma: 2020 },
+  })
+  if (code === undefined) throw new Error(`terser: no output for ${file}`)
+  writeFileSync(path, code)
+}
 
 await build({
   ...shared,
