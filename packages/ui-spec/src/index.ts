@@ -29,6 +29,7 @@ export {
   type FormatSpec,
   parseFormat,
   rawText,
+  statDeltaFormat,
 } from './format-spec.js'
 export {
   type InlineToken,

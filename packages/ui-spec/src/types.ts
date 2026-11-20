@@ -217,6 +217,8 @@ export interface StatItem {
   format?: Format
   delta?: number
   deltaFormat?: Format
+  /** Which way is good for `delta`: `low` flips its tone (VD-212). Default `high`. */
+  better?: 'high' | 'low'
   tone?: Tone
   spark?: number[]
 }
@@ -286,16 +288,21 @@ export interface ChartBase extends NodeBase {
 
 export type Series = Record<string, number[]>
 
+/** A tone per series name, drawn in that tone's color (VD-213). */
+export type SeriesTones = Record<string, Tone>
+
 export interface CategoryChart extends ChartBase {
   kind: 'bar' | 'hbar' | 'stacked' | 'donut'
   x: string[]
   series: Series
+  tones?: SeriesTones
 }
 
 export interface LineChart extends ChartBase {
   kind: 'line' | 'area'
   x: string[] | number[]
   series: Series
+  tones?: SeriesTones
 }
 
 export interface SparkChart extends ChartBase {

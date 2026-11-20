@@ -306,8 +306,15 @@ export const componentTables: ComponentTable[] = [
   {
     name: 'progress',
     base: { type: 'progress', value: 1, segments: [{ value: 1, tone: 'ok', label: 'L' }] },
-    defaults: { max: 100 },
-    ok: [{ max: 10 }, { label: 'Done' }, { segments: [] }, { value: 0 }, { value: 120.5 }],
+    // VD-215: with segments and no max, max is their sum.
+    defaults: { max: 1 },
+    ok: [
+      { max: 10 },
+      { label: 'Done' },
+      { segments: [], max: 100 },
+      { value: 0 },
+      { value: 120.5 },
+    ],
     missing: ['/value', '/segments/0/value', '/segments/0/tone', '/segments/0/label'],
     errors: [
       ['/value', 'x'],

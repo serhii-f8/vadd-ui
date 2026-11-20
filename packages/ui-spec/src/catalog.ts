@@ -43,6 +43,7 @@ export const COMMON_FIELDS: readonly string[] = ['id', 'title', 'note', 'tone', 
 const COMPUTED_DEFAULTS: Record<string, string> = {
   'GridNode.cols': 'auto by child count',
   'TableNode.sticky': 'true when rows > 15',
+  'ProgressNode.max': '100, or the sum of segments',
 }
 
 /** Input forms no canonical rule holds: the normalizer's positional `stats` items (VD-164). */

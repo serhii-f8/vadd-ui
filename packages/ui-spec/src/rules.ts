@@ -90,6 +90,7 @@ const CHART_BASE: Record<string, Field> = {
 }
 
 const series = req(record(list(number)))
+const tones = opt(record(tone))
 
 const chartKind = (...kinds: string[]) => req(oneIn('a chart kind', kinds))
 
@@ -159,6 +160,7 @@ export const SHAPES: Record<string, Shape> = {
       format: opt(format),
       delta: opt(number),
       deltaFormat: opt(format),
+      better: opt(oneIn('a direction', ['high', 'low'])),
       tone: opt(tone),
       spark: opt(list(number)),
     },
@@ -196,12 +198,14 @@ export const SHAPES: Record<string, Shape> = {
     kind: chartKind('bar', 'hbar', 'stacked', 'donut'),
     x: req(list(string)),
     series,
+    tones,
   }),
   LineChart: nodeShape({
     ...CHART_BASE,
     kind: chartKind('line', 'area'),
     x: req(oneOf('labels or numbers', list(string), list(number))),
     series,
+    tones,
   }),
   SparkChart: nodeShape({ ...CHART_BASE, kind: chartKind('spark'), values: req(list(number)) }),
   ScatterChart: nodeShape({

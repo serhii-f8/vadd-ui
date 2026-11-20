@@ -26,6 +26,8 @@ export type Report = (
 ) => void
 
 const CHART_KINDS = [...CHART_SHAPES.keys()]
+/** The list fields an author mixes up between components, as `items` on a `kv` (VD-214). */
+const LISTS = ['items', 'pairs', 'rows', 'points', 'values', 'files', 'nodes']
 const FORMATS: ReadonlySet<string> = new Set(FORMAT_NAMES)
 
 function didYouMean(value: string, candidates: readonly string[]): string | undefined {
@@ -52,7 +54,7 @@ function describe(rule: Rule): string {
     case 'scalar':
       return 'a string, number, boolean or null'
     case 'enum':
-      return rule.label
+      return `${rule.label} (${rule.values.join('|')})`
     case 'array':
     case 'nested':
     case 'tuple':
@@ -394,32 +396,31 @@ class Walker {
     return undefined
   }
 
-  private missing(field: string, value: JsonObject, pointer: string, fields: Shape['fields']) {
-    const near = suggest(
-      field,
-      Object.keys(value).filter((key) => !hasOwn(fields, key)),
-    )
-    const hint = near && `did you mean ${quote(field)} instead of ${quote(near)}?`
-    const message = `missing required field ${quote(field)}`
-    this.report('error', pointer, 'missing-field', message, hint)
-  }
-
   private shape(name: string, value: JsonObject, pointer: string, depth: number): void {
     const { fields } = SHAPES[name] as Shape
+    const unknown = Object.keys(value).filter((key) => !hasOwn(fields, key))
+    // A component's list under another's name, as `items` on a `kv` (VD-214).
+    const swap = typeof value.type === 'string' ? unknown.find((key) => LISTS.includes(key)) : ''
+    let takes: string | undefined
     for (const [field, { rule, presence }] of Object.entries(fields)) {
       if (hasOwn(value, field)) {
         const required = presence === 'required'
         this.check(rule, value[field] as JsonValue, joinPointer(pointer, field), required, depth)
       } else if (presence === 'required') {
-        this.missing(field, value, pointer, fields)
+        const near = suggest(field, unknown)
+        if (!near && swap && LISTS.includes(field)) {
+          takes = `${value.type} takes ${quote(field)}, not ${quote(swap)}`
+        }
+        const hint = near ? `did you mean ${quote(field)} instead of ${quote(near)}?` : takes
+        const message = `missing required field ${quote(field)}`
+        this.report('error', pointer, 'missing-field', message, hint)
       }
     }
     const known = Object.keys(fields)
-    for (const key of Object.keys(value)) {
-      if (hasOwn(fields, key)) continue
+    for (const key of unknown) {
       const message = `unknown field ${quote(key)} is ignored`
-      const fieldPointer = joinPointer(pointer, key)
-      this.report('info', fieldPointer, 'unknown-field', message, didYouMean(key, known))
+      const hint = didYouMean(key, known) ?? (key === swap ? takes : undefined)
+      this.report('info', joinPointer(pointer, key), 'unknown-field', message, hint)
     }
     CROSS_FIELD[name]?.(this.report, value, pointer)
   }
@@ -534,6 +535,15 @@ function checkSeries(report: Report, chart: JsonObject, pointer: string) {
     report('error', seriesPointer, 'limit-chart-series', message)
   }
   if (chart.kind === 'donut') checkLength(report, entries.length, 1, seriesPointer)
+  const names = entries.map(([name]) => name)
+  if (isJsonObject(chart.tones)) {
+    for (const key of Object.keys(chart.tones)) {
+      if (names.includes(key)) continue
+      const tonePointer = joinPointer(joinPointer(pointer, 'tones'), key)
+      const message = `tones names no series ${quote(key)}`
+      report('warn', tonePointer, 'bad-ref', message, didYouMean(key, names))
+    }
+  }
   const x = asArray(chart.x)
   for (const [name, data] of entries) {
     if (!Array.isArray(data) || name.length > LIMITS.string) continue

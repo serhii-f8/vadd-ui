@@ -8,6 +8,7 @@ import {
   type JsonValue,
   parseFormat,
   parseInline,
+  statDeltaFormat,
 } from '../src/index.js'
 
 const NB = '\u00a0'
@@ -701,5 +702,24 @@ describe('checkFormat and checkValue', () => {
     const issue = checkValue(parseFormat('num'), `${'x'.repeat(500)}\n`)
     expect(issue?.message.length).toBeLessThanOrEqual(120)
     expect(issue?.message).not.toContain('\n')
+  })
+})
+
+describe('statDeltaFormat (VD-212)', () => {
+  it.each([
+    [{}, 'delta'],
+    [{ better: 'high' }, 'delta'],
+    [{ better: 'low' }, 'delta:better:low'],
+    [{ deltaFormat: 'delta:pct', better: 'low' }, 'delta:pct:better:low'],
+    [{ deltaFormat: 'delta:better:high', better: 'low' }, 'delta:better:high'],
+    [{ deltaFormat: 'pct', better: 'low' }, 'pct'],
+    [{ deltaFormat: 3, better: 'low' }, 'delta:better:low'],
+  ])('%j gives %s', (item, expected) => {
+    expect(statDeltaFormat(item)).toBe(expected)
+  })
+
+  it('flips the tone of a falling value', () => {
+    expect(formatValue(-14, statDeltaFormat({ better: 'low' })).tone).toBe('ok')
+    expect(formatValue(-14, statDeltaFormat({})).tone).toBe('err')
   })
 })
