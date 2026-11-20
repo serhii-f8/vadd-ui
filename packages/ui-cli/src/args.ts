@@ -34,7 +34,7 @@ const SPECS: Record<Exclude<Command, 'help' | 'version'>, CommandSpec> = {
     positional: 1,
   },
   viewer: { values: ['bind'], booleans: [], positional: 1 },
-  doctor: { values: [], booleans: [], positional: 0 },
+  doctor: { values: [], booleans: ['quick'], positional: 0 },
   render: { values: ['format', 'out'], booleans: ['cdn'], positional: 1 },
   validate: { values: [], booleans: ['strict'], positional: 1 },
   catalog: { values: [], booleans: [], positional: 1 },

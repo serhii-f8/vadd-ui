@@ -22,7 +22,7 @@ const USAGE = `vui: show a VUI document, or render it without a host
 
 vui show [file|-] [--title T] [--name N [--replace]] [--host auto|viewer|orca-chat|file] [--dir D] [--no-open]
 vui viewer start|stop|status|open|url [--bind A]
-vui doctor
+vui doctor [--quick]
 vui render [file|-] --format html|md|text [--out F] [--cdn]
 vui validate [file|-] [--strict]
 vui catalog [component|common|formats]
@@ -103,15 +103,23 @@ export async function render(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   }
 }
 
+/** A human reading a clean `validate` sees that it ran (task 26). */
+function okLine(diagnostics: Diagnostic[]): string {
+  const warnings = diagnostics.filter(({ severity }) => severity === 'warn').length
+  if (warnings === 0) return 'ok\n'
+  return `ok (${warnings} ${warnings === 1 ? 'warning' : 'warnings'})\n`
+}
+
 export async function validate(parsed: ParsedArgs, io: Io): Promise<Outcome> {
   const strict = parsed.flags.strict === true
   const input = await readDocument(parsed, io)
   const { diagnostics } = input.tooLarge
     ? { diagnostics: [inputTooLarge()] }
     : prepare(input.text, io.now())
+  const exit = exitCodeOf(diagnostics, strict)
   return {
-    exit: exitCodeOf(diagnostics, strict),
-    stdout: formatDiagnostics(diagnostics, { info: strict }),
+    exit,
+    stdout: `${formatDiagnostics(diagnostics, { info: strict })}${exit === EXIT.ok ? okLine(diagnostics) : ''}`,
     json: { diagnostics },
   }
 }

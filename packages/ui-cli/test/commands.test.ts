@@ -390,8 +390,27 @@ describe('output limit, in bytes', () => {
 })
 
 describe('validate', () => {
-  it('prints nothing for a clean document', async () => {
-    expect(await vui(['validate'], { stdin: CLEAN })).toEqual({ exit: 0, stdout: '', stderr: '' })
+  it('prints ok for a clean document', async () => {
+    expect(await vui(['validate'], { stdin: CLEAN })).toEqual({
+      exit: 0,
+      stdout: 'ok\n',
+      stderr: '',
+    })
+  })
+
+  it('prints ok with the warning count after the warnings', async () => {
+    const { exit, stdout } = await vui(['validate'], { stdin: WARN })
+    expect(exit).toBe(0)
+    const count = stdout.match(/^warn /gm)?.length ?? 0
+    const word = count === 1 ? 'warning' : 'warnings'
+    expect(stdout.endsWith(`\nok (${count} ${word})\n`)).toBe(true)
+  })
+
+  it('prints no ok when it fails, and keeps --json as it was', async () => {
+    expect((await vui(['validate'], { stdin: INVALID })).stdout).not.toContain('ok')
+    expect((await vui(['validate', '--strict'], { stdin: WARN })).stdout).not.toMatch(/^ok/m)
+    const { json } = await vuiJson(['validate'], { stdin: CLEAN })
+    expect(json).toEqual({ ok: true, diagnostics: [] })
   })
 
   it('reads a file', async () => {
@@ -416,7 +435,7 @@ describe('validate', () => {
   })
 
   it('shows info only with --strict, and it never fails', async () => {
-    expect((await vui(['validate'], { stdin: INFO })).stdout).toBe('')
+    expect((await vui(['validate'], { stdin: INFO })).stdout).toBe('ok\n')
     const strict = await vui(['validate', '--strict'], { stdin: INFO })
     expect(strict.exit).toBe(0)
     expect(strict.stdout).toContain('info  /body/0/nope:')
@@ -443,8 +462,9 @@ describe('validate', () => {
       })),
     })
     const lines = (await vui(['validate'], { stdin })).stdout.trimEnd().split('\n')
-    expect(lines).toHaveLength(21)
+    expect(lines).toHaveLength(22)
     expect(lines[20]).toBe('and 3970 more')
+    expect(lines[21]).toMatch(/^ok \(\d+ warnings\)$/)
   })
 
   it('shows an error found after the cap filled with warnings', async () => {
@@ -477,7 +497,7 @@ describe('validate', () => {
     const stdin = JSON.stringify({ body: [{ type: 'md', text: 'a', 'k\n\x1b[2J': 1 }] })
     const { stdout } = await vui(['validate', '--strict'], { stdin })
     // biome-ignore lint/suspicious/noControlCharactersInRegex: matching controls is the point.
-    expect(stdout.trimEnd()).not.toMatch(/[\x00-\x1f]/)
+    expect(stdout.split('\n')[0]).not.toMatch(/[\x00-\x1f]/)
     expect(stdout).toContain('k\\u000a\\u001b[2J')
   })
 
