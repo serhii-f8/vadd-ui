@@ -49,6 +49,13 @@ const COMPUTED_DEFAULTS: Record<string, string> = {
 /** Input forms no canonical rule holds: the normalizer's positional `stats` items (VD-164). */
 const INPUT_TYPES: Record<string, string> = {
   'StatsNode.items': '([label, value, format?, delta?, deltaFormat?, tone?] or StatItem)[]',
+  // The tone list is spelled out once, at `RefLine.tone`: the §14.2 budget per entry (VD-213).
+  ...Object.fromEntries(
+    ['CategoryChart', 'LineChart', 'SparkChart', 'ScatterChart'].map((shape) => [
+      `${shape}.tones`,
+      '{series: tone}',
+    ]),
+  ),
 }
 
 const HANDWRITTEN: Record<ComponentType, Handwritten> = {

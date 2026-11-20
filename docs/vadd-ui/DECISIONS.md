@@ -1704,7 +1704,7 @@ Append-only. Each entry: id, date, task, context, decision, alternatives, ration
 ## VD-213 — Charts take `tones` per series (DEVIATION from §6.4)
 - Date: 2026-11-20 · Task: 27 (B4)
 - Context: a series named `fail` drew green; series colors were palette only.
-- Decision: `tones?: Record<string, Tone>` on the series kinds (bar, hbar, stacked, line, area; donut accepts the field but ignores it, since its slices are categories, not series). A toned series' marks, legend entry and tooltip row carry the tone class in place of `data-vui-series`, so `--vui-tone-line` comes from the tone. A key that names no series is a `bad-ref` warn with a did-you-mean hint.
+- Decision: `tones?: Record<string, Tone>` is a common chart field, as `refLines` is, and colors series of bar, hbar, stacked, line and area. Donut, spark and scatter accept and ignore it (a donut's slices are categories, not series). A common field keeps the catalog's `chart` entry inside its §14.2 budget of 300 tokens (296; a per-kind field printed a kinds list and cost 331), and the catalog prints its type as `{series: tone}`, the tone values being listed once at `RefLine.tone`. A toned series' marks, legend entry and tooltip row carry the tone class in place of `data-vui-series`, so `--vui-tone-line` comes from the tone. A key that names no series is a `bad-ref` warn with a did-you-mean hint.
 
 ## VD-214 — Hints: enum values in type errors, and a list under the wrong name
 - Date: 2026-11-20 · Task: 27

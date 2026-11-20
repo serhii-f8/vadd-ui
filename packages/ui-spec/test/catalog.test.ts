@@ -50,8 +50,9 @@ describe('catalog', () => {
     })
     expect(field('chart', 'tones')).toMatchObject({
       required: false,
-      kinds: ['bar', 'hbar', 'stacked', 'donut', 'line', 'area'],
+      type: '{series: tone}',
     })
+    expect(field('chart', 'tones').kinds).toBeUndefined()
   })
 
   it('marks a required field', () => {

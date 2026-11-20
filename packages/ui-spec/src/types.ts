@@ -284,25 +284,22 @@ export interface ChartBase extends NodeBase {
   height?: 'sm' | 'md' | 'lg'
   legend?: 'auto' | 'none'
   refLines?: RefLine[]
+  /** A tone per series name, drawn in that tone's color (VD-213). Series kinds only. */
+  tones?: Record<string, Tone>
 }
 
 export type Series = Record<string, number[]>
-
-/** A tone per series name, drawn in that tone's color (VD-213). */
-export type SeriesTones = Record<string, Tone>
 
 export interface CategoryChart extends ChartBase {
   kind: 'bar' | 'hbar' | 'stacked' | 'donut'
   x: string[]
   series: Series
-  tones?: SeriesTones
 }
 
 export interface LineChart extends ChartBase {
   kind: 'line' | 'area'
   x: string[] | number[]
   series: Series
-  tones?: SeriesTones
 }
 
 export interface SparkChart extends ChartBase {
