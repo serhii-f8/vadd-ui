@@ -92,7 +92,7 @@ describe('vui doctor', () => {
       readSchema: () => '',
       system,
     })
-    expect(atProbe).toMatch(/^ok {3}node: [^]*^info {1}viewer: /m)
+    expect(atProbe).toMatch(/^ok {3}node: [\s\S]*^info {1}viewer: /m)
     expect(atProbe).not.toContain('windows')
     expect(lines.join('')).toMatch(/^ok {3}windows: /m)
   })
