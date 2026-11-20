@@ -322,7 +322,7 @@ describe('installed as a package, outside this repo', () => {
   it('finds the schema and the catalog', async () => {
     expect(JSON.parse((await installed(['schema'])).stdout).$schema).toContain('2020-12')
     const { stdout } = await installed(['catalog'])
-    expect(stdout.trimEnd().split('\n')).toHaveLength(COMPONENT_TYPES.length)
+    expect(stdout.trimEnd().split('\n')).toHaveLength(COMPONENT_TYPES.length + 1)
   })
 })
 
