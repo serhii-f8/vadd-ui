@@ -25,7 +25,7 @@ Check the setup:
 vui doctor
 ```
 
-`doctor` reports the Node version, the environment it detected (native, WSL, SSH, Orca) and whether a Viewer is running.
+`doctor` reports the Node version, the environment it detected (native, WSL, SSH, Orca) and whether a Viewer is running, one line per check as it finishes. In WSL it also asks Windows whether it can reach the Viewer, which can take 20 seconds; `vui doctor --quick` skips that probe.
 
 ## 2. Show your first document
 
@@ -47,6 +47,17 @@ The first `show` starts the Viewer, a small local server bound to `127.0.0.1`, a
 vui: shown "Hello" (#1) in viewer
 ```
 
+### Name an entry, then update it in place
+
+`--name` gives a show a stable name. On the Viewer it names the feed entry; on the file and Orca chat hosts it becomes the file name (`<name>-<hex4>.html`). Add `--replace` to update the Viewer entry with that name instead of adding a new one: the same entry, with the new content, live in the open feed. That suits progress you report again and again:
+
+```sh
+vui show --name build --replace build-status.vui   # first time: adds the entry
+vui show --name build --replace build-status.vui   # later: updates it in place
+```
+
+With no entry of that name yet, `--replace` adds one. The file and Orca chat hosts accept `--replace` and do nothing more with it.
+
 Useful Viewer commands:
 
 ```sh
@@ -63,10 +74,12 @@ You do not need to memorize fields. The CLI carries the catalog:
 ```sh
 vui catalog          # all 24 components, one line each
 vui catalog table    # fields, types, defaults and an example for one
+vui catalog common   # the fields every node takes (id, title, note, tone, span, fold) and their values
+vui catalog formats  # every value format and its argument: money:USD, delta:pct, bytes:si, ...
 vui schema           # the JSON Schema, for editors and other tools
 ```
 
-When a document is wrong, `validate` says where and suggests a fix:
+A clean document prints `ok` (with the warning count, if any). When a document is wrong, `validate` says where and suggests a fix:
 
 ```console
 $ vui validate report.vui
