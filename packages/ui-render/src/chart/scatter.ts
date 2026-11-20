@@ -30,6 +30,10 @@ const MAX_TICK = 14
 const MAX_LABEL = 32
 const MAX_DRAWN = 1000
 const MAX_TABLE_ROWS = 200
+/** B5: a share of the range each side, so no point sits on an edge of the plot. */
+const PAD = 0.05
+/** Past this many labelled points, labels stay in the tooltip and the table (B5). */
+const MAX_POINT_LABELS = 24
 
 const round = (value: number) => Math.round(value * 10) / 10
 
@@ -37,6 +41,8 @@ interface Point {
   x: number
   y: number
   label: string
+  /** The document gave the label; the others are `Point n`. */
+  named: boolean
 }
 
 interface RefLine {
@@ -51,14 +57,18 @@ function readPoints(node: JsonObject): Point[] {
     const [x, y, label] = entry
     if (!Number.isFinite(x) || !Number.isFinite(y)) return []
     const name = typeof label === 'string' ? label : `Point ${index + 1}`
-    return [{ x: x as number, y: y as number, label: name }]
+    return [{ x: x as number, y: y as number, label: name, named: typeof label === 'string' }]
   })
 }
 
-/** Ticks and the `num` places that keep them apart (§7 allows 0 to 20). */
+/** Ticks over the padded range, and the `num` places that keep them apart (§7: 0 to 20). */
 function axis(values: number[]) {
-  const low = values.reduce((least, value) => Math.min(least, value))
-  const high = values.reduce((most, value) => Math.max(most, value))
+  const least = values.reduce((low, value) => Math.min(low, value))
+  const most = values.reduce((high, value) => Math.max(high, value))
+  // Half the range past the ends of the number line would overflow, so the pad stops there.
+  const pad = (most - least) * PAD || Math.abs(least) * PAD || 1
+  const low = Math.max(least - pad, -Number.MAX_VALUE)
+  const high = Math.min(most + pad, Number.MAX_VALUE)
   const ticks = niceTicks(low, high)
   const step = (ticks[1] as number) - (ticks[0] as number)
   const decimals = Math.min(Math.max(-Math.floor(Math.log10(step)), 0), 20)
@@ -219,6 +229,27 @@ export function renderScatter(node: JsonObject, context: NodeContext): HTMLEleme
       })
       .join('')
     nodes.push(svg('path', { class: 'vui-chart-dot', d: dots, 'data-vui-series': 1 }))
+    const named = drawn.filter((index) => (points[index] as Point).named)
+    if (named.length <= MAX_POINT_LABELS) {
+      for (const index of named) {
+        const { x, y, label: text } = points[index] as Point
+        const [at, by] = [px(x), py(y)]
+        // Left of a point in the right half, so a label never runs off the plot.
+        const end = at > (left + right) / 2
+        nodes.push(
+          svg(
+            'text',
+            {
+              x: round(end ? at - 6 : at + 6),
+              y: round(by - 5),
+              'text-anchor': end ? 'end' : 'start',
+              class: 'vui-chart-point-label',
+            },
+            clip(text, MAX_LABEL),
+          ),
+        )
+      }
+    }
     marks.replaceChildren(...nodes)
     image.setAttribute('viewBox', `0 0 ${width} ${height}`)
   }

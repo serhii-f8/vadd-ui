@@ -41,6 +41,24 @@ describe('flow (§6.5)', () => {
     expect(xs[1]).toBeLessThan(xs[2] as number)
   })
 
+  it('leaves room for an edge label and its arrow between columns (B13)', () => {
+    const at = (box: Element) =>
+      all(box, 'g.vui-flow-box').map((g) =>
+        Number(/translate\(([\d.]+)/.exec(g.getAttribute('transform') ?? '')?.[1]),
+      )
+    const bare = flow({ nodes: ['a', 'b'], edges: [['a', 'b']] }).box
+    expect((at(bare)[1] as number) - (at(bare)[0] as number)).toBe(188)
+    const { box } = flow({ nodes: ['a', 'b'], edges: [['a', 'b', 'authentication']] })
+    const [from, to] = at(box) as [number, number]
+    const label = box.querySelector('.vui-flow-edge-label') as SVGGElement
+    const left = Number(/translate\(([\d.]+)/.exec(label.getAttribute('transform') ?? '')?.[1])
+    const width =
+      Number(/h([\d.]+)/.exec(label.querySelector('path')?.getAttribute('d') ?? '')?.[1]) + 16
+    // The label sits between the boxes, clear of the 6 px arrowhead at the far end.
+    expect(left).toBeGreaterThanOrEqual(from + 140)
+    expect(left + width).toBeLessThanOrEqual(to - 6)
+  })
+
   it('clips a long label and keeps the whole one in a title', () => {
     const label = 'A very long step name that will not fit'
     const { box } = flow({ nodes: [{ id: 'a', label }], edges: [] })
