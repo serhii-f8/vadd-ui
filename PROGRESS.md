@@ -3,7 +3,7 @@
 Spec: docs/specs/vadd-ui-technical-spec.md · Updated: 2026-11-15T20:35:21Z · Mode: manual
 
 ## Summary
-Done 26 / 27 · In progress: 27 · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
+Done 27 / 27 · In progress: none · Blocked: none · Next: none (version 1.0.0 and repository set, VD-188; push, tag and publish pending the user)
 
 ## Environment
 Recorded 2026-11-04 during bootstrap.
@@ -54,15 +54,20 @@ Recorded 2026-11-04 during bootstrap.
 | 24 | Design polish (renderer and Viewer) | §4.1, §6, §8.1, §9.4, §9.5, §15.2 | 23 | done | removed | ctx_f4a8b6927eb4 | [design](docs/superpowers/specs/2026-11-16-design-polish-design.md) | [plan](docs/superpowers/plans/2026-11-16-design-polish.md) | 3dca1b9 | 2026-11-16 |
 | 25 | CI green on GitHub (Linux, macOS, Windows) | §16, §16.1, §17.4 | 24 | done | removed | ctx_952c4032742e | [design](docs/superpowers/specs/2026-11-17-ci-green-design.md) | [plan](docs/superpowers/plans/2026-11-17-ci-green.md) | f828f03 | 2026-11-17 |
 | 26 | Stability fixes: Viewer, CLI and skill | §4.1, §11.1, §11.3, §11.4, §12.1, §16 | 25 | done | removed | ctx_4998d433957e | [design](docs/superpowers/specs/2026-11-20-stability-cli-design.md) | [plan](docs/superpowers/plans/2026-11-20-stability-cli.md) | 6afbde4 | 2026-11-20 |
-| 27 | Stability fixes: renderer, formats and validator | §5.4, §5.5, §6.3–6.5, §7, §8.4, §9.2, §9.3, §9.5, §13.1, §16 | 25 | in_progress | vui-27-stability-render | ctx_36815b45f8d5 | | | | |
+| 27 | Stability fixes: renderer, formats and validator | §5.4, §5.5, §6.3–6.5, §7, §8.4, §9.2, §9.3, §9.5, §13.1, §16 | 25 | done | removed | ctx_36815b45f8d5 | [design](docs/superpowers/specs/2026-11-20-stability-render-design.md) | [plan](docs/superpowers/plans/2026-11-20-stability-render.md) | 1e88dbe | 2026-11-20 |
 
 ## Current task log
 - 2026-11-20 26 selected (stability findings, VD-209)
 - 2026-11-20 27 selected (stability findings, VD-209), run in parallel with 26
 - 2026-11-20 dispatched 26 (ctx_4998d433957e, term_cdcdd94a) and 27 (ctx_36815b45f8d5, term_7bafcb23).
-- 2026-11-20 26 worker_done; merged 6afbde4, gate green on main; done The first `worktree create` calls timed out (Orca runtime_timeout) yet created both trees: 26 came up on origin/main `577584b` and was reset to main `1b05e1f` before work; 27 was not registered in Orca, so it was removed (empty) and recreated
+- 2026-11-20 26 worker_done; merged 6afbde4, gate green on main; done
+- 2026-11-20 27 worker_done; merged 1e88dbe (VD renumbered), gate green on main; done The first `worktree create` calls timed out (Orca runtime_timeout) yet created both trees: 26 came up on origin/main `577584b` and was reset to main `1b05e1f` before work; 27 was not registered in Orca, so it was removed (empty) and recreated
 
 ## Completed task reports
+### 27 — Stability fixes: renderer, formats and validator (2026-11-20, merge 1e88dbe)
+- Built: B2 the ext bundle wins when both load, in either order, and the core names the missing bundle (VD-219); B3 stat `better` (VD-220, DEVIATION); B4 chart `tones` (VD-221, DEVIATION); B5 scatter padding and labels; B6 narrow cells, break points in path/code; B7 one diagnostic per problem; B8 no doubled callout icon; B12 toggle name; B13 flow edges fit labels (VD-226); hints with enum values and `kv` pairs (VD-222); text/md charts keep data (VD-225); progress max from segments (VD-223, DEVIATION); `_italic_` at word boundaries (VD-224, DEVIATION). A second terser minify pass paid for everything (VD-218): core 38.0 → 37.3 KiB gzip.
+- Evidence: worker gate green (7590 unit, 517 e2e, 99.68% lines), `pnpm fuzz` clean, 14 baselines inspected, Orca pane check. Coordinator on main after merge: 132 files / 7671 unit, 99.64% lines, 517 e2e, all checks; first run had one timeout in `ui-text/test/safety.test.ts` "handles more items than a spread can take" under load average 32 from other projects' suites (0.9 s alone, 1.4 s under coverage); the rerun of the test, e2e and check steps was green.
+- Merge: the worker never got the "main moved" mail (Orca could not reach its conversation), so its decisions VD-210..219 were renumbered VD-218..227 at merge, in DECISIONS.md and 26 source/test files.
 ### 26 — Stability fixes: Viewer, CLI and skill (2026-11-20, merge 6afbde4)
 - Built: B1 a graceful stop retires `viewer.json` and keeps the pane id, so the next show moves the same Orca tab (VD-210); B9 theme remembered in `localStorage` (VD-211); B10 `--dir` created, I/O errors in words; B11 HEAD on every GET route; B14 cause was `doctor.test` running with no state env, vitest now forces a temp state root, and the Viewer and doctor leave no empty folder (VD-215); `vui catalog common|formats` (VD-213); `--name` documented and `--replace` updates a named entry in place (VD-212, DEVIATION §11.1); `vui doctor` streams checks and takes `--quick` (VD-214); `vui validate` prints `ok`; skill and embedding docs say ext replaces core and the CDN template needs the npm release (VD-216).
 - Evidence: worker gate green after rebase (7593 unit, 514 e2e, 99.63% lines); coordinator gate on main after merge green: 132 files / 7606 unit tests, 514 e2e, all checks; bundle unchanged (38.0 KiB gzip core); skill 1708/1710 tokens. Real Orca pane from `/var/www/html/vui-testbed`: stop → show gave `pane: moved` on the same page id repeatedly, `--replace` updated live, theme kept across reload.
