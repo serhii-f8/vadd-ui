@@ -369,6 +369,10 @@ test('a change of the OS scheme applies live, until the reader chooses', async (
   await page.emulateMedia({ colorScheme: 'light' })
   await page.emulateMedia({ colorScheme: 'dark' })
   await expect(page.locator('html')).toHaveClass('light')
+  // B9 (VD-211): the choice outlives a reload; clearing it hands the page back to the OS.
+  await page.reload()
+  await expect(page.locator('html')).toHaveClass('light')
+  await page.evaluate(() => localStorage.removeItem('vui-viewer-theme'))
   await page.reload()
   await expect(page.locator('html')).toHaveClass('dark')
 })
