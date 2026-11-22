@@ -529,9 +529,10 @@ describe('a list that takes too long', () => {
     ['decision', { question: 'q', options: many.map(({ label }) => ({ label })) }],
     ['diff', { files: many.map(({ name }) => [name, 1, 1]) }],
   ])('stops %s at a checkpoint', (type, fields) => {
+    // A second per reading: past the budget on the quarter-speed CI clock too (VD-231).
     let time = 0
     vi.spyOn(performance, 'now').mockImplementation(() => {
-      time += 100
+      time += 1_000
       return time
     })
     const { box } = show([{ type, ...fields }])

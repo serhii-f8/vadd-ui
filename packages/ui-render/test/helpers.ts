@@ -5,8 +5,15 @@ import type { Registry } from '../src/context.js'
 import { el } from '../src/el.js'
 import { createRenderer } from '../src/renderer.js'
 
-const realRender = createRenderer(COMPONENTS)
-const fullRender = createRenderer(EXT_COMPONENTS)
+// The 200 ms watchdog budget is a user-machine figure. A shared CI runner is 1 to 4 times
+// slower than a development machine (the Windows job took an md render past 200 ms that takes
+// 69 ms here), so on CI the watchdog reads a clock at quarter speed: a quadratic render still
+// trips it, a loaded runner does not. Tests of the watchdog itself pass their own clock (VD-231).
+const CI_SLOWDOWN = process.env.CI ? 4 : 1
+const clock = () => performance.now() / CI_SLOWDOWN
+
+const realRender = createRenderer(COMPONENTS, clock)
+const fullRender = createRenderer(EXT_COMPONENTS, clock)
 
 export function target(): HTMLElement {
   const element = document.createElement('div')
