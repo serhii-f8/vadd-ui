@@ -2,7 +2,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { expect, type Page, test } from '@playwright/test'
 import type { Render } from '../packages/ui/src/index.js'
 import { openVisual } from './harness/host.js'
@@ -121,7 +121,9 @@ function write(name: string, html: string): string {
   return dir
 }
 
-const fileUrl = (dir: string, name: string) => `file://${join(dir, name)}`
+// pathToFileURL, not `file://${path}`: on Windows the URL is file:///D:/a/..., with slashes (VD-232).
+const fileUrl = (dir: string, name: string) => pathToFileURL(join(dir, name)).href
+const dirUrl = (dir: string) => `${pathToFileURL(dir).href}/`
 
 async function paint(page: Page) {
   return page.evaluate(() => ({
@@ -179,7 +181,7 @@ for (const [kind, build] of Object.entries(PAGES)) {
         expect(file.paint.width).toBeGreaterThan(width - 40)
         expect(file.paint.grown).toBe(0)
         expect(seen.errors).toEqual([])
-        const allowed = [`file://${dir}/`, `http://127.0.0.1:${port}/`]
+        const allowed = [dirUrl(dir), `http://127.0.0.1:${port}/`]
         const elsewhere = seen.requests.filter(
           (url) => !allowed.some((origin) => url.startsWith(origin)),
         )
@@ -403,7 +405,7 @@ ${embedded(canonical(EXT_DOC))}
       ).toEqual(['render', 'version'])
     }
     expect(seen.errors).toEqual([])
-    expect(seen.requests.filter((url) => !url.startsWith(`file://${dir}/`))).toEqual([])
+    expect(seen.requests.filter((url) => !url.startsWith(dirUrl(dir)))).toEqual([])
   })
 
   test('the core bundle shows the §9.3 placeholder for the same document', async ({

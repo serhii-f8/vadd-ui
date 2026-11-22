@@ -53,7 +53,7 @@ ${toneCss}
 .vui-button{appearance:none;padding:var(--vui-space-1) var(--vui-space-2);border:1px solid var(--vui-border);border-radius:calc(var(--vui-radius) * .6);background:transparent;color:inherit;font:inherit;cursor:pointer}
 .vui-button:hover{background:var(--vui-accent);color:var(--vui-accent-fg)}
 .vui-fold-toggle{appearance:none;display:flex;align-items:baseline;gap:var(--vui-space-1);width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.vui-fold-icon{display:inline-block;color:var(--vui-muted-fg);font-size:.8em;transition:transform 120ms ease-out}
+.vui-fold-icon{display:inline-block;color:var(--vui-muted-fg);font-size:.8em}
 .vui-fold-toggle[aria-expanded="true"] .vui-fold-icon{transform:rotate(90deg)}
 .vui-fold-body[hidden]{display:none}
 .vui-fold-opening{animation:vui-reveal 120ms ease-out}
