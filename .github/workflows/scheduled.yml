@@ -41,6 +41,7 @@ jobs:
         env:
           ORCA_CLI_BUILD_COMPILER: tsrs
         run: |
+          mkdir -p "$RUNNER_TEMP/corepack"
           corepack enable --install-directory "$RUNNER_TEMP/corepack"
           export PATH="$RUNNER_TEMP/corepack:$PATH"
           pnpm install --frozen-lockfile --ignore-scripts
