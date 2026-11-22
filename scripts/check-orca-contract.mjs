@@ -34,6 +34,35 @@ function flag(name) {
 }
 
 /**
+ * Orca's sources import packages (zod, ...) that a bare checkout does not install. The check
+ * reads only literal constants, so every bare package import resolves to a permissive stub:
+ * a Proxy that any property access, call or `new` returns again, enough for top-level schema
+ * definitions such as `z.object({ ... })` to evaluate (VD-229). esbuild's CJS interop copies
+ * only own names onto an object whose prototype it reads from the module, so the stub reports
+ * itself as its prototype and every named import (`z`, ...) still reaches it.
+ *
+ * @type {import('esbuild').Plugin}
+ */
+const stubPackages = {
+  name: 'stub-packages',
+  setup(build) {
+    build.onResolve({ filter: /^[^./]/ }, (args) =>
+      args.path.startsWith('node:') ? undefined : { path: args.path, namespace: 'stub' },
+    )
+    build.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
+      loader: 'js',
+      contents: `const stub = new Proxy(function () {}, {
+  get: (_, key) => (key === Symbol.toPrimitive ? () => '' : key === 'then' ? undefined : stub),
+  apply: () => stub,
+  construct: () => stub,
+  getPrototypeOf: () => stub,
+})
+module.exports = stub`,
+    }))
+  },
+}
+
+/**
  * Bundles TypeScript sources into one module and imports it, so neither side needs a build.
  *
  * @param {string[]} files
@@ -48,6 +77,7 @@ async function load(files) {
     platform: 'node',
     write: false,
     logLevel: 'silent',
+    plugins: [stubPackages],
   })
   const code = result.outputFiles[0]?.text ?? ''
   return import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)

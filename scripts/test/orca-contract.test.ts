@@ -164,6 +164,24 @@ describe('check-orca-contract.mjs', () => {
     expect(code).toBe(0)
   })
 
+  it('reads the constants when an imported Orca module needs a package the checkout lacks', () => {
+    // Orca's directive imports WEBHOOK_HOOK_ID_PATTERN from a zod-based contract, and the
+    // workflow checks Orca out without installing its dependencies.
+    const root = orcaTree()
+    writeFileSync(
+      join(root, 'src/shared/connector-webhook-contract.ts'),
+      "import { z } from 'zod'\nexport const Hook = z.object({ id: z.string().regex(/x/) })\nexport const WEBHOOK_HOOK_ID_PATTERN = /^[a-z]+$/\n",
+    )
+    const file = join(root, DIRECTIVE)
+    writeFileSync(
+      file,
+      `import { WEBHOOK_HOOK_ID_PATTERN } from '../../connector-webhook-contract'\nexport const HOOK = WEBHOOK_HOOK_ID_PATTERN\n${readFileSync(file, 'utf8')}`,
+    )
+    const { code, out } = run('check-orca-contract.mjs', '--orca', root)
+    expect(out).toContain('check-orca-contract: 10 constants and 27 skill tokens match')
+    expect(code).toBe(0)
+  })
+
   it('fails, naming the file, when Orca moves the sources again', () => {
     const root = orcaTree()
     const visuals = join(root, 'src/shared/native-chat/visuals')
