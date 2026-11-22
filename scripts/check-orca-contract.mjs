@@ -8,7 +8,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { isAbsolute, join } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 import { finish } from './lib/cli.mjs'
@@ -72,7 +72,8 @@ module.exports = stub`,
  * @returns {Promise<Record<string, unknown>>}
  */
 async function load(files) {
-  const contents = files.map((file) => `export * from ${JSON.stringify(file)}`).join('\n')
+  // Absolute, or the package stub below would take a relative `orca/src/...` for a package.
+  const contents = files.map((file) => `export * from ${JSON.stringify(resolve(file))}`).join('\n')
   const result = await build({
     stdin: { contents, resolveDir: process.cwd(), loader: 'ts' },
     bundle: true,

@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import {
   cpSync,
   mkdirSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ORCA_THEME_TOKENS } from '../../packages/ui-spec/src/host/orca.js'
 import {
@@ -180,6 +181,19 @@ describe('check-orca-contract.mjs', () => {
     const { code, out } = run('check-orca-contract.mjs', '--orca', root)
     expect(out).toContain('check-orca-contract: 10 constants and 27 skill tokens match')
     expect(code).toBe(0)
+  })
+
+  it('reads a checkout given as a relative path, as the scheduled workflow passes it', () => {
+    const root = orcaTree()
+    const result = spawnSync(
+      process.execPath,
+      [`${repoRoot}scripts/check-orca-contract.mjs`, '--orca', basename(root)],
+      { cwd: dirname(root), encoding: 'utf8' },
+    )
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      'check-orca-contract: 10 constants and 27 skill tokens match',
+    )
+    expect(result.status).toBe(0)
   })
 
   it('fails, naming the file, when Orca moves the sources again', () => {
