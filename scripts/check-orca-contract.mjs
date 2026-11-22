@@ -8,7 +8,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 import { finish } from './lib/cli.mjs'
@@ -46,8 +46,11 @@ function flag(name) {
 const stubPackages = {
   name: 'stub-packages',
   setup(build) {
+    // `^[^./]` also matches a Windows absolute path (`D:\a\...`), which is a source file.
     build.onResolve({ filter: /^[^./]/ }, (args) =>
-      args.path.startsWith('node:') ? undefined : { path: args.path, namespace: 'stub' },
+      args.path.startsWith('node:') || isAbsolute(args.path)
+        ? undefined
+        : { path: args.path, namespace: 'stub' },
     )
     build.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
       loader: 'js',

@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { readViewerInfo, stateDirOf, workspaceHash } from '@vadd/ui-viewer'
 import { afterEach, describe, expect, it } from 'vitest'
 import { NO_READONLY_DIRS } from '../../ui-viewer/test/platform.js'
@@ -66,6 +66,8 @@ function setup(options: { orca?: OrcaScript; env?: NodeJS.ProcessEnv } = {}): Fi
   if (script !== undefined) {
     env.PATH = '/bin'
     fake.files = { '/bin/orca-ide': '' }
+    // A fake Linux PATH: the native join would look for \bin\orca-ide on Windows.
+    fake.pathJoin = posix.join
     const open: { browserPageId: string; url: string }[] = []
     fake.exec = (_file, args) => {
       calls.push([...args])
