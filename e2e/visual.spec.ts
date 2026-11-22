@@ -27,6 +27,10 @@ async function open(page: Page, name: string, scheme: Scheme, width: number) {
       }
     })
     await settled(opened)
+    // settled() waits for the height, not the 120 ms reveal; axe would read text mid-fade (VD-230).
+    await opened.frame.evaluate(() =>
+      Promise.all(document.getAnimations().map((animation) => animation.finished)),
+    )
   }
   return opened
 }

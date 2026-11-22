@@ -36,6 +36,10 @@ jobs:
           node-version: 24
       - name: Build Orca's CLI
         working-directory: orca
+        # --ignore-scripts skips Bun's binary download, which Orca's default CLI compiler needs;
+        # Orca's own fallback compiler builds the same out/cli (VD-230).
+        env:
+          ORCA_CLI_BUILD_COMPILER: tsrs
         run: |
           corepack enable --install-directory "$RUNNER_TEMP/corepack"
           export PATH="$RUNNER_TEMP/corepack:$PATH"

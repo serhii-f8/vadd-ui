@@ -37,6 +37,11 @@ const alias = Object.fromEntries([
 const stateRoot = mkdtempSync(join(tmpdir(), 'vui-test-state-'))
 const stateEnv = { XDG_STATE_HOME: stateRoot, LOCALAPPDATA: stateRoot }
 
+// GitHub's Windows and macOS runners, and the gate job under coverage, take several tests that
+// spawn processes or sweep 2000 cases to 4.7-5.5 s. On CI the per-test timeout guards a hang,
+// not speed; locally the 5 s default keeps a slow test visible (VD-230).
+const testTimeout = process.env.CI ? 30_000 : 5_000
+
 // What the bundle build defines, from the same manifest. At the transform, since Vitest
 // turns a plain `define` into a global that these workers do not see.
 const { version } = JSON.parse(
@@ -105,6 +110,7 @@ export default defineConfig({
           exclude: [...configDefaults.exclude, 'packages/ui-viewer/test/app/**'],
           environment: 'node',
           env: stateEnv,
+          testTimeout,
         },
       },
       {
@@ -118,6 +124,7 @@ export default defineConfig({
           ],
           environment: 'jsdom',
           env: { ...stateEnv, VUI_REACT_MAJOR: '19' },
+          testTimeout,
         },
       },
       {
@@ -128,6 +135,7 @@ export default defineConfig({
           include: ['packages/ui-react/test/**/*.test.{ts,tsx}'],
           environment: 'jsdom',
           env: { ...stateEnv, VUI_REACT_MAJOR: '18' },
+          testTimeout,
         },
       },
     ],
